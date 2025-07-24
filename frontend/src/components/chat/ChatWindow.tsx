@@ -183,8 +183,8 @@ export function ChatWindow({ dealId, conversationId, className, onAddToMemo }: C
     { icon: TrendingUp, label: 'Competition', action: () => handleQuickAction(`Analyze ${projectName}'s competitive landscape and key competitors`) },
     { icon: Shield, label: 'Risks', action: () => handleQuickAction(`What are the main investment risks for ${projectName}?`) },
     { icon: Users, label: 'Team', action: () => handleQuickAction(`Evaluate ${projectName}'s team and leadership`) },
-    { icon: BarChart3, label: 'Market', action: () => handleQuickAction(`Analyze ${projectName}'s market size and opportunity`) },
-    { icon: FileText, label: 'Memo', action: () => handleQuickAction(`Generate an investment memo for ${projectName}`) },
+    { icon: BarChart3, label: 'Market', action: () => handleQuickAction(`Latest market developments for ${projectName}`) },
+    { icon: FileText, label: 'Deep Research', action: () => handleQuickAction(`Conduct comprehensive due diligence research on ${projectName}`) },
   ]
 
   const handleQuickAction = (action: string) => {

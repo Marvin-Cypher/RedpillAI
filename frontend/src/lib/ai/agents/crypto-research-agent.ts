@@ -1,4 +1,5 @@
 import { RedpillAIProvider } from "../redpill-provider"
+import { WebResearchAgent } from "./web-research-agent"
 
 export interface ResearchState {
   query: string
@@ -12,9 +13,49 @@ export interface ResearchState {
 
 export class CryptoResearchAgent {
   private aiProvider: RedpillAIProvider
+  private webResearchAgent: WebResearchAgent
 
   constructor(apiKey: string) {
     this.aiProvider = new RedpillAIProvider(apiKey)
+    this.webResearchAgent = new WebResearchAgent(apiKey)
+  }
+
+  private async gatherWebResearch(state: ResearchState): Promise<Partial<ResearchState>> {
+    console.log(`🌐 Gathering web research for: ${state.query}`)
+    
+    try {
+      // Use web research agent to get real-time information
+      const webResearch = await this.webResearchAgent.researchCryptoProject(
+        state.project || state.query,
+        ['news', 'technical', 'funding', 'partnerships']
+      )
+
+      const webContext = `**Recent Web Research (${webResearch.lastUpdated}):**
+
+${webResearch.summary}
+
+**Key Findings:**
+${webResearch.keyFindings.map(finding => `• ${finding}`).join('\n')}
+
+**Sources (${webResearch.sources.length}):**
+${webResearch.sources.slice(0, 5).map(source => `• ${source.title} - ${source.url}`).join('\n')}
+
+**Research Confidence:** ${webResearch.confidence}
+`
+
+      return {
+        context: [...state.context, webContext],
+        step: "Web research completed"
+      }
+    } catch (error) {
+      console.error('Web research failed:', error)
+      
+      // Continue without web research
+      return {
+        context: [...state.context, "⚠️ Web research temporarily unavailable - proceeding with knowledge-based analysis"],
+        step: "Web research failed, continuing with knowledge base"
+      }
+    }
   }
 
   private async gatherContext(state: ResearchState): Promise<Partial<ResearchState>> {

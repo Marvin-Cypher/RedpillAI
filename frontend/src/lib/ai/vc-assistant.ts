@@ -1,4 +1,5 @@
 import { CryptoResearchAgent } from "./agents/crypto-research-agent"
+import { DeepResearchAgent } from "./agents/deep-research-agent"
 import { CoinGeckoService } from "../services/coingecko"
 import { RedpillAIProvider } from "./redpill-provider"
 
@@ -24,12 +25,18 @@ export interface StreamingCallback {
 
 export class VCAssistant {
   private researchAgent: CryptoResearchAgent
+  private deepResearchAgent: DeepResearchAgent
   private coinGeckoService: CoinGeckoService
   private apiKey: string
 
   constructor(apiKey: string, coinGeckoApiKey: string) {
     this.apiKey = apiKey
     this.researchAgent = new CryptoResearchAgent(apiKey)
+    this.deepResearchAgent = new DeepResearchAgent(apiKey, {
+      maxIterations: 4,
+      maxSources: 15,
+      confidenceThreshold: 0.7
+    })
     this.coinGeckoService = new CoinGeckoService(coinGeckoApiKey)
   }
 
@@ -43,6 +50,13 @@ export class VCAssistant {
       if (this.isMarketDataQuery(message)) {
         const projectName = projectId ? await this.getProjectName(projectId) : undefined
         return await this.handleMarketDataQuery(message, projectName)
+      }
+
+      // Check for deep research queries first
+      if (this.isDeepResearchQuery(message)) {
+        const projectName = projectId ? await this.getProjectName(projectId) : undefined
+        const researchQuery = projectName ? `${message} ${projectName}` : message
+        return await this.handleDeepResearch(researchQuery, projectName)
       }
 
       // Determine if this is a research query
@@ -109,6 +123,20 @@ For now, I can help with basic information about crypto projects and VCs. Please
     return researchKeywords.some(keyword => lowerMessage.includes(keyword))
   }
 
+  private isDeepResearchQuery(message: string): boolean {
+    const deepResearchKeywords = [
+      "comprehensive analysis", "due diligence", "investment memo",
+      "research report", "market intelligence", "competitive analysis",
+      "deep dive", "thorough investigation", "full analysis",
+      "detailed report", "complete assessment", "latest news",
+      "recent developments", "current status", "market update"
+    ]
+    
+    const lowerMessage = message.toLowerCase()
+    return deepResearchKeywords.some(keyword => lowerMessage.includes(keyword)) ||
+           (lowerMessage.includes("latest") || lowerMessage.includes("recent") || lowerMessage.includes("current"))
+  }
+
   private isMarketDataQuery(message: string): boolean {
     const marketKeywords = [
       "price", "market cap", "volume", "trading", "liquidity",
@@ -118,6 +146,63 @@ For now, I can help with basic information about crypto projects and VCs. Please
     
     const lowerMessage = message.toLowerCase()
     return marketKeywords.some(keyword => lowerMessage.includes(keyword))
+  }
+
+  private async handleDeepResearch(query: string, projectName?: string): Promise<string> {
+    try {
+      console.log(`🔬 Conducting deep research for: "${query}"`)
+      
+      const researchState = await this.deepResearchAgent.conductDeepResearch(
+        query,
+        (state) => {
+          console.log(`📊 Research progress: ${this.deepResearchAgent.getProgressSummary(state)}`)
+        }
+      )
+
+      // Format the research results for VC context
+      let report = `# Deep Research Report\n\n**Query:** ${query}\n\n`
+      
+      if (researchState.synthesis) {
+        report += `${researchState.synthesis}\n\n`
+      }
+
+      if (researchState.findings.length > 0) {
+        report += `## Key Research Findings\n\n`
+        researchState.findings.forEach((finding, idx) => {
+          report += `${idx + 1}. ${finding}\n`
+        })
+        report += `\n`
+      }
+
+      if (researchState.sources_cited.length > 0) {
+        report += `## Sources\n\n`
+        report += `*Research based on ${researchState.search_results.length} sources with ${Math.round(researchState.confidence_score * 100)}% confidence*\n\n`
+        
+        researchState.search_results.slice(0, 8).forEach((source, idx) => {
+          report += `${idx + 1}. [${source.title}](${source.url}) - ${source.source}\n`
+        })
+      }
+
+      report += `\n*Research completed: ${new Date().toLocaleString()}*`
+
+      return report
+
+    } catch (error) {
+      console.error('Deep research failed:', error)
+      return `I attempted to conduct comprehensive research on "${query}" but encountered technical difficulties. 
+
+Here's what I can tell you based on my knowledge base:
+
+${projectName ? `${projectName} is a cryptocurrency project that I can analyze using available information.` : 'I can provide general analysis based on available information.'}
+
+For the most current information, you might want to:
+- Check recent news sources directly
+- Review the project's official documentation
+- Look at recent funding announcements
+- Examine community discussions and social media
+
+Please try your query again, or ask me to focus on specific aspects I can analyze with available data.`
+    }
   }
 
   private async handleMarketDataQuery(message: string, projectName?: string): Promise<string> {
