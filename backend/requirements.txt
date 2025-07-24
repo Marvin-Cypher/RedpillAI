@@ -1,0 +1,55 @@
+# FastAPI and ASGI
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Database
+sqlmodel==0.0.14
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Redis for caching
+redis==5.0.1
+hiredis==2.2.3
+
+# Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# Validation and settings
+pydantic==2.5.2
+pydantic-settings==2.1.0
+
+# HTTP client for external APIs
+httpx==0.25.2
+aiofiles==23.2.1
+
+# AI and ML
+openai==1.6.1
+langchain>=0.0.335,<0.0.336
+langchain-openai==0.0.2
+pinecone-client==3.0.0
+tiktoken==0.5.2
+
+# Multi-agent framework
+crewai==0.1.0
+
+# Document processing
+unstructured[all-docs]==0.11.8
+pypdf==3.17.4
+python-docx==1.1.0
+
+# Utilities
+python-json-logger==2.0.7
+loguru==0.7.2
+python-dotenv==1.0.0
+
+# Development
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.11.0
+isort==5.12.0
+mypy==1.7.1
+
+# WebSocket support
+websockets==12.0
