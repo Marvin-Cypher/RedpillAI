@@ -205,9 +205,10 @@ export function ChatWindow({ dealId, conversationId, className, onAddToMemo }: C
     setInput('')
     setIsLoading(true)
 
+    let response: Response | undefined
     try {
       // Send message to AI API
-      const response = await fetch('/api/chat', {
+      response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
