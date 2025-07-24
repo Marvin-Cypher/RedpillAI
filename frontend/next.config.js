@@ -12,8 +12,8 @@ const nextConfig = {
       },
     ],
   },
-  // Remove experimental.appDir as it's default in Next.js 14
-  // Remove env.CUSTOM_KEY as it was causing warnings
+  // Optimize for Vercel deployment
+  swcMinify: true,
   
   // Only use rewrites if we have a separate backend deployment
   // For Vercel, we'll use API routes instead
