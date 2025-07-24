@@ -291,11 +291,26 @@ If specific market data isn't available, use your knowledge of crypto projects a
 
   private async getProjectName(projectId: string): Promise<string | undefined> {
     // In a real implementation, this would query the database
-    // For now, try to get from localStorage or return a generic name
+    // For now, try to get from localStorage or use mock data
     try {
       const projects = JSON.parse(localStorage.getItem('projects') || '[]')
       const project = projects.find((p: any) => p.id === projectId)
-      return project?.company_name || project?.name || `Project ${projectId}`
+      if (project?.company_name || project?.name) {
+        return project.company_name || project.name
+      }
+      
+      // Fallback to mock project data for demo
+      const mockProjects: Record<string, string> = {
+        "1": "LayerZero",
+        "2": "Celestia", 
+        "3": "Monad Labs",
+        "4": "Eigenlayer",
+        "5": "Babylon",
+        "6": "Berachain",
+        "7": "Scroll"
+      }
+      
+      return mockProjects[projectId] || `Project ${projectId}`
     } catch (error) {
       // Fallback to generic project name
       return `Project ${projectId}`

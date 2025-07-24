@@ -216,11 +216,12 @@ Provide only the research steps, one per line, without numbering or explanations
    */
   private async executeSearch(state: ResearchState): Promise<ResearchState> {
     if (state.current_step >= state.research_plan.length) {
+      console.log('✅ All search steps completed, moving to analysis')
       return { ...state, next_action: 'analyze' }
     }
 
     const currentQuery = state.research_plan[state.current_step]
-    console.log(`🔍 Searching: "${currentQuery}"`)
+    console.log(`🔍 Deep Research Search Step ${state.current_step + 1}/${state.research_plan.length}: "${currentQuery}"`)
 
     try {
       const results = await this.searchService.search(currentQuery, {
@@ -228,16 +229,27 @@ Provide only the research steps, one per line, without numbering or explanations
         timeRange: 'month'
       })
 
+      console.log(`📊 Search results for "${currentQuery}": ${results.length} sources found`)
+      
+      if (results.length > 0) {
+        results.forEach((result, idx) => {
+          console.log(`   ${idx + 1}. ${result.title} - ${result.source}`)
+        })
+      }
+
       const newResults = this.deduplicateResults([...state.search_results, ...results])
+      const nextStep = state.current_step + 1
+
+      console.log(`📈 Total sources collected: ${newResults.length} (${results.length} new)`)
 
       return {
         ...state,
         search_results: newResults,
-        current_step: state.current_step + 1,
-        next_action: state.current_step + 1 >= state.research_plan.length ? 'analyze' : 'search'
+        current_step: nextStep,
+        next_action: nextStep >= state.research_plan.length ? 'analyze' : 'search'
       }
     } catch (error) {
-      console.error('Search execution failed:', error)
+      console.error(`❌ Search execution failed for "${currentQuery}":`, error)
       return {
         ...state,
         current_step: state.current_step + 1,
