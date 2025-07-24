@@ -93,16 +93,24 @@ export class CoinGeckoService {
   private async request<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
     const url = new URL(`${this.baseUrl}${endpoint}`)
     
-    // Add API key to params
+    // Add API key to params for query string
     params.x_cg_demo_api_key = this.apiKey
     
     Object.entries(params).forEach(([key, value]) => {
       url.searchParams.append(key, value)
     })
 
-    const response = await fetch(url.toString())
+    // Also add API key to headers as backup
+    const headers = {
+      'Accept': 'application/json',
+      'x-cg-demo-api-key': this.apiKey
+    }
+
+    const response = await fetch(url.toString(), { headers })
     
     if (!response.ok) {
+      console.error(`CoinGecko API error: ${response.status} ${response.statusText}`)
+      console.error(`URL: ${url.toString()}`)
       throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`)
     }
 
