@@ -1,0 +1,9 @@
+# Vercel ignore file
+# Don't upload these files to Vercel
+
+node_modules
+.next
+.env.local
+.env
+*.log
+.DS_Store
