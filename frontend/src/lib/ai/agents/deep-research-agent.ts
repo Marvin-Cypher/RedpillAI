@@ -34,10 +34,10 @@ export class DeepResearchAgent {
     this.searchService = new SearchService()
     this.aiProvider = new RedpillAIProvider(aiApiKey)
     this.config = {
-      maxIterations: config.maxIterations || 5,
-      maxSources: config.maxSources || 20,
-      confidenceThreshold: config.confidenceThreshold || 0.7,
-      enableIterativeRefinement: config.enableIterativeRefinement ?? true
+      maxIterations: config.maxIterations || 3, // Reduced from 5 to prevent timeouts
+      maxSources: config.maxSources || 12, // Reduced from 20 
+      confidenceThreshold: config.confidenceThreshold || 0.6, // Lowered threshold
+      enableIterativeRefinement: config.enableIterativeRefinement ?? false // Disabled for speed
     }
   }
 
@@ -47,10 +47,23 @@ export class DeepResearchAgent {
   async conductDeepResearch(
     query: string, 
     onProgress?: (state: ResearchState) => void,
+    onStepUpdate?: (step: { type: string, title: string, content: string, status: string, reasoning?: string }) => void,
+    timeoutMs: number = 45000 // 45 second timeout to prevent Vercel issues
+  ): Promise<ResearchState> {
+    console.log(`🔬 Starting deep research for: "${query}" (timeout: ${timeoutMs}ms)`)
+
+    // Wrap the entire research in a timeout
+    return Promise.race([
+      this.performResearch(query, onProgress, onStepUpdate),
+      this.createTimeoutPromise(timeoutMs, query)
+    ])
+  }
+
+  private async performResearch(
+    query: string,
+    onProgress?: (state: ResearchState) => void,
     onStepUpdate?: (step: { type: string, title: string, content: string, status: string, reasoning?: string }) => void
   ): Promise<ResearchState> {
-    console.log(`🔬 Starting deep research for: "${query}"`)
-
     // Initialize research state
     let state: ResearchState = {
       query,
@@ -166,49 +179,74 @@ export class DeepResearchAgent {
   }
 
   /**
-   * Step 1: Create a structured research plan
+   * Timeout handler to prevent Vercel function timeouts
+   */
+  private createTimeoutPromise(timeoutMs: number, query: string): Promise<ResearchState> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.warn(`⏰ Research timeout after ${timeoutMs}ms for query: "${query}"`)
+        resolve({
+          query,
+          research_plan: [`${query} quick summary`],
+          current_step: 1,
+          search_results: [],
+          findings: ['Research timed out - providing quick analysis based on available knowledge'],
+          synthesis: `Quick analysis of "${query}": Research was cut short due to time constraints. This query requires more investigation time. Please try with a more specific question or check back for detailed analysis.`,
+          confidence_score: 0.3,
+          sources_cited: [],
+          next_action: 'complete',
+          iteration_count: 1,
+          max_iterations: 3
+        })
+      }, timeoutMs)
+    })
+  }
+
+  /**
+   * Step 1: Create a structured research plan (optimized for speed)
    */
   private async planResearch(state: ResearchState): Promise<ResearchState> {
     console.log('📋 Planning research approach...')
 
-    const planningPrompt = `As an expert research strategist, create a comprehensive research plan for this query: "${state.query}"
-
-Generate 4-6 specific research steps that will provide thorough coverage. Each step should be a focused search query or research angle.
-
-Examples of good research steps:
-- "Company X funding history and investors"
-- "Company X technology architecture and innovations" 
-- "Company X competitive landscape and market position"
-- "Company X team background and leadership"
-- "Company X recent partnerships and developments"
-
-Provide only the research steps, one per line, without numbering or explanations.`
-
-    try {
-      const response = await this.aiProvider.chat([
-        { role: "developer", content: "You are an expert research strategist who plans thorough, systematic investigations." },
-        { role: "user", content: planningPrompt }
-      ])
-
-      const researchPlan = response.content
-        .split('\n')
-        .map(step => step.replace(/^\d+\.?\s*/, '').trim())
-        .filter(step => step.length > 10)
-        .slice(0, 6)
-
-      return {
-        ...state,
-        research_plan: researchPlan.length > 0 ? researchPlan : [state.query],
-        next_action: 'search'
-      }
-    } catch (error) {
-      console.error('Research planning failed:', error)
-      return {
-        ...state,
-        research_plan: [state.query],
-        next_action: 'search'
-      }
+    // Use a faster, more direct approach for research planning
+    const quickPlan = this.generateQuickResearchPlan(state.query)
+    
+    return {
+      ...state,
+      research_plan: quickPlan,
+      next_action: 'search'
     }
+  }
+
+  /**
+   * Generate research plan without AI call for speed
+   */
+  private generateQuickResearchPlan(query: string): string[] {
+    const lowerQuery = query.toLowerCase()
+    
+    // Extract project/company name if possible
+    const projectMatch = query.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g)
+    const projectName = projectMatch?.[0] || 'the project'
+    
+    const basePlans = [
+      `${projectName} latest news and developments`,
+      `${projectName} funding and investment information`,
+      `${projectName} technology and product updates`,
+    ]
+    
+    // Add specific focus based on query type
+    if (lowerQuery.includes('due diligence') || lowerQuery.includes('comprehensive')) {
+      basePlans.push(`${projectName} team and leadership analysis`)
+      basePlans.push(`${projectName} competitive landscape`)
+    } else if (lowerQuery.includes('funding') || lowerQuery.includes('investment')) {
+      basePlans.push(`${projectName} venture capital investors`)
+      basePlans.push(`${projectName} valuation and market cap`)
+    } else if (lowerQuery.includes('technical') || lowerQuery.includes('technology')) {
+      basePlans.push(`${projectName} technical architecture`)
+      basePlans.push(`${projectName} development roadmap`)
+    }
+    
+    return basePlans.slice(0, 3) // Limit to 3 for speed
   }
 
   /**

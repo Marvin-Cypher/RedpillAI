@@ -48,8 +48,8 @@ export class WebResearchAgent {
         
         allResults.push(...results)
         
-        // Add delay to avoid rate limiting
-        await this.delay(500)
+        // Reduced delay to speed up research
+        await this.delay(200)
       }
 
       // Step 3: Deduplicate and rank results
@@ -105,7 +105,7 @@ export class WebResearchAgent {
           timeRange: 'month'
         })
         allResults.push(...results)
-        await this.delay(300)
+        await this.delay(200)
       } catch (error) {
         console.warn(`Failed to search for: ${query}`, error)
       }
