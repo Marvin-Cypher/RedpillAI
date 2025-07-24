@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# RedpillAI - AI-Powered Crypto VC CRM
+Sitemap: https://your-domain.vercel.app/sitemap.xml
