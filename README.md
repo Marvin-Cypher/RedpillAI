@@ -126,6 +126,26 @@ npm run dev
 
 Visit `http://localhost:3000` to access the application.
 
+## 🌐 Deploy to Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Marvin-Cypher/RedpillAI&project-name=redpillai&repository-name=RedpillAI&root-directory=frontend&env=REDPILL_AI_API_KEY,COINGECKO_API_KEY,NEXTAUTH_SECRET&envDescription=Required%20API%20keys%20for%20RedpillAI)
+
+### ⚠️ Important: Avoid 404 Errors
+**Root Directory MUST be set to `frontend`** - this is the most common deployment issue.
+
+### Quick Vercel Deployment Steps:
+1. Click the "Deploy with Vercel" button above
+2. **Verify Root Directory is set to `frontend`** 
+3. Add environment variables:
+   - `REDPILL_AI_API_KEY` - Get from [redpill.ai](https://redpill.ai)
+   - `COINGECKO_API_KEY` - Get from [coingecko.com/api](https://coingecko.com/api)
+   - `NEXTAUTH_SECRET` - Generate with `openssl rand -base64 32`
+   - `NEXTAUTH_URL` - Your Vercel app URL (e.g., `https://your-app.vercel.app`)
+4. Deploy!
+
+🔧 **Getting 404 errors?** See [VERCEL_DEPLOY.md](VERCEL_DEPLOY.md)  
+📖 **Detailed deployment guide:** [DEPLOYMENT.md](DEPLOYMENT.md)
+
 ## 📖 Usage Guide
 
 ### Creating Your First Project
