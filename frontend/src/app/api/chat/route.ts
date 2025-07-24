@@ -93,11 +93,34 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Chat API error:', error)
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('Error type:', typeof error)
+    console.error('Error name:', error instanceof Error ? error.name : 'Unknown')
+    
+    // Check if it's a specific AI provider error
+    let errorMessage = 'Failed to process chat request'
+    let errorDetails = 'Unknown error'
+    
+    if (error instanceof Error) {
+      errorDetails = error.message
+      
+      if (error.message.includes('AI request failed')) {
+        errorMessage = 'AI service is temporarily unavailable'
+        errorDetails = 'The AI provider returned an error. Please try again in a moment.'
+      } else if (error.message.includes('fetch')) {
+        errorMessage = 'Unable to connect to AI service'
+        errorDetails = 'Network connection to AI provider failed.'
+      } else if (error.message.includes('API key')) {
+        errorMessage = 'Authentication error'
+        errorDetails = 'Invalid or missing API key for AI service.'
+      }
+    }
+    
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Failed to process chat request',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage,
+        details: errorDetails,
+        timestamp: new Date().toISOString()
       },
       { status: 500 }
     )

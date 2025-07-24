@@ -239,10 +239,27 @@ export function ChatWindow({ dealId, conversationId, className, onAddToMemo }: C
       }
     } catch (error) {
       console.error('Chat error:', error)
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error')
+      console.error('Response status:', response?.status)
+      // Response already parsed as JSON, cannot read text again
+      
+      let errorContent = 'I apologize, but I encountered an error processing your request. Please try again.'
+      
+      // Provide more specific error messages based on the error type
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        errorContent = 'Unable to connect to the AI service. Please check your internet connection and try again.'
+      } else if (response?.status === 401) {
+        errorContent = 'Authentication failed. Please check the API key configuration.'
+      } else if (response?.status === 429) {
+        errorContent = 'Rate limit exceeded. Please wait a moment and try again.'
+      } else if (response?.status === 500) {
+        errorContent = 'Server error occurred. The AI service might be temporarily unavailable.'
+      }
+      
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'I apologize, but I encountered an error processing your request. Please try again.',
+        content: errorContent,
         timestamp: new Date(),
         metadata: {
           type: 'general'
