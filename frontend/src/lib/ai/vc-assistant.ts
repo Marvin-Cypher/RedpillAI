@@ -126,43 +126,47 @@ For now, I can help with basic information about crypto projects and VCs. Please
     }
 
     try {
-      // Search for the token on CoinGecko
-      const searchResults = await this.coinGeckoService.searchTokens(projectName)
-      
-      if (searchResults.length === 0) {
-        return `I couldn't find market data for ${projectName} on CoinGecko. This might be a private/unlisted project or the name doesn't match CoinGecko's database.`
+      // First try to get CoinGecko data, but don't fail if it's unavailable
+      let marketDataSummary = ""
+      try {
+        const searchResults = await this.coinGeckoService.searchTokens(projectName)
+        
+        if (searchResults.length > 0) {
+          const tokenId = searchResults[0].id
+          const tokenInfo = await this.coinGeckoService.getTokenInfo(tokenId)
+          
+          if (tokenInfo) {
+            const formattedData = this.coinGeckoService.formatTokenDataForVC(tokenInfo)
+            marketDataSummary = this.coinGeckoService.generateVCSummary(tokenId, formattedData)
+          }
+        }
+      } catch (coinGeckoError) {
+        console.log("CoinGecko unavailable, proceeding without market data:", coinGeckoError)
+        marketDataSummary = "*Market data from CoinGecko is currently unavailable*"
       }
 
-      const tokenId = searchResults[0].id
-      const tokenInfo = await this.coinGeckoService.getTokenInfo(tokenId)
-      
-      if (!tokenInfo) {
-        return `Found ${projectName} but couldn't retrieve detailed market data.`
-      }
-
-      const formattedData = this.coinGeckoService.formatTokenDataForVC(tokenInfo)
-      const summary = this.coinGeckoService.generateVCSummary(tokenId, formattedData)
-
-      // Use AI to analyze the data in context of the user's question
+      // Always provide analysis even without CoinGecko data
       const analysisPrompt = `
 User Question: ${message}
 
-Market Data for ${projectName}:
-${summary}
+Project: ${projectName}
 
-Project Description: ${formattedData.overview}
+${marketDataSummary ? `Market Data:\n${marketDataSummary}` : "Market data is currently unavailable, so please focus on fundamental analysis."}
 
-As a crypto VC analyst, provide insights based on this market data and the user's specific question. Focus on:
-- Investment implications of the current metrics
-- How this data affects the investment thesis
-- Any red flags or positive signals from the data
-- Comparison with typical metrics for this stage/sector
+As a crypto VC analyst, provide insights about ${projectName} based on the user's question. Focus on:
+- Investment thesis and fundamentals
+- Project positioning in the crypto ecosystem
+- Technology and team assessment
+- Market opportunity and competition
+- Risk factors and due diligence considerations
+
+If specific market data isn't available, use your knowledge of crypto projects and VC analysis principles.
 `
 
       // Create a temporary instance to analyze market data
       const aiProvider = new RedpillAIProvider(this.apiKey)
       const response = await aiProvider.chat([
-        { role: "system", content: "You are an expert crypto VC analyst specializing in market data interpretation for investment decisions." },
+        { role: "system", content: "You are an expert crypto VC analyst. You can analyze projects with or without real-time market data by focusing on fundamentals, technology, team, and market positioning." },
         { role: "user", content: analysisPrompt }
       ])
 
@@ -170,7 +174,7 @@ As a crypto VC analyst, provide insights based on this market data and the user'
 
     } catch (error) {
       console.error("Market data query error:", error)
-      return `I encountered an error retrieving market data for ${projectName}. Please try again or ask about other aspects of the project.`
+      return `I can still help analyze ${projectName} from a VC perspective. What specific aspects would you like me to focus on? (team, technology, market opportunity, competitive landscape, etc.)`
     }
   }
 
@@ -195,18 +199,16 @@ As a crypto VC analyst, provide insights based on this market data and the user'
   }
 
   private async getProjectName(projectId: string): Promise<string | undefined> {
-    // Mock project lookup - in real implementation, this would query the database
-    const mockProjects: Record<string, string> = {
-      "1": "LayerZero",
-      "2": "Celestia", 
-      "3": "Monad Labs",
-      "4": "Eigenlayer",
-      "5": "Babylon",
-      "6": "Berachain",
-      "7": "Scroll"
+    // In a real implementation, this would query the database
+    // For now, try to get from localStorage or return a generic name
+    try {
+      const projects = JSON.parse(localStorage.getItem('projects') || '[]')
+      const project = projects.find((p: any) => p.id === projectId)
+      return project?.company_name || project?.name || `Project ${projectId}`
+    } catch (error) {
+      // Fallback to generic project name
+      return `Project ${projectId}`
     }
-    
-    return mockProjects[projectId]
   }
 
   private async generalChat(message: string, history: Message[]): Promise<string> {

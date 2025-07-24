@@ -165,12 +165,26 @@ export function ChatWindow({ dealId, conversationId, className, onAddToMemo }: C
     scrollToBottom()
   }, [messages])
 
+  // Get dynamic project name for personalized prompts
+  const getProjectName = () => {
+    if (!dealId) return 'this project'
+    try {
+      const projects = JSON.parse(localStorage.getItem('projects') || '[]')
+      const project = projects.find((p: any) => p.id === dealId)
+      return project?.company_name || project?.name || 'this project'
+    } catch {
+      return 'this project'
+    }
+  }
+
+  const projectName = getProjectName()
+
   const quickActions = [
-    { icon: TrendingUp, label: 'Competition', action: () => handleQuickAction('Analyze competitive landscape') },
-    { icon: Shield, label: 'Risks', action: () => handleQuickAction('What are the main risks?') },
-    { icon: Users, label: 'Team', action: () => handleQuickAction('Evaluate the team') },
-    { icon: BarChart3, label: 'Market', action: () => handleQuickAction('Market size analysis') },
-    { icon: FileText, label: 'Memo', action: () => handleQuickAction('Generate investment memo') },
+    { icon: TrendingUp, label: 'Competition', action: () => handleQuickAction(`Analyze ${projectName}'s competitive landscape and key competitors`) },
+    { icon: Shield, label: 'Risks', action: () => handleQuickAction(`What are the main investment risks for ${projectName}?`) },
+    { icon: Users, label: 'Team', action: () => handleQuickAction(`Evaluate ${projectName}'s team and leadership`) },
+    { icon: BarChart3, label: 'Market', action: () => handleQuickAction(`Analyze ${projectName}'s market size and opportunity`) },
+    { icon: FileText, label: 'Memo', action: () => handleQuickAction(`Generate an investment memo for ${projectName}`) },
   ]
 
   const handleQuickAction = (action: string) => {
@@ -386,14 +400,14 @@ export function ChatWindow({ dealId, conversationId, className, onAddToMemo }: C
           <div className="flex items-center space-x-2 text-xs mb-2">
             <span className="text-gray-500">Ask about:</span>
             <button 
-              onClick={() => handleQuickAction('How does this compare to our Polygon investment?')}
+              onClick={() => handleQuickAction(`How does ${projectName} compare to similar projects in our portfolio?`)}
               className="text-blue-400 hover:text-blue-300"
             >
               Compare to portfolio
             </button>
             <span className="text-gray-600">•</span>
             <button 
-              onClick={() => handleQuickAction('What questions should I ask founders?')}
+              onClick={() => handleQuickAction(`What key questions should I ask the ${projectName} founders in our next meeting?`)}
               className="text-blue-400 hover:text-blue-300"
             >
               Meeting prep
