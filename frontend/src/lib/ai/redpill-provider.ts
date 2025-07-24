@@ -35,13 +35,9 @@ export class RedpillAIProvider {
       const content = choice?.message?.content || ""
       const reasoningContent = (choice?.message as any)?.reasoning_content || ""
       
-      // Combine reasoning and content if both are present
-      const fullContent = reasoningContent ? 
-        `**Reasoning:** ${reasoningContent}\n\n**Answer:** ${content}` : 
-        content
-
       return {
-        content: fullContent,
+        content: content,
+        reasoning_content: reasoningContent,
         usage: completion.usage,
         model: completion.model,
       }

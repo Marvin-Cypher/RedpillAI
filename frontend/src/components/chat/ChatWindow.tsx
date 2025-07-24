@@ -19,6 +19,7 @@ import {
   Plus
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ThoughtProcess, useThoughtProcess, createThoughtStepsFromResearch } from './ThoughtProcess'
 
 interface Message {
   id: string
@@ -123,7 +124,9 @@ export function ChatWindow({ dealId, conversationId, className, onAddToMemo }: C
   const [messages, setMessages] = useState<Message[]>(mockMessages)
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [showThoughts, setShowThoughts] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { steps: thoughtSteps, addStep: addThoughtStep, updateStep: updateThoughtStep, clearSteps: clearThoughtSteps, isActive: isThinking } = useThoughtProcess()
 
   // Load conversation-specific messages when conversationId changes
   useEffect(() => {
@@ -202,8 +205,28 @@ export function ChatWindow({ dealId, conversationId, className, onAddToMemo }: C
     }
 
     setMessages(prev => [...prev, userMessage])
+    const messageText = input.trim()
     setInput('')
     setIsLoading(true)
+    clearThoughtSteps()
+
+    // Check if this is a deep research query to show thought process
+    const isDeepResearch = messageText.toLowerCase().includes('comprehensive') || 
+                          messageText.toLowerCase().includes('due diligence') ||
+                          messageText.toLowerCase().includes('latest') ||
+                          messageText.toLowerCase().includes('recent') ||
+                          messageText.toLowerCase().includes('deep research')
+    
+    if (isDeepResearch) {
+      setShowThoughts(true)
+      // Add initial thinking step
+      addThoughtStep({
+        type: 'reasoning',
+        title: 'Understanding Query',
+        content: 'Analyzing your request to determine the best research approach...',
+        status: 'active'
+      })
+    }
 
     let response: Response | undefined
     try {
@@ -214,7 +237,7 @@ export function ChatWindow({ dealId, conversationId, className, onAddToMemo }: C
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: userMessage.content,
+          message: messageText,
           projectId: dealId,
           conversationHistory: messages,
           stream: false
@@ -345,6 +368,15 @@ export function ChatWindow({ dealId, conversationId, className, onAddToMemo }: C
                 <div>Memory: Encrypted | Network: Isolated</div>
               </div>
             </div>
+          )}
+
+          {/* Chain of Thought Process */}
+          {showThoughts && thoughtSteps.length > 0 && (
+            <ThoughtProcess 
+              steps={thoughtSteps} 
+              isActive={isThinking} 
+              className="mb-4" 
+            />
           )}
 
           {messages.map((message) => (

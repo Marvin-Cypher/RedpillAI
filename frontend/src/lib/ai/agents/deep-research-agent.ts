@@ -46,7 +46,8 @@ export class DeepResearchAgent {
    */
   async conductDeepResearch(
     query: string, 
-    onProgress?: (state: ResearchState) => void
+    onProgress?: (state: ResearchState) => void,
+    onStepUpdate?: (step: { type: string, title: string, content: string, status: string, reasoning?: string }) => void
   ): Promise<ResearchState> {
     console.log(`🔬 Starting deep research for: "${query}"`)
 
@@ -66,8 +67,22 @@ export class DeepResearchAgent {
     }
 
     // Step 1: Plan the research
+    onStepUpdate?.({
+      type: 'reasoning',
+      title: 'Planning Research Strategy',
+      content: 'Analyzing query and generating focused research plan...',
+      status: 'active'
+    })
+    
     state = await this.planResearch(state)
     onProgress?.(state)
+    
+    onStepUpdate?.({
+      type: 'reasoning', 
+      title: 'Research Plan Created',
+      content: `Generated ${state.research_plan.length} targeted research queries`,
+      status: 'complete'
+    })
 
     // Execute research workflow
     while (state.next_action !== 'complete' && state.iteration_count < state.max_iterations) {
@@ -75,16 +90,58 @@ export class DeepResearchAgent {
       
       switch (state.next_action) {
         case 'search':
+          onStepUpdate?.({
+            type: 'search',
+            title: `Search Step ${state.current_step + 1}`,
+            content: `Searching: "${state.research_plan[state.current_step] || 'Research query'}"`,
+            status: 'active'
+          })
           state = await this.executeSearch(state)
+          onStepUpdate?.({
+            type: 'search',
+            title: `Search Completed`,
+            content: `Found ${state.search_results.length} total sources`,
+            status: 'complete'
+          })
           break
         case 'analyze':
+          onStepUpdate?.({
+            type: 'analysis',
+            title: 'Analyzing Sources',
+            content: `Processing ${state.search_results.length} sources for key insights...`,
+            status: 'active'
+          })
           state = await this.analyzeResults(state)
+          onStepUpdate?.({
+            type: 'analysis',
+            title: 'Analysis Complete',
+            content: `Extracted ${state.findings.length} key findings with ${Math.round(state.confidence_score * 100)}% confidence`,
+            status: 'complete'
+          })
           break
         case 'refine':
+          onStepUpdate?.({
+            type: 'reasoning',
+            title: 'Refining Research',
+            content: 'Confidence below threshold, generating additional queries...',
+            status: 'active'
+          })
           state = await this.refineResearch(state)
           break
         case 'synthesize':
+          onStepUpdate?.({
+            type: 'synthesis',
+            title: 'Synthesizing Report',
+            content: 'Creating comprehensive research summary and recommendations...',
+            status: 'active'
+          })
           state = await this.synthesizeFindings(state)
+          onStepUpdate?.({
+            type: 'synthesis',
+            title: 'Research Complete',
+            content: 'Comprehensive research report generated with executive summary',
+            status: 'complete'
+          })
           break
       }
 

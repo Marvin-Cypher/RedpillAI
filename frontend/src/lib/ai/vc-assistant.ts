@@ -43,7 +43,8 @@ export class VCAssistant {
   async chat(
     message: string, 
     projectId?: string, 
-    conversationHistory: Message[] = []
+    conversationHistory: Message[] = [],
+    onStepUpdate?: (step: any) => void
   ): Promise<string> {
     try {
       // Check if this is a market data query
@@ -56,7 +57,7 @@ export class VCAssistant {
       if (this.isDeepResearchQuery(message)) {
         const projectName = projectId ? await this.getProjectName(projectId) : undefined
         const researchQuery = projectName ? `${message} ${projectName}` : message
-        return await this.handleDeepResearch(researchQuery, projectName)
+        return await this.handleDeepResearch(researchQuery, projectName, onStepUpdate)
       }
 
       // Determine if this is a research query
@@ -148,7 +149,11 @@ For now, I can help with basic information about crypto projects and VCs. Please
     return marketKeywords.some(keyword => lowerMessage.includes(keyword))
   }
 
-  private async handleDeepResearch(query: string, projectName?: string): Promise<string> {
+  private async handleDeepResearch(
+    query: string, 
+    projectName?: string,
+    onStepUpdate?: (step: any) => void
+  ): Promise<string> {
     try {
       console.log(`🔬 Conducting deep research for: "${query}"`)
       
@@ -156,7 +161,8 @@ For now, I can help with basic information about crypto projects and VCs. Please
         query,
         (state) => {
           console.log(`📊 Research progress: ${this.deepResearchAgent.getProgressSummary(state)}`)
-        }
+        },
+        onStepUpdate
       )
 
       // Format the research results for VC context
