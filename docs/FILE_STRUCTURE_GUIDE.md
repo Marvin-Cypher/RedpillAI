@@ -1,14 +1,26 @@
 # 📁 File Structure & Organization Guide
 **RedPill VC CRM - Complete Directory Layout and Purpose**
 
+Last Updated: January 2025
+
 ## 🎯 Project Root Structure
 
 ```
 redpill-project/
-├── 📋 CLAUDE.md                          # Claude AI context & quick reference
+├── 📋 CLAUDE.md                          # Claude AI context & work memories
+├── 📋 README.md                          # Project introduction
 ├── 📋 PRODUCT_REQUIREMENTS_DOCUMENT.md   # Product vision & requirements
 ├── 📋 TECHNICAL_ARCHITECTURE_GUIDE.md    # System architecture overview
-├── 📋 README.md                          # Project introduction
+├── 📋 THREE_PILLAR_ARCHITECTURE_COMPLETE.md  # Three-pillar integration guide
+├── 📋 THREE_PILLAR_PLATFORM_STATUS.md    # Platform integration status
+├── 📋 DESIGN_SYSTEM_DOCUMENTATION.md     # UI/UX design system
+├── 📋 SETUP_GUIDE.md                     # Project setup instructions
+├── 📋 QUICK_API_SETUP.md                 # Quick API key configuration
+├── 📋 QUICK_REFERENCE.md                 # Quick command reference
+├── 📋 LOCAL_SERVER_GUIDE.md              # Local development guide
+├── 📋 API_KEYS_SETUP.md                  # API keys configuration guide
+├── 📋 DEPLOYMENT.md                      # Deployment instructions
+├── 📋 CONTRIBUTING.md                    # Contribution guidelines
 ├── 
 ├── 🗂️ docs/                              # 📚 COMPLETE KNOWLEDGE BASE
 │   ├── 🔥 COMPLETE_DEVELOPER_ONBOARDING.md  # PRIMARY - Full system context
@@ -17,253 +29,273 @@ redpill-project/
 │   ├── 🔥 FILE_STRUCTURE_GUIDE.md           # This file - directory guide
 │   ├── PROJECT_STATUS.md                    # Current project status
 │   ├── DEVELOPMENT_GUIDE.md                 # Development workflows
+│   ├── architecture.md                      # Detailed architecture docs
 │   └── archive/                             # Historical & obsolete code
-│       ├── obsolete-code/                   # Old implementations (Suna, etc.)
+│       ├── obsolete-code/                   # Old implementations
 │       └── superseded-architectures/        # Previous architectural attempts
 │
 ├── 🖥️ backend/                            # FastAPI Backend
 │   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py                         # FastAPI application entry point
+│   │   ├── config.py                       # System configuration
+│   │   ├── database.py                     # Database connection & setup
+│   │   ├── seed_data.py                    # Database seeding script
+│   │   │
 │   │   ├── api/                            # REST API endpoints
-│   │   │   ├── 🔥 ai_chat.py              # NEW - Unified AI chat endpoint
-│   │   │   ├── chat.py                     # Legacy chat (deprecated)
+│   │   │   ├── __init__.py
+│   │   │   ├── 🔥 ai_chat.py              # Unified AI chat endpoint
+│   │   │   ├── chat.py                     # Legacy chat endpoint
 │   │   │   ├── companies.py                # Company management
 │   │   │   ├── deals.py                    # Deal pipeline
 │   │   │   ├── auth.py                     # Authentication
-│   │   │   ├── market.py                   # Market data
+│   │   │   ├── market.py                   # Market data integration
 │   │   │   ├── portfolio.py                # Portfolio management
 │   │   │   └── workflows.py                # Workflow automation
-│   │   ├── services/                       # Business logic
-│   │   │   ├── 🔥 ai_service.py           # NEW - Simplified AI service
-│   │   │   ├── coingecko_service.py        # Market data
-│   │   │   ├── openbb_service.py           # Financial data
-│   │   │   └── workflow_service.py         # Workflow management
-│   │   ├── models/                         # Database models
+│   │   │
+│   │   ├── models/                         # SQLModel database models
+│   │   │   ├── __init__.py
 │   │   │   ├── companies.py                # Company entities
 │   │   │   ├── deals.py                    # Deal entities
 │   │   │   ├── conversations.py            # AI chat sessions
 │   │   │   ├── users.py                    # User management
+│   │   │   ├── portfolio.py                # Portfolio entities
 │   │   │   └── workflows.py                # Workflow entities
-│   │   ├── core/                           # Core utilities
-│   │   │   └── auth.py                     # Authentication logic
-│   │   ├── 🔥 config.py                   # System configuration (NO hardcoded keys!)
-│   │   ├── database.py                     # Database connection
-│   │   └── main.py                         # FastAPI application
+│   │   │
+│   │   ├── services/                       # Business logic layer
+│   │   │   ├── 🔥 ai_service.py           # AI provider integration
+│   │   │   ├── coingecko_service.py        # CoinGecko market data
+│   │   │   ├── openbb_service.py           # OpenBB financial data
+│   │   │   ├── openproject_service.py      # OpenProject integration
+│   │   │   └── workflow_service.py         # Workflow automation
+│   │   │
+│   │   └── core/                           # Core utilities
+│   │       ├── __init__.py
+│   │       └── auth.py                     # JWT authentication logic
+│   │
 │   ├── alembic/                            # Database migrations
-│   ├── requirements-minimal.txt            # Essential dependencies
-│   └── requirements.txt                    # Full dependencies
+│   │   └── env.py                          # Alembic configuration
+│   │
+│   ├── requirements.txt                    # Python dependencies
+│   ├── requirements-minimal.txt            # Minimal dependencies
+│   ├── test_api_keys.py                    # API key testing script
+│   └── Dockerfile.dev                      # Development container
 │
-├── 🌐 frontend/                           # Next.js Frontend
+├── 🎨 frontend/                            # Next.js Frontend
 │   ├── src/
-│   │   ├── app/                           # Next.js 14 App Router
-│   │   │   ├── 🔥 layout.tsx             # Root layout with UnifiedAISystem
-│   │   │   ├── page.tsx                   # Home page
-│   │   │   ├── 🔥 dashboard/              # Dashboard with unified AI
-│   │   │   ├── 🔥 portfolio/              # Portfolio with unified AI
-│   │   │   ├── 🔥 dealflow/               # Deal flow with unified AI
-│   │   │   ├── companies/                 # Company management
-│   │   │   ├── deals/                     # Deal management
-│   │   │   ├── ai-chat/                   # Dedicated AI chat page
-│   │   │   └── api/                       # API routes
-│   │   ├── components/                    # React components
-│   │   │   ├── 🔥 ai/                     # UNIFIED AI SYSTEM
-│   │   │   │   ├── 🔥 UnifiedAISystem.tsx    # Core context provider
-│   │   │   │   ├── 🔥 OpenResearchCanvas.tsx # Main chat interface
-│   │   │   │   ├── 🔥 UnifiedAIButtons.tsx   # Entry point buttons
-│   │   │   │   ├── index.ts                  # Clean exports
-│   │   │   │   └── [legacy]/                 # Old components (reference only)
-│   │   │   ├── layout/                    # Layout components
-│   │   │   ├── deals/                     # Deal management UI
-│   │   │   ├── portfolio/                 # Portfolio UI
-│   │   │   ├── chat/                      # Chat utilities
-│   │   │   └── ui/                        # Shadcn/UI components
-│   │   ├── lib/                           # Utilities & services
-│   │   │   ├── ai/                        # AI-related utilities
-│   │   │   ├── services/                  # API clients
-│   │   │   └── utils.ts                   # Helper functions
-│   │   └── types/                         # TypeScript type definitions
-│   ├── package.json                       # Dependencies & scripts
-│   └── next.config.js                     # Next.js configuration
+│   │   ├── app/                            # Next.js App Router pages
+│   │   │   ├── layout.tsx                  # Root layout
+│   │   │   ├── page.tsx                    # Landing page
+│   │   │   ├── providers.tsx               # Context providers
+│   │   │   ├── globals.css                 # Global styles
+│   │   │   │
+│   │   │   ├── dashboard/                  # Dashboard page
+│   │   │   │   └── page.tsx
+│   │   │   ├── portfolio/                  # Portfolio management
+│   │   │   │   ├── page.tsx                # Portfolio list
+│   │   │   │   └── [companyId]/           # Company detail pages
+│   │   │   │       ├── page.tsx            # Company overview
+│   │   │   │       └── deal/              # Deal management
+│   │   │   │           └── page.tsx        # Deal detail page
+│   │   │   ├── dealflow/                   # Deal pipeline
+│   │   │   │   └── page.tsx
+│   │   │   ├── companies/                  # Company management
+│   │   │   │   └── new/
+│   │   │   │       └── page.tsx
+│   │   │   ├── deals/                      # Deal creation
+│   │   │   │   └── new/
+│   │   │   │       └── page.tsx
+│   │   │   ├── workflow/                   # Workflow automation
+│   │   │   │   └── page.tsx
+│   │   │   ├── history/                    # Activity history
+│   │   │   │   └── page.tsx
+│   │   │   ├── mvp/                        # MVP demo page
+│   │   │   │   └── page.tsx
+│   │   │   ├── ai-chat/                    # Standalone AI chat
+│   │   │   │   └── page.tsx
+│   │   │   ├── ai-demo/                    # AI demo page
+│   │   │   │   └── page.tsx
+│   │   │   │
+│   │   │   └── api/                        # API routes
+│   │   │       ├── chat/                   # Chat endpoint
+│   │   │       │   └── route.ts
+│   │   │       ├── ai-chat/                # AI chat endpoint
+│   │   │       │   └── route.ts
+│   │   │       ├── search/                 # Search endpoint
+│   │   │       │   └── route.ts
+│   │   │       └── copilotkit/             # CopilotKit integration
+│   │   │           └── route.ts
+│   │   │
+│   │   ├── components/                     # React components
+│   │   │   ├── ai/                         # 🔥 AI Components (Unified System)
+│   │   │   │   ├── index.ts                # AI component exports
+│   │   │   │   ├── 🔥 UnifiedAISystem.tsx  # Core AI context provider
+│   │   │   │   ├── 🔥 OpenResearchCanvas.tsx # Research interface
+│   │   │   │   ├── 🔥 UnifiedAIButtons.tsx # AI action buttons
+│   │   │   │   ├── 🔥 ChatHistory.tsx      # Chat history viewer
+│   │   │   │   ├── EnhancedAIChat.tsx      # Enhanced chat UI
+│   │   │   │   ├── AgenticChatInterface.tsx # Agent-based chat
+│   │   │   │   ├── ResearchCanvasAI.tsx    # Research canvas
+│   │   │   │   ├── SearchInterface.tsx     # Search UI
+│   │   │   │   ├── AIProvider.tsx          # Legacy AI provider
+│   │   │   │   ├── AIButton.tsx            # Legacy AI button
+│   │   │   │   └── [other AI components]   # Various AI UI components
+│   │   │   │
+│   │   │   ├── chat/                       # Chat components
+│   │   │   │   ├── ChatWindow.tsx          # Main chat window
+│   │   │   │   ├── ThoughtProcess.tsx      # AI thinking display
+│   │   │   │   ├── ConversationSidebar.tsx # Chat sidebar
+│   │   │   │   └── openbb-chat.tsx         # OpenBB chat integration
+│   │   │   │
+│   │   │   ├── deals/                      # Deal management
+│   │   │   │   ├── DealPipeline.tsx        # Kanban pipeline
+│   │   │   │   ├── SimplifiedDealCard.tsx  # Deal card component
+│   │   │   │   ├── CompactDealCard.tsx     # Compact deal view
+│   │   │   │   ├── StatusSelector.tsx      # Deal status selector
+│   │   │   │   └── NewProjectModal.tsx     # New project modal
+│   │   │   │
+│   │   │   ├── portfolio/                  # Portfolio components
+│   │   │   │   └── portfolio-manager.tsx   # Portfolio management
+│   │   │   │
+│   │   │   ├── project/                    # Project detail components
+│   │   │   │   ├── ProjectDetail.tsx       # Project details view
+│   │   │   │   ├── DocumentUpload.tsx      # Document management
+│   │   │   │   └── EditableProjectData.tsx # Editable fields
+│   │   │   │
+│   │   │   ├── layout/                     # Layout components
+│   │   │   │   ├── AppLayout.tsx           # Main app layout
+│   │   │   │   ├── Navigation.tsx          # Navigation menu
+│   │   │   │   ├── Sidebar.tsx             # Sidebar component
+│   │   │   │   ├── Header.tsx              # Header component
+│   │   │   │   └── ResponsiveLayout.tsx    # Responsive wrapper
+│   │   │   │
+│   │   │   ├── ui/                         # Shadcn/UI components
+│   │   │   │   ├── button.tsx
+│   │   │   │   ├── card.tsx
+│   │   │   │   ├── input.tsx
+│   │   │   │   ├── tabs.tsx
+│   │   │   │   ├── badge.tsx
+│   │   │   │   ├── scroll-area.tsx
+│   │   │   │   └── [other UI components]
+│   │   │   │
+│   │   │   ├── theme/                      # Theme management
+│   │   │   │   ├── ThemeProvider.tsx       # Theme context
+│   │   │   │   └── ThemeToggle.tsx         # Theme switcher
+│   │   │   │
+│   │   │   └── [other component folders]   # Various feature components
+│   │   │
+│   │   ├── lib/                            # Utility libraries
+│   │   │   ├── ai/                         # AI utilities
+│   │   │   │   ├── agents/                 # AI agents
+│   │   │   │   │   ├── deep-research-agent.ts
+│   │   │   │   │   ├── web-research-agent.ts
+│   │   │   │   │   └── crypto-research-agent.ts
+│   │   │   │   ├── vc-assistant.ts         # VC-specific AI logic
+│   │   │   │   ├── redpill-provider.ts     # RedPill AI provider
+│   │   │   │   ├── openbb-assistant.ts     # OpenBB integration
+│   │   │   │   └── quick-research-agent.ts # Quick research logic
+│   │   │   │
+│   │   │   ├── services/                   # Service layer
+│   │   │   │   ├── ai-service.ts           # AI service wrapper
+│   │   │   │   ├── search-service.ts       # Search functionality
+│   │   │   │   └── coingecko.ts            # Market data service
+│   │   │   │
+│   │   │   ├── integrations/               # Third-party integrations
+│   │   │   │   ├── agent-openbb-bridge.ts  # AG-UI to OpenBB bridge
+│   │   │   │   └── three-pillar-bridge.ts  # Three-pillar integration
+│   │   │   │
+│   │   │   ├── 🔥 companyDatabase.ts       # Local company storage
+│   │   │   ├── 🔥 dealStatusSync.ts        # Deal status sync logic
+│   │   │   ├── api.ts                      # API client utilities
+│   │   │   └── utils.ts                    # General utilities
+│   │   │
+│   │   └── types/                          # TypeScript types
+│   │       └── index.ts                    # Type definitions
+│   │
+│   ├── public/                             # Static assets
+│   ├── package.json                        # NPM dependencies
+│   ├── tsconfig.json                       # TypeScript config
+│   ├── tailwind.config.js                  # Tailwind CSS config
+│   ├── next.config.js                      # Next.js config
+│   ├── vercel.json                         # Vercel deployment
+│   └── AI_INTERFACE_UPGRADE.md             # AI interface documentation
 │
-├── 🗄️ database/                          # Database setup
-│   └── init.sql                           # Initial database schema
-│
-└── 🛠️ scripts/                           # Utility scripts
-    ├── start-services.sh                  # Start all services
-    ├── stop-services.sh                   # Stop all services
-    └── health-check.sh                    # System health check
+├── 🐳 docker-compose.yml                   # Docker services config
+├── 📄 .env.example                         # Environment variables template
+├── 📄 .gitignore                           # Git ignore rules
+└── 🔧 .claude/                             # Claude AI settings
+    └── settings.local.json                 # Local Claude settings
 ```
 
-## 🔥 Critical Files for AI Chat System
+## 🔥 Key Files & Their Purpose
 
-### Frontend - Unified AI System
-```
-frontend/src/components/ai/
-├── 🎯 UnifiedAISystem.tsx     # Global context provider - CORE OF EVERYTHING
-├── 🎯 OpenResearchCanvas.tsx  # Main UI - Sidebar → Fullscreen pattern
-├── 🎯 UnifiedAIButtons.tsx    # Entry points - All AI buttons across platform
-├── 🎯 index.ts               # Clean exports - Import from here
-├── AIProvider.tsx            # Legacy - kept for reference
-├── EnhancedAIChat.tsx        # Legacy - superseded by unified system
-└── [other legacy files]     # Historical implementations
-```
+### Core Documentation
+- **CLAUDE.md**: Work memories and context for Claude AI
+- **PRODUCT_REQUIREMENTS_DOCUMENT.md**: Complete product vision
+- **TECHNICAL_ARCHITECTURE_GUIDE.md**: System design and architecture
+- **docs/COMPLETE_DEVELOPER_ONBOARDING.md**: Primary developer reference
+- **docs/AI_CHAT_ARCHITECTURE.md**: Deep dive into AI system implementation
 
-### Backend - AI Service Layer
-```
-backend/app/
-├── api/ai_chat.py            # 🎯 NEW API endpoint - POST /chat/ai-chat
-├── services/ai_service.py    # 🎯 AI logic - OpenAI client + Redpill integration  
-├── config.py                 # 🎯 Settings - NEVER hardcode API keys here!
-└── models/conversations.py   # Chat session storage
-```
+### Backend Key Files
+- **backend/app/api/ai_chat.py**: New unified AI chat endpoint
+- **backend/app/services/ai_service.py**: AI provider integration (RedPill + OpenAI)
+- **backend/app/models/conversations.py**: Chat session persistence
+- **backend/app/config.py**: Environment configuration (uses .env)
 
-### Pages Using Unified System
-```
-frontend/src/app/
-├── layout.tsx               # 🎯 Wraps entire app with UnifiedAISystem
-├── dashboard/page.tsx       # ✅ Updated - ChatWithAIButton in header
-├── portfolio/page.tsx       # ✅ Updated - AI buttons on cards & header
-├── dealflow/page.tsx        # ✅ Updated - Unified chat throughout
-└── [company]/page.tsx       # ✅ Updated - Company-specific AI context
-```
+### Frontend Key Files
+- **frontend/src/components/ai/UnifiedAISystem.tsx**: Core AI state management
+- **frontend/src/components/ai/OpenResearchCanvas.tsx**: Research interface
+- **frontend/src/components/ai/ChatHistory.tsx**: Session history viewer
+- **frontend/src/lib/companyDatabase.ts**: Local company data management
+- **frontend/src/lib/dealStatusSync.ts**: Deal status synchronization
 
-## 📚 Documentation Hierarchy
+## 📝 File Naming Conventions
 
-### 🔥 Priority Documentation (READ FIRST)
-1. **`docs/COMPLETE_DEVELOPER_ONBOARDING.md`** - Complete system knowledge
-2. **`docs/TECHNICAL_MEMORY.md`** - All decisions and problem-solving context
-3. **`docs/AI_CHAT_ARCHITECTURE.md`** - Technical deep-dive into AI system
-4. **`CLAUDE.md`** - Quick reference for Claude AI context
+### TypeScript/React Files
+- Components: `PascalCase.tsx` (e.g., `ChatWindow.tsx`)
+- Utilities: `camelCase.ts` (e.g., `dealStatusSync.ts`)
+- Types: `PascalCase.ts` or in `types/index.ts`
+- Hooks: `use{Feature}.ts` (e.g., `useToast.ts`)
 
-### 📋 Product & Architecture
-- **`PRODUCT_REQUIREMENTS_DOCUMENT.md`** - Product vision and requirements
-- **`TECHNICAL_ARCHITECTURE_GUIDE.md`** - System architecture overview
-- **`THREE_PILLAR_ARCHITECTURE_COMPLETE.md`** - Three-pillar framework
-- **`DESIGN_SYSTEM_DOCUMENTATION.md`** - UI/UX guidelines
+### Python Files
+- Modules: `snake_case.py` (e.g., `ai_service.py`)
+- Classes: `PascalCase` within files
+- Constants: `UPPER_SNAKE_CASE`
 
-### 🛠️ Setup & Operations
-- **`SETUP_GUIDE.md`** - Development environment setup
-- **`API_KEYS_SETUP.md`** - API configuration guide
-- **`QUICK_REFERENCE.md`** - Command reference
-- **`docs/DEVELOPMENT_GUIDE.md`** - Development workflows
+### Documentation
+- Guides: `UPPER_SNAKE_CASE.md` (e.g., `SETUP_GUIDE.md`)
+- Technical docs: Regular case (e.g., `architecture.md`)
 
-## 🎯 File Naming Conventions
+## 🚀 Quick Navigation
 
-### Documentation Files
-- **UPPERCASE.md** - Root-level important documents
-- **docs/[CATEGORY]_[PURPOSE].md** - Categorized documentation
-- **docs/archive/** - Historical/obsolete content
+### For AI Integration Work
+- Start with: `docs/AI_CHAT_ARCHITECTURE.md`
+- Key files: `UnifiedAISystem.tsx`, `OpenResearchCanvas.tsx`, `ai_service.py`
 
-### Code Files  
-- **PascalCase.tsx** - React components
-- **camelCase.ts** - Utilities and services
-- **kebab-case.py** - Python modules (FastAPI convention)
-- **snake_case.py** - Python files following PEP 8
+### For Deal Management
+- Components: `frontend/src/components/deals/`
+- API: `backend/app/api/deals.py`
+- Models: `backend/app/models/deals.py`
 
-### Directory Structure
-- **lowercase/** - Standard directories
-- **PascalCase/** - Component directories (React)
-- **kebab-case/** - Multi-word directories
+### For Portfolio Features
+- Pages: `frontend/src/app/portfolio/`
+- Components: `frontend/src/components/portfolio/`
+- Storage: `frontend/src/lib/companyDatabase.ts`
 
-## 🔍 Key File Purposes
+### For Deployment
+- Config: `vercel.json`, `docker-compose.yml`
+- Docs: `DEPLOYMENT.md`, `LOCAL_SERVER_GUIDE.md`
 
-### Configuration Files
-```
-backend/app/config.py          # 🔐 System settings - NO hardcoded secrets!
-frontend/package.json          # 📦 Dependencies and build scripts
-backend/requirements-minimal.txt # 📦 Essential Python packages
-docker-compose.yml             # 🐳 Development environment
-```
+## 🔄 Recent Updates (Jan 2025)
 
-### Entry Points
-```
-backend/app/main.py            # 🚀 FastAPI application startup
-frontend/src/app/layout.tsx    # 🚀 Next.js root layout + AI context
-frontend/src/components/ai/index.ts # 🚀 AI system exports
-```
+1. **Unified AI System**: Complete overhaul with `UnifiedAISystem.tsx`
+2. **Chat History**: New `ChatHistory.tsx` component with session persistence
+3. **Research Canvas**: `OpenResearchCanvas.tsx` with approval workflow
+4. **Simplified Backend**: Single `ai_chat.py` endpoint with multi-provider support
+5. **Local Storage**: Enhanced `companyDatabase.ts` and `dealStatusSync.ts`
 
-### Database & Migrations
-```
-backend/alembic/               # 📊 Database schema migrations
-backend/app/models/            # 📊 SQLModel database entities
-database/init.sql              # 📊 Initial database setup
-```
+## ⚠️ Deprecated/Archive
 
-## 🧹 Code Organization Principles
-
-### 1. Separation of Concerns
-- **API Layer**: Handle HTTP requests/responses
-- **Service Layer**: Business logic and external integrations
-- **Model Layer**: Data structures and database operations
-- **UI Layer**: React components and user interactions
-
-### 2. Import Patterns
-```typescript
-// ✅ Good - Clean imports from index files
-import { ChatWithAIButton, useAI } from '@/components/ai'
-import { Company, Deal } from '@/types'
-
-// ❌ Bad - Direct file imports create coupling
-import { ChatWithAIButton } from '@/components/ai/UnifiedAIButtons'
-import { useAI } from '@/components/ai/UnifiedAISystem'
-```
-
-### 3. File Responsibility
-- **One primary export per file** (except index files)
-- **Related utilities grouped together**
-- **Clear naming that matches purpose**
-- **Comprehensive TypeScript types**
-
-## 🗂️ Archive Strategy
-
-### What Goes in docs/archive/
-- **obsolete-code/** - Old implementations that are superseded
-- **superseded-architectures/** - Previous architectural attempts
-- **experimental/** - Proof-of-concept code
-
-### Archive Principles
-- **Never delete working code** - move to archive
-- **Preserve context** - include README files explaining why archived
-- **Maintain git history** - use git mv when archiving
-- **Reference in current docs** - explain what replaced archived code
-
-## 🚀 Development Workflow Files
-
-### Environment Setup
-```
-backend/.env                   # 🔐 Environment variables (NOT in git)
-frontend/.env.local            # 🔐 Frontend environment (NOT in git)
-frontend/.env.example          # 📋 Environment template (in git)
-```
-
-### Build & Deploy
-```
-frontend/next.config.js        # ⚙️ Next.js configuration
-backend/Dockerfile.dev         # 🐳 Development container
-docker-compose.yml             # 🐳 Multi-service development
-scripts/start-services.sh      # 🚀 Development startup
-```
-
-## 📊 File Organization Metrics
-
-### Documentation Coverage
-- **✅ Complete**: AI Chat System, Architecture, Development
-- **✅ Complete**: Product Requirements, Technical Memory
-- **✅ Complete**: File Structure, API Documentation
-- **📝 In Progress**: Testing Guidelines, Deployment Guide
-
-### Code Organization Health
-- **✅ Unified**: All AI interactions use single system
-- **✅ Consistent**: TypeScript throughout frontend
-- **✅ Secure**: No hardcoded API keys
-- **✅ Documented**: All major components have purpose documentation
-
----
-
-**Navigation Tips**:
-- **New Developer?** → Start with `docs/COMPLETE_DEVELOPER_ONBOARDING.md`
-- **Need AI Context?** → Read `docs/AI_CHAT_ARCHITECTURE.md`
-- **Working on Features?** → Check `docs/TECHNICAL_MEMORY.md` for decisions
-- **Quick Reference?** → Use `CLAUDE.md` and `QUICK_REFERENCE.md`
-
-**Last Updated**: January 2025
-**Maintained By**: Development Team
+- `frontend/src/lib/ai/suna-*`: Suna integration removed
+- `backend/app/api/chat.py`: Legacy chat endpoint (use `ai_chat.py`)
+- `docs/archive/`: Historical implementations and architectures
