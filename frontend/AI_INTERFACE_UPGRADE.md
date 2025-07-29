@@ -1,36 +1,96 @@
-# AI Interface Upgrade: Modern Agentic Chat System
+# AI Interface: Unified System Architecture
 
-## 🚀 Overview
+## 🚀 Current Implementation (January 2025)
 
-We've completely redesigned the AI chat interface using modern agentic AI patterns and best practices. The new system provides a sophisticated, reasoning-model-friendly interface that showcases multi-step agent workflows.
+The RedPill VC platform features a unified AI system built around the UnifiedAISystem context provider. This architecture supports persistent chat sessions, research workflows, and multi-provider AI integration.
 
 ## ✨ Key Features Implemented
 
-### 1. **Reasoning Model Support**
-- **Reasoning Traces**: Expandable sections showing the AI's step-by-step thought process
-- **Chain-of-Thought Visualization**: Clear display of reasoning depth and confidence scores
-- **DeepSeek-R1 Integration**: Optimized for reasoning models with thinking display
+### 1. **UnifiedAISystem Architecture**
+- **Context Provider**: Central AI state management with React Context API
+- **Session Persistence**: Chat sessions stored in localStorage with unique IDs
+- **Multi-Provider Support**: RedPill AI (primary) + OpenAI (fallback) + mock development mode
+- **Message Management**: addMessage function for consistent session updates
 
-### 2. **Multi-Agent Workflows**
-- **Specialized Agents**: Planner, Executor, Evaluator, and Communicator agents
-- **Workflow Templates**: Pre-built workflows for Due Diligence, Market Analysis, Financial Analysis, and Investment Memos
-- **Step-by-Step Progress**: Visual progress indicators with status tracking
-- **Real-time Streaming**: Live updates as each workflow step completes
+### 2. **OpenResearchCanvas Interface**
+- **Document-Style Layout**: Clean research document format with structured sections
+- **Approval Workflow**: Research plan generation → user approval → structured execution
+- **Auto-Expansion**: Interface expands immediately when AI starts processing
+- **Thinking Indicators**: Visual feedback during AI reasoning and processing
 
-### 3. **Enhanced UX/UI**
-- **Rich Markdown Rendering**: Full support for tables, code blocks, math equations
-- **Syntax Highlighting**: Code blocks with proper language highlighting
-- **Tabbed Interface**: Separate tabs for Chat and Workflows
-- **Fullscreen Mode**: Expandable interface for complex analysis
-- **Context Awareness**: Company-specific system prompts and responses
+### 3. **Chat History System**
+- **Session Management**: Persistent chat history with metadata and previews
+- **Search & Filter**: Search conversations by content, filter by time periods
+- **Session Loading**: Restore previous conversations with full context
+- **Storage Keys**: Standardized format (`chat-history-${projectId}`)
 
-### 4. **Modern Design Patterns**
-- **Perception-Reasoning-Action (PRA) Pattern**: Clear separation of agent cognitive processes
-- **Modular Components**: Reusable components for different agent types
-- **Accessibility-First**: Keyboard navigation and screen reader support
+### 4. **Component Integration**
+- **UnifiedAIButtons**: Consistent AI action buttons across the platform
+- **Project Context**: AI remembers company/deal context between sessions
+- **Memo Integration**: Save AI insights as memos with proper storage sync
+- **Error Handling**: Graceful fallbacks and comprehensive error logging
 - **Responsive Design**: Works across desktop and mobile devices
 
-## 🏗️ Architecture
+## 🏗️ Technical Architecture
+
+### Core Components
+
+```
+UnifiedAISystem (Context Provider)
+├── OpenResearchCanvas (Research Interface)
+├── ChatHistory (Session Viewer)
+├── UnifiedAIButtons (Action Buttons)
+└── Component Integration Layer
+```
+
+### Key Files
+- `src/components/ai/UnifiedAISystem.tsx` - Core AI context and state management
+- `src/components/ai/OpenResearchCanvas.tsx` - Main research interface
+- `src/components/ai/ChatHistory.tsx` - Session history viewer
+- `src/components/ai/UnifiedAIButtons.tsx` - AI action buttons
+- `backend/app/api/ai_chat.py` - Unified backend AI endpoint
+
+### Data Flow
+1. User interacts with AI buttons or canvas
+2. UnifiedAISystem manages session state
+3. Messages sent to backend `/api/v1/chat/ai-chat`
+4. Backend routes to appropriate AI provider
+5. Response processed and stored in session
+6. UI updates with new content and state
+
+## 📚 Usage Examples
+
+### Basic AI Chat
+```typescript
+const { openAI } = useAI()
+
+// Open AI chat for a specific project
+openAI({
+  projectId: 'company-123',
+  projectType: 'company',
+  projectName: 'Chainlink'
+})
+```
+
+### Research Workflow
+```typescript
+// Trigger structured research
+await sendMessage('market research for chainlink')
+// -> Automatically expands to research canvas
+// -> Shows approval workflow
+// -> Executes approved plan
+```
+
+### Session Management
+```typescript
+const { getChatHistory, loadChatSession } = useAI()
+
+// Get all sessions for a project
+const sessions = getChatHistory(projectId, projectType)
+
+// Load a specific session
+loadChatSession('session-1753818169177-8pn16rycl')
+```
 
 ### Components Structure
 ```

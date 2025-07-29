@@ -41,6 +41,32 @@ npm run lint
 docker-compose up -d  # PostgreSQL + Redis + MinIO + apps
 ```
 
+## Common Development Issues & Solutions
+
+### Database Schema Errors
+**Issue**: `sqlite3.OperationalError: no such column: companies.company_type`
+**Solution**: Reset database with current schema
+```bash
+cd backend
+rm -f redpill.db
+python -c "from app.database import engine; from app.models import *; import sqlmodel; sqlmodel.SQLModel.metadata.create_all(engine)"
+```
+
+### Frontend Module Resolution Errors  
+**Issue**: `Module not found: Can't resolve '@/lib/dealStatusSync'`
+**Solution**: Clear cache and restart
+```bash
+pkill -f "next dev"
+cd frontend
+rm -rf .next node_modules/.cache  
+npm run dev
+```
+
+### Server Startup Issues
+**Backend won't start**: Check if using correct Python environment and port 8000 is free
+**Frontend compilation fails**: Usually module resolution - restart with clean cache
+**Database connection fails**: Ensure using SQLite config in development (`sqlite:///./redpill.db`)
+
 ## Key Architecture Patterns
 
 ### Database Models (`backend/app/models/`)

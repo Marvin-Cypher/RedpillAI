@@ -1,7 +1,7 @@
 # RedPill VC - Design System Documentation
 
-**Version:** 1.0  
-**Date:** July 25, 2025  
+**Version:** 2.0  
+**Date:** January 29, 2025  
 **Design Team:** RedPill Design  
 **Status:** Active  
 
@@ -653,4 +653,4 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 ---
 
 **Document History:**
-- v1.0 (July 25, 2025): Initial design system documentation based on implemented UI components and design research
+- v1.0 (January 29, 2025): Initial design system documentation based on implemented UI components and design research

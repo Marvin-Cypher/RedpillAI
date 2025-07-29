@@ -1,7 +1,7 @@
 # RedPill VC Platform - Technical Architecture Guide
 
-**Version:** 1.0  
-**Date:** July 25, 2025  
+**Version:** 2.0  
+**Date:** January 29, 2025  
 **Engineering Team:** RedPill Engineering  
 **Status:** Active  
 

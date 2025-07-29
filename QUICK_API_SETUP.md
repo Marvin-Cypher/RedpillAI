@@ -1,41 +1,49 @@
-# 🚀 Quick API Setup (2 Minutes)
+# 🚀 Quick API Setup (Essential Keys)
 
-## Step 1: Get FREE FMP API Key
-1. Go to https://financialmodelingprep.com/
-2. Click "Get Free API Key"
-3. Sign up with email
-4. Copy your API key from dashboard
+## Critical API Keys for Full Functionality
 
-## Step 2: Add to Environment
+### 1. RedPill AI API Key (Primary AI Provider)
 ```bash
-# Edit backend/.env file
-cd /Users/marvin/redpill-project/backend
-nano .env
-
-# Replace this line:
-FMP_API_KEY=your_fmp_api_key_here
-
-# With your real key:
-FMP_API_KEY=abc123def456789...
+# Add to backend/.env
+REDPILL_API_KEY=your_redpill_api_key_here
 ```
 
-## Step 3: Restart Backend
+### 2. OpenAI API Key (Fallback AI Provider)
 ```bash
-# Stop backend (Ctrl+C) then restart:
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Add to backend/.env
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-## Step 4: Test Real Market Data
+### 3. CoinGecko API Key (Market Data - Optional)
 ```bash
-python test_api_keys.py
+# Add to backend/.env
+COINGECKO_API_KEY=your_coingecko_api_key_here
 ```
 
-**You should see**: `✅ BTC: $67,234.50 (Vol: 28,000,000,000)`
+## Quick Setup Steps
 
-## 🎉 That's it!
-- **Real crypto prices** in company enrichment
-- **Live market data** for investment analysis
-- **250 free requests/day** (plenty for testing)
+1. **Copy environment template:**
+   ```bash
+   cp backend/.env.example backend/.env
+   ```
 
----
-**Pro tip**: Add Alpha Vantage key too for backup data sources! 📈
+2. **Edit with your keys:**
+   ```bash
+   nano backend/.env
+   ```
+
+3. **Test API connectivity:**
+   ```bash
+   cd backend && python test_api_keys.py
+   ```
+
+4. **Restart servers:**
+   ```bash
+   # Backend (port 8000)
+   cd backend && uvicorn app.main:app --reload
+
+   # Frontend (port 3000)  
+   cd frontend && npm run dev
+   ```
+
+For detailed setup instructions, see: [API_KEYS_SETUP.md](./API_KEYS_SETUP.md)

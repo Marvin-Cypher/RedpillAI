@@ -25,12 +25,13 @@
 ## 🧪 **TEST THE NEW AI SYSTEM NOW!**
 
 ### **Ready-to-Test Pages:**
-1. **🏠 Dashboard**: http://localhost:3000/dashboard
+1. **🏠 Dashboard**: http://localhost:3000/dashboard  
 2. **📊 Portfolio**: http://localhost:3000/portfolio  
 3. **💼 Company Pages**: http://localhost:3000/portfolio/[companyId]
 4. **💰 Deal Pages**: http://localhost:3000/portfolio/[companyId]/deal
 5. **➕ New Company**: http://localhost:3000/companies/new
 6. **⚙️ Workflow**: http://localhost:3000/workflow
+7. **📜 History**: http://localhost:3000/history
 
 ### **What to Test:**
 - ✅ Click any "AI Assistant" or "Chat with AI" button
@@ -184,12 +185,23 @@ npx next dev --port 3001
 ```
 
 ### Problem: Backend database errors
-**Symptoms:** PostgreSQL connection errors, "connection refused" to port 5432
+**Symptoms:** PostgreSQL connection errors, "connection refused" to port 5432, or "no such column" SQLite errors
 **Solution:**
 ```bash
-# Fix database configuration
+# For PostgreSQL connection issues - switch to SQLite
 cd /Users/marvin/redpill-project/backend
 sed -i '' 's/postgresql:\/\/.*$/sqlite:\/\/\/\/.\\/redpill.db/' app/config.py
+
+# For SQLite schema errors (missing columns) - reset database
+cd /Users/marvin/redpill-project/backend
+rm -f redpill.db
+python -c "
+from app.database import engine
+from app.models import *
+import sqlmodel
+sqlmodel.SQLModel.metadata.create_all(engine)
+print('✅ Database recreated with current schema')
+"
 
 # Restart backend
 pkill -f uvicorn
@@ -197,16 +209,21 @@ python -m uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
 ```
 
 ### Problem: Module not found errors
-**Symptoms:** "No module named 'app'" or similar import errors
+**Symptoms:** "No module named 'app'" (backend) or "Can't resolve '@/lib/dealStatusSync'" (frontend)
 **Solution:**
 ```bash
-# Ensure you're in the correct directory
-cd /Users/marvin/redpill-project/backend  # For backend
-cd /Users/marvin/redpill-project/frontend # For frontend
+# Backend module errors
+cd /Users/marvin/redpill-project/backend
+pip install -r requirements-minimal.txt
 
-# Reinstall dependencies
-pip install -r requirements-minimal.txt  # Backend
-npm install                               # Frontend
+# Frontend module resolution errors (especially @/lib/dealStatusSync)
+pkill -f "next dev"
+cd /Users/marvin/redpill-project/frontend
+rm -rf .next node_modules/.cache
+npm run dev
+
+# If persistent, check if module exists:
+ls src/lib/dealStatusSync.ts || echo "File missing - may need to create or import"
 ```
 
 ---

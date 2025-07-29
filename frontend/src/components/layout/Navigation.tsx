@@ -48,18 +48,10 @@ const navigation = [
     href: '/analytics', 
     icon: BarChart3,
     description: 'Performance analysis and reporting'
-  },
-  { 
-    name: 'AI Assistant', 
-    href: '/ai-chat', 
-    icon: MessageSquare,
-    description: 'Global AI research and analysis'
   }
 ]
 
 const quickActions = [
-  { name: 'MVP Test', href: '/mvp', icon: Zap },
-  { name: 'AI Demo', href: '/ai-demo', icon: Brain },
   { name: 'Workflows', href: '/workflow', icon: FileText },
   { name: 'History', href: '/history', icon: Building }
 ]

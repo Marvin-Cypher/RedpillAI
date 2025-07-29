@@ -296,6 +296,5 @@ redpill-project/
 
 ## ⚠️ Deprecated/Archive
 
-- `frontend/src/lib/ai/suna-*`: Suna integration removed
 - `backend/app/api/chat.py`: Legacy chat endpoint (use `ai_chat.py`)
 - `docs/archive/`: Historical implementations and architectures
