@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ChatWithAIButton } from '@/components/ai'
+import { ChatWithAIButton, ChatHistoryButton } from '@/components/ai'
 import { getDealStatusForCompany, subscribeToDealStatusChanges } from '@/lib/dealStatusSync'
 import { getCompanyById, updateCompany } from '@/lib/companyDatabase'
 import { 
@@ -372,6 +372,11 @@ export default function CompanyDetailPage() {
                     <Edit3 className="w-4 h-4 mr-2" />
                     Edit Company
                   </Button>
+                  <ChatHistoryButton
+                    projectType="company"
+                    projectName={company ? company.name : "Company"}
+                    projectId={company ? company.id : undefined}
+                  />
                   <ChatWithAIButton
                     projectType="company"
                     projectName={company ? company.name : "Company"}

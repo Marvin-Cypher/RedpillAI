@@ -22,7 +22,7 @@ import {
   Target,
   MessageSquare
 } from 'lucide-react'
-import { ChatWithAIButton } from '@/components/ai'
+import { ChatWithAIButton, ChatHistoryButton } from '@/components/ai'
 import { SimplifiedDealCard } from '@/components/deals/SimplifiedDealCard'
 import { updateDealStatus, getDealStatusUpdates, initializeDealStatuses } from '@/lib/dealStatusSync'
 import { getAllCompanies, Company } from '@/lib/companyDatabase'
@@ -290,9 +290,15 @@ export default function DealflowPage() {
                 <Plus className="w-4 h-4 mr-2" />
                 Add Deal
               </Button>
+              <ChatHistoryButton 
+                projectType="deal"
+                projectName="Deal Pipeline"
+                projectId="deal-pipeline-overview"
+              />
               <ChatWithAIButton 
                 projectType="deal"
                 projectName="Deal Pipeline"
+                projectId="deal-pipeline-overview"
               />
             </div>
           </div>
@@ -329,11 +335,11 @@ export default function DealflowPage() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-6">
         {/* Kanban Board */}
-        <div className="grid grid-cols-1 lg:grid-cols-6 gap-6 overflow-x-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-6 gap-6 overflow-x-auto min-h-[600px]">
           {stageCounts.map((stage) => (
             <div
               key={stage.id}
-              className="min-h-[600px] flex flex-col"
+              className="min-h-[600px] flex flex-col min-w-[280px]"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, stage.id)}
             >

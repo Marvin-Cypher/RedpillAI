@@ -49,7 +49,12 @@ export interface AIContextType {
   
   // Message management
   sendMessage: (content: string) => Promise<void>
+  addMessage: (message: AIMessage) => void
   clearSession: () => void
+  
+  // Chat history management
+  getChatHistory: (projectId: string, projectType: string) => AISession[]
+  loadChatSession: (sessionId: string) => void
   
   // Advanced features
   startResearch: (topic: string) => void
@@ -86,6 +91,43 @@ export function UnifiedAISystem({
   // Generate unique session ID
   const generateSessionId = useCallback(() => {
     return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  }, [])
+
+  // Save session to localStorage
+  const saveSession = useCallback((session: AISession) => {
+    if (!session.projectId) {
+      console.warn('⚠️ Cannot save session without projectId:', session)
+      return
+    }
+    
+    const storageKey = `chat-history-${session.projectId}`
+    const existingSessions = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    
+    console.log('💾 Saving session:', session.id, 'messages:', session.messages?.length, 'to key:', storageKey)
+    
+    // Update existing session or add new one
+    const sessionIndex = existingSessions.findIndex((s: AISession) => s.id === session.id)
+    if (sessionIndex >= 0) {
+      existingSessions[sessionIndex] = {
+        ...session,
+        lastActivity: new Date(session.lastActivity)
+      }
+      console.log('📝 Updated existing session at index:', sessionIndex)
+    } else {
+      existingSessions.push({
+        ...session,
+        lastActivity: new Date(session.lastActivity)
+      })
+      console.log('📋 Added new session to storage')
+    }
+    
+    // Keep only last 20 sessions per project
+    if (existingSessions.length > 20) {
+      existingSessions.splice(0, existingSessions.length - 20)
+    }
+    
+    localStorage.setItem(storageKey, JSON.stringify(existingSessions))
+    console.log('✅ Session saved to localStorage:', storageKey)
   }, [])
 
   // Create new session
@@ -129,6 +171,9 @@ export function UnifiedAISystem({
     setCurrentMemoId(options?.memoId)
     setIsOpen(true)
     
+    // Save session immediately when created
+    saveSession(session)
+    
     console.log('Set isOpen to true')
   }, [createSession])
 
@@ -138,6 +183,29 @@ export function UnifiedAISystem({
     setCurrentMemoId(undefined)
     // Keep session for potential reopen
   }, [])
+
+  // Add message to current session
+  const addMessage = useCallback((message: AIMessage) => {
+    if (!currentSession) {
+      console.warn('⚠️ Cannot add message without current session')
+      return
+    }
+    
+    console.log('📧 Adding message to session:', message.id, message.sender, message.content.substring(0, 50))
+    
+    const updatedSession = {
+      ...currentSession,
+      messages: [...currentSession.messages, message],
+      lastActivity: new Date()
+    }
+    
+    setCurrentSession(updatedSession)
+    
+    // Save session immediately after updating state
+    setTimeout(() => {
+      saveSession(updatedSession)
+    }, 100)
+  }, [currentSession, saveSession])
 
   // Send message
   const sendMessage = useCallback(async (content: string) => {
@@ -161,6 +229,7 @@ export function UnifiedAISystem({
         lastActivity: new Date()
       }
       setCurrentSession(updatedSession)
+      saveSession(updatedSession)
 
       // Call backend API
       const response = await fetch('http://localhost:8000/api/v1/chat/ai-chat', {
@@ -211,6 +280,7 @@ export function UnifiedAISystem({
         lastActivity: new Date()
       }
       setCurrentSession(finalSession)
+      saveSession(finalSession)
 
     } catch (error) {
       console.error('Message send error:', error)
@@ -237,11 +307,70 @@ export function UnifiedAISystem({
   // Clear current session
   const clearSession = useCallback(() => {
     if (currentSession) {
-      setCurrentSession({
+      const clearedSession = {
         ...currentSession,
         messages: [],
         lastActivity: new Date()
-      })
+      }
+      setCurrentSession(clearedSession)
+      saveSession(clearedSession)
+    }
+  }, [currentSession, saveSession])
+
+  // Get chat history for a project
+  const getChatHistory = useCallback((projectId: string, projectType: string): AISession[] => {
+    const storageKey = `chat-history-${projectId}`
+    console.log('📖 Getting chat history from key:', storageKey)
+    
+    try {
+      const rawData = localStorage.getItem(storageKey)
+      console.log('📄 Raw localStorage data:', rawData?.substring(0, 200))
+      
+      const sessions = JSON.parse(rawData || '[]')
+      console.log('📚 Parsed sessions count:', sessions.length)
+      
+      // Convert date strings back to Date objects and ensure messages array exists
+      const processedSessions = sessions.map((session: any) => ({
+        ...session,
+        lastActivity: new Date(session.lastActivity),
+        messages: Array.isArray(session.messages) ? session.messages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        })) : []
+      }))
+      
+      console.log('✅ Processed sessions:', processedSessions.map((s: AISession) => ({
+        id: s.id,
+        messageCount: s.messages?.length || 0
+      })))
+      
+      return processedSessions.sort((a: AISession, b: AISession) => b.lastActivity.getTime() - a.lastActivity.getTime())
+    } catch (error) {
+      console.error('❌ Error parsing chat history:', error)
+      return []
+    }
+  }, [])
+
+  // Load a specific chat session
+  const loadChatSession = useCallback((sessionId: string) => {
+    if (!currentSession) return
+    
+    const storageKey = `chat-history-${currentSession.projectId}`
+    const sessions = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    const session = sessions.find((s: AISession) => s.id === sessionId)
+    
+    if (session) {
+      const restoredSession = {
+        ...session,
+        lastActivity: new Date(session.lastActivity),
+        messages: session.messages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        })),
+        isActive: true
+      }
+      setCurrentSession(restoredSession)
+      setIsOpen(true)
     }
   }, [currentSession])
 
@@ -262,13 +391,20 @@ export function UnifiedAISystem({
       chatId: currentSession.id,
       date: new Date().toISOString(),
       author: 'AI Research Assistant',
-      projectId: currentSession.projectId
+      projectId: currentSession.projectId,
+      projectType: currentSession.projectType,
+      projectName: currentSession.projectName
     }
 
+    // Generate storage key that matches deal page expectations
+    const storageKey = currentSession.projectId 
+      ? `memos-${currentSession.projectId}` 
+      : `memos-${currentSession.projectType}-general`
+    
     // Save to localStorage
-    const existingMemos = JSON.parse(localStorage.getItem(`memos-${currentSession.projectId}`) || '[]')
+    const existingMemos = JSON.parse(localStorage.getItem(storageKey) || '[]')
     existingMemos.push(memo)
-    localStorage.setItem(`memos-${currentSession.projectId}`, JSON.stringify(existingMemos))
+    localStorage.setItem(storageKey, JSON.stringify(existingMemos))
 
     // Trigger memo update event
     window.dispatchEvent(new Event('memoUpdated'))
@@ -283,7 +419,10 @@ export function UnifiedAISystem({
     openAI,
     closeAI,
     sendMessage,
+    addMessage,
     clearSession,
+    getChatHistory,
+    loadChatSession,
     startResearch,
     saveMemo,
     isTyping,

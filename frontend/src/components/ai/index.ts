@@ -17,7 +17,8 @@ export {
   AIResearchButton,
   AIMemoButton,
   QuickAIButton,
-  FloatingAIButton
+  FloatingAIButton,
+  ChatHistoryButton
 } from './UnifiedAIButtons'
 
 // Legacy components (for gradual migration)

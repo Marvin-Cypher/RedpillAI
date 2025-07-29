@@ -70,8 +70,6 @@ redpill-project/
 ### ✅ Archived Documentation
 - `HYBRID_ARCHITECTURE_PLAN.md` → `docs/archive/superseded-architectures/`
 - `REVISED_ARCHITECTURE_PLAN.md` → `docs/archive/superseded-architectures/`
-- `SUNA_INTEGRATION_STATUS.md` → `docs/archive/superseded-architectures/`
-- `REAL_SUNA_SUCCESS.md` → `docs/archive/superseded-architectures/`
 - `OPENBB_INTEGRATION_SUCCESS.md` → `docs/archive/superseded-architectures/`
 - `AGUI_OPENBB_ARCHITECTURE.md` → `docs/archive/superseded-architectures/`
 
@@ -81,8 +79,8 @@ redpill-project/
 - `docker-compose.dev.yml` → `docs/archive/obsolete-code/`
 
 ### ✅ Removed Build Artifacts
-- Cleared Next.js build cache containing Suna references
-- Verified no remaining Suna code references
+- Cleared Next.js build cache
+- Verified no remaining obsolete code references
 
 ### ✅ Updated Current Documentation
 - Updated `README.md` to reflect Three-Pillar Architecture

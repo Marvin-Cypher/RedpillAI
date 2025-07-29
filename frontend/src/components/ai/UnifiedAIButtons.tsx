@@ -1,8 +1,10 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Brain, MessageSquare, Search, FileText, Zap } from 'lucide-react'
+import { Brain, MessageSquare, Search, FileText, Zap, History } from 'lucide-react'
 import { useAI } from './UnifiedAISystem'
+import { useState } from 'react'
+import { ChatHistory } from './ChatHistory'
 
 interface AIButtonProps {
   variant?: 'default' | 'purple' | 'gradient' | 'outline'
@@ -107,10 +109,9 @@ export function ChatWithAIButton({
       variant="outline"
       size="sm"
       className={`hover:bg-purple-50 hover:border-purple-300 ${className}`}
-      style={{ border: '2px solid red' }} // Visual debug indicator
     >
       <MessageSquare className="w-4 h-4 mr-2" />
-      Chat with AI [DEBUG]
+      Chat with AI
     </Button>
   )
 }
@@ -225,6 +226,39 @@ export function QuickAIButton({
       <Zap className="w-4 h-4 mr-1" />
       Quick AI
     </Button>
+  )
+}
+
+// Chat History button - for viewing past conversations
+export function ChatHistoryButton({ 
+  projectId,
+  projectType,
+  projectName,
+  size = 'sm',
+  className = ''
+}: AIButtonProps) {
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+
+  return (
+    <>
+      <Button
+        onClick={() => setIsHistoryOpen(true)}
+        variant="outline"
+        size={size === 'lg' ? 'default' : 'sm'}
+        className={`hover:bg-blue-50 hover:border-blue-300 text-blue-700 border-blue-200 ${className}`}
+      >
+        <History className="w-4 h-4 mr-1" />
+        Chat History
+      </Button>
+      
+      <ChatHistory
+        projectId={projectId}
+        projectType={projectType}
+        projectName={projectName}
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+      />
+    </>
   )
 }
 

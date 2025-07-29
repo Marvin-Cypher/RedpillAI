@@ -49,17 +49,17 @@ export function SimplifiedDealCard({ deal, onDragStart, onViewDetails, onStartCh
 
   return (
     <Card
-      className="cursor-move hover:shadow-md transition-all duration-200 bg-white border border-gray-200"
+      className="cursor-move hover:shadow-md transition-all duration-200 bg-white border border-gray-200 h-fit"
       draggable
       onDragStart={() => onDragStart(deal)}
     >
       <CardContent className="p-3">
         {/* Deal Name */}
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-semibold text-gray-900 truncate">
+        <div className="flex items-center justify-between mb-2 gap-2">
+          <h4 className="text-sm font-semibold text-gray-900 truncate min-w-0 flex-1">
             {deal.company.name}
           </h4>
-          <Badge className={`${getPriorityColor(deal.priority)} text-xs`} variant="outline">
+          <Badge className={`${getPriorityColor(deal.priority)} text-xs flex-shrink-0`} variant="outline">
             {deal.priority}
           </Badge>
         </div>
@@ -67,29 +67,29 @@ export function SimplifiedDealCard({ deal, onDragStart, onViewDetails, onStartCh
         {/* Key Financials */}
         <div className="space-y-1 text-xs mb-2">
           {deal.target_valuation && (
-            <div className="flex justify-between">
-              <span className="text-gray-500">Valuation:</span>
-              <span className="font-medium">{formatCurrency(deal.target_valuation)}</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-gray-500 flex-shrink-0">Valuation:</span>
+              <span className="font-medium text-right truncate min-w-0">{formatCurrency(deal.target_valuation)}</span>
             </div>
           )}
           {deal.target_investment && (
-            <div className="flex justify-between">
-              <span className="text-gray-500">Investment:</span>
-              <span className="font-medium">{formatCurrency(deal.target_investment)}</span>
+            <div className="flex justify-between items-center gap-2">
+              <span className="text-gray-500 flex-shrink-0">Investment:</span>
+              <span className="font-medium text-right truncate min-w-0">{formatCurrency(deal.target_investment)}</span>
             </div>
           )}
         </div>
 
         {/* Tags */}
         {deal.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
+          <div className="flex flex-wrap gap-1 mb-2 overflow-hidden">
             {deal.tags.slice(0, 2).map((tag, index) => (
-              <Badge key={index} variant="outline" className="text-xs px-1 py-0 bg-blue-50 text-blue-700">
+              <Badge key={index} variant="outline" className="text-xs px-1 py-0 bg-blue-50 text-blue-700 truncate max-w-[80px]">
                 {tag}
               </Badge>
             ))}
             {deal.tags.length > 2 && (
-              <Badge variant="outline" className="text-xs px-1 py-0 bg-gray-50 text-gray-600">
+              <Badge variant="outline" className="text-xs px-1 py-0 bg-gray-50 text-gray-600 flex-shrink-0">
                 +{deal.tags.length - 2}
               </Badge>
             )}
@@ -102,15 +102,15 @@ export function SimplifiedDealCard({ deal, onDragStart, onViewDetails, onStartCh
             projectType="deal"
             projectName={deal.company.name}
             projectId={deal.id}
-            className="flex-1 text-xs py-1 h-6 min-w-0"
+            className="flex-1 text-xs py-1 h-6 min-w-0 overflow-hidden"
           />
           <Button 
             variant="outline" 
             size="sm" 
-            className="flex-1 text-xs py-1 h-6 min-w-0"
+            className="flex-1 text-xs py-1 h-6 min-w-0 overflow-hidden"
             onClick={() => onViewDetails(deal.id)}
           >
-            <Eye className="w-3 h-3" />
+            <Eye className="w-3 h-3 flex-shrink-0" />
           </Button>
         </div>
       </CardContent>
