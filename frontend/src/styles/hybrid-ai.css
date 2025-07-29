@@ -1,0 +1,155 @@
+/* Hybrid AI Interface Styles */
+
+/* Custom CopilotKit styling for VC theme */
+.copilot-vc-sidebar {
+  --copilot-kit-primary-color: #3b82f6;
+  --copilot-kit-secondary-color: #f8fafc;
+  --copilot-kit-sidebar-width: 380px;
+  --copilot-kit-border-radius: 8px;
+  --copilot-kit-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --copilot-kit-font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Sidebar to canvas transition */
+.copilot-expanding {
+  transition: all 0.3s ease-in-out;
+  transform-origin: left center;
+}
+
+/* Canvas mode chat styling */
+.copilot-canvas-chat {
+  --copilot-kit-sidebar-width: 100%;
+  --copilot-kit-border-radius: 0;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.copilot-canvas-chat [data-copilot-sidebar] {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Research sections animation */
+.research-section-enter {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease-out;
+}
+
+.research-section-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Typing indicators for research sections */
+.research-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.research-typing::after {
+  content: '';
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background-color: currentColor;
+  animation: typing-dot 1.4s infinite;
+}
+
+@keyframes typing-dot {
+  0%, 20% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Custom scrollbar for research sections */
+.research-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.research-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.research-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+.research-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Expand/collapse button animations */
+.expand-button {
+  transition: all 0.2s ease;
+}
+
+.expand-button:hover {
+  transform: scale(1.1);
+  background-color: #f1f5f9;
+}
+
+/* Research status badges */
+.status-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-in_progress {
+  background-color: #dbeafe;
+  color: #1e40af;
+  animation: pulse 2s infinite;
+}
+
+.status-completed {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .copilot-canvas-mode .research-split {
+    flex-direction: column;
+  }
+  
+  .copilot-canvas-mode .chat-section {
+    width: 100%;
+    height: 50vh;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .copilot-canvas-mode .research-section {
+    width: 100%;
+    height: 50vh;
+  }
+}
+
+/* Focus states for accessibility */
+.expand-button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}

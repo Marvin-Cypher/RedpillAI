@@ -1,6 +1,6 @@
-# FastAPI and ASGI
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
+# FastAPI and ASGI  
+fastapi>=0.115.14
+uvicorn[standard]>=0.34.0
 
 # Database
 sqlmodel==0.0.14
@@ -17,8 +17,11 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 
 # Validation and settings
-pydantic==2.5.2
+pydantic>=2.11.7
 pydantic-settings==2.1.0
+
+# OpenBB Platform for financial data
+openbb>=4.4.2
 
 # HTTP client for external APIs
 httpx==0.25.2

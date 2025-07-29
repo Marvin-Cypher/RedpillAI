@@ -5,6 +5,15 @@ from enum import Enum
 import uuid
 
 
+class CompanyType(str, Enum):
+    """Company type for determining data enrichment strategy."""
+    CRYPTO = "crypto"        # Blockchain/crypto companies - use CoinGecko
+    TRADITIONAL = "traditional"  # Traditional tech companies - use other APIs
+    FINTECH = "fintech"      # Financial technology companies
+    AI = "ai"                # AI/ML companies
+    SAAS = "saas"           # SaaS companies
+
+
 class CompanySector(str, Enum):
     """Company sectors for crypto/blockchain companies."""
     DEFI = "defi"
@@ -30,14 +39,16 @@ class CompanyBase(SQLModel):
     name: str = Field(max_length=255, index=True)
     description: Optional[str] = None
     website: Optional[str] = Field(default=None, max_length=255)
-    sector: CompanySector = Field(default=CompanySector.OTHER)
+    company_type: CompanyType = Field(default=CompanyType.TRADITIONAL)
+    sector: str = Field(default="other")
     token_symbol: Optional[str] = Field(default=None, max_length=10)
     twitter_handle: Optional[str] = Field(default=None, max_length=50)
     github_repo: Optional[str] = Field(default=None, max_length=255)
     whitepaper_url: Optional[str] = Field(default=None, max_length=255)
     founded_year: Optional[int] = None
-    team_size: Optional[int] = None
+    employee_count: Optional[str] = Field(default=None, max_length=50)
     headquarters: Optional[str] = Field(default=None, max_length=100)
+    logo_url: Optional[str] = Field(default=None, max_length=255)
 
 
 class Company(CompanyBase, table=True):
@@ -54,7 +65,7 @@ class Company(CompanyBase, table=True):
     
     # Relationships
     deals: List["Deal"] = Relationship(back_populates="company")
-    portfolio_companies: List["PortfolioCompany"] = Relationship(back_populates="company")
+    conversations: List["Conversation"] = Relationship(back_populates="company")
 
 
 class CompanyCreate(CompanyBase):
@@ -67,6 +78,7 @@ class CompanyUpdate(SQLModel):
     name: Optional[str] = None
     description: Optional[str] = None
     website: Optional[str] = None
+    company_type: Optional[CompanyType] = None
     sector: Optional[CompanySector] = None
     token_symbol: Optional[str] = None
     twitter_handle: Optional[str] = None

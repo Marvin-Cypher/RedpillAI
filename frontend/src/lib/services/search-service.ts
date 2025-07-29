@@ -59,6 +59,12 @@ export class SearchService {
 
     } catch (error) {
       console.error('❌ Search request failed for query:', query, error)
+      console.error('Search service error details:', {
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        query: query,
+        options: options
+      })
+      
       // Return empty array instead of throwing to prevent breaking the research flow
       return []
     }

@@ -1,4 +1,5 @@
 from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import BigInteger, Column
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
@@ -32,10 +33,10 @@ class DealBase(SQLModel):
     """Base deal model with shared fields."""
     status: DealStatus = Field(default=DealStatus.PLANNED, index=True)
     stage: InvestmentStage = Field(index=True)
-    valuation: Optional[int] = None  # Pre-money valuation in USD
-    round_size: Optional[int] = None  # Total round size in USD
-    our_investment: Optional[int] = None  # Our actual investment in USD
-    our_target: Optional[int] = None  # Our target investment in USD
+    valuation: Optional[int] = Field(default=None, sa_column=Column(BigInteger))  # Pre-money valuation in USD
+    round_size: Optional[int] = Field(default=None, sa_column=Column(BigInteger))  # Total round size in USD
+    our_investment: Optional[int] = Field(default=None, sa_column=Column(BigInteger))  # Our actual investment in USD
+    our_target: Optional[int] = Field(default=None, sa_column=Column(BigInteger))  # Our target investment in USD
     probability: Optional[int] = Field(default=None, ge=0, le=100)  # Success probability %
     next_milestone: Optional[str] = None
     next_meeting_date: Optional[datetime] = None

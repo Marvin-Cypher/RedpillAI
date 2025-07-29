@@ -1,0 +1,362 @@
+// Centralized Company Database
+// This handles company data storage and retrieval across the application
+
+export interface Company {
+  id: string
+  name: string
+  domain?: string
+  website?: string
+  company_type?: 'crypto' | 'traditional' | 'fintech' | 'ai' | 'saas'
+  sector: string
+  stage: string
+  founded_year?: number
+  headquarters: {
+    city: string
+    country: string
+  }
+  description: string
+  logo?: string
+  employee_count?: number
+  funding_total?: number
+  last_funding_date?: string
+  
+  // Investment details
+  investment: {
+    round_type: string
+    investment_amount: number
+    valuation: number
+    ownership_percentage: number
+    investment_date: string
+    lead_partner: string
+  }
+  
+  // Financial metrics
+  metrics: {
+    revenue_current: number
+    revenue_growth: number
+    burn_rate: number
+    runway_months: number
+    employees: number
+    customers: number
+    arr: number
+    gross_margin: number
+  }
+  
+  // Deal status
+  deal_status: 'sourcing' | 'screening' | 'due_diligence' | 'term_sheet' | 'invested' | 'passed'
+  priority: 'high' | 'medium' | 'low'
+  
+  // Timestamps
+  created_at: string
+  updated_at: string
+}
+
+const COMPANIES_STORAGE_KEY = 'redpill-companies'
+
+// Default companies data
+const DEFAULT_COMPANIES: Company[] = [
+  {
+    id: 'amazon',
+    name: 'Amazon',
+    domain: 'amazon.com',
+    website: 'https://amazon.com',
+    company_type: 'traditional',
+    sector: 'E-commerce/Cloud',
+    stage: 'Public',
+    founded_year: 1994,
+    headquarters: {
+      city: 'Seattle',
+      country: 'USA'
+    },
+    description: 'Amazon is a multinational technology company focusing on e-commerce, cloud computing, digital streaming, and artificial intelligence.',
+    employee_count: 1500000,
+    funding_total: 0,
+    investment: {
+      round_type: 'Public',
+      investment_amount: 0,
+      valuation: 1800000000000, // $1.8T market cap
+      ownership_percentage: 0,
+      investment_date: '1997-05-15',
+      lead_partner: 'Public Market'
+    },
+    metrics: {
+      revenue_current: 574780000000, // $574.78B annual revenue
+      revenue_growth: 9.4,
+      burn_rate: 0,
+      runway_months: 999,
+      employees: 1500000,
+      customers: 300000000,
+      arr: 574780000000,
+      gross_margin: 47.1
+    },
+    deal_status: 'invested',
+    priority: 'high',
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2025-01-25T00:00:00Z'
+  },
+  {
+    id: 'quantum-ai',
+    name: 'Quantum AI Solutions',
+    domain: 'quantumai.com',
+    website: 'https://quantumai.com',
+    sector: 'AI/ML',
+    stage: 'Series A',
+    founded_year: 2022,
+    headquarters: {
+      city: 'San Francisco',
+      country: 'USA'
+    },
+    description: 'Quantum AI Solutions is building the next generation of quantum-enhanced machine learning algorithms for enterprise applications.',
+    employee_count: 18,
+    funding_total: 2000000,
+    investment: {
+      round_type: 'Series A',
+      investment_amount: 2000000,
+      valuation: 20000000,
+      ownership_percentage: 10.0,
+      investment_date: '2024-03-15',
+      lead_partner: 'Sarah Chen'
+    },
+    metrics: {
+      revenue_current: 180000,
+      revenue_growth: 23.5,
+      burn_rate: 180000,
+      runway_months: 14,
+      employees: 18,
+      customers: 12,
+      arr: 2160000,
+      gross_margin: 82.5
+    },
+    deal_status: 'due_diligence',
+    priority: 'high',
+    created_at: '2024-01-15T00:00:00Z',
+    updated_at: '2025-01-25T00:00:00Z'
+  },
+  {
+    id: 'greentech-solutions',
+    name: 'GreenTech Solutions',
+    domain: 'greentech-solutions.com',
+    website: 'https://greentech-solutions.com',
+    sector: 'CleanTech',
+    stage: 'Seed',
+    founded_year: 2023,
+    headquarters: {
+      city: 'Berlin',
+      country: 'Germany'
+    },
+    description: 'GreenTech Solutions develops innovative solar panel technology for residential and commercial applications.',
+    employee_count: 8,
+    funding_total: 500000,
+    investment: {
+      round_type: 'Seed',
+      investment_amount: 500000,
+      valuation: 5000000,
+      ownership_percentage: 10.0,
+      investment_date: '2024-06-15',
+      lead_partner: 'Mike Johnson'
+    },
+    metrics: {
+      revenue_current: 45000,
+      revenue_growth: 15.2,
+      burn_rate: 85000,
+      runway_months: 18,
+      employees: 8,
+      customers: 25,
+      arr: 540000,
+      gross_margin: 65.0
+    },
+    deal_status: 'screening',
+    priority: 'medium',
+    created_at: '2024-05-01T00:00:00Z',
+    updated_at: '2025-01-20T00:00:00Z'
+  },
+  {
+    id: 'fintech-pro',
+    name: 'FinTech Pro',
+    domain: 'fintechpro.com',
+    website: 'https://fintechpro.com',
+    sector: 'FinTech',
+    stage: 'Series B',
+    founded_year: 2021,
+    headquarters: {
+      city: 'New York',
+      country: 'USA'
+    },
+    description: 'FinTech Pro provides B2B payment solutions for enterprise clients with advanced fraud detection and compliance features.',
+    employee_count: 45,
+    funding_total: 10000000,
+    investment: {
+      round_type: 'Series B',
+      investment_amount: 10000000,
+      valuation: 80000000,
+      ownership_percentage: 12.5,
+      investment_date: '2024-09-20',
+      lead_partner: 'Sarah Chen'
+    },
+    metrics: {
+      revenue_current: 450000,
+      revenue_growth: 35.8,
+      burn_rate: 320000,
+      runway_months: 22,
+      employees: 45,
+      customers: 120,
+      arr: 5400000,
+      gross_margin: 88.5
+    },
+    deal_status: 'term_sheet',
+    priority: 'high',
+    created_at: '2024-08-01T00:00:00Z',
+    updated_at: '2025-01-22T00:00:00Z'
+  },
+  {
+    id: 'healthtech-analytics',
+    name: 'HealthTech Analytics',
+    domain: 'healthtech-analytics.com',
+    website: 'https://healthtech-analytics.com',
+    sector: 'HealthTech',
+    stage: 'Series A',
+    founded_year: 2022,
+    headquarters: {
+      city: 'Boston',
+      country: 'USA'
+    },
+    description: 'HealthTech Analytics provides data analytics platform for healthcare providers to improve patient outcomes and operational efficiency.',
+    employee_count: 15,
+    funding_total: 3000000,
+    investment: {
+      round_type: 'Series A',
+      investment_amount: 3000000,
+      valuation: 25000000,
+      ownership_percentage: 12.0,
+      investment_date: '2024-11-10',
+      lead_partner: 'Alex Rodriguez'
+    },
+    metrics: {
+      revenue_current: 95000,
+      revenue_growth: 18.3,
+      burn_rate: 150000,
+      runway_months: 16,
+      employees: 15,
+      customers: 8,
+      arr: 1140000,
+      gross_margin: 72.0
+    },
+    deal_status: 'sourcing',
+    priority: 'low',
+    created_at: '2024-10-01T00:00:00Z',
+    updated_at: '2025-01-18T00:00:00Z'
+  }
+]
+
+// Get all companies
+export const getAllCompanies = (): Company[] => {
+  if (typeof window === 'undefined') return DEFAULT_COMPANIES
+  
+  try {
+    const stored = localStorage.getItem(COMPANIES_STORAGE_KEY)
+    if (stored) {
+      return JSON.parse(stored)
+    } else {
+      // Initialize with default data
+      localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(DEFAULT_COMPANIES))
+      return DEFAULT_COMPANIES
+    }
+  } catch (error) {
+    console.error('Error loading companies:', error)
+    return DEFAULT_COMPANIES
+  }
+}
+
+// Get company by ID
+export const getCompanyById = (id: string): Company | null => {
+  const companies = getAllCompanies()
+  return companies.find(company => company.id === id) || null
+}
+
+// Add new company
+export const addCompany = (company: Omit<Company, 'id' | 'created_at' | 'updated_at'>): Company => {
+  const companies = getAllCompanies()
+  const newCompany: Company = {
+    ...company,
+    id: company.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+  
+  companies.push(newCompany)
+  
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(companies))
+  }
+  
+  return newCompany
+}
+
+// Update company
+export const updateCompany = (id: string, updates: Partial<Company>): Company | null => {
+  const companies = getAllCompanies()
+  const index = companies.findIndex(company => company.id === id)
+  
+  if (index === -1) return null
+  
+  companies[index] = {
+    ...companies[index],
+    ...updates,
+    updated_at: new Date().toISOString()
+  }
+  
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(companies))
+  }
+  
+  return companies[index]
+}
+
+// Delete company
+export const deleteCompany = (id: string): boolean => {
+  const companies = getAllCompanies()
+  const index = companies.findIndex(company => company.id === id)
+  
+  if (index === -1) return false
+  
+  companies.splice(index, 1)
+  
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(companies))
+  }
+  
+  return true
+}
+
+// Get portfolio statistics
+export const getPortfolioStats = () => {
+  const companies = getAllCompanies()
+  
+  return {
+    total_companies: companies.length,
+    total_investment: companies.reduce((sum, company) => sum + company.investment.investment_amount, 0),
+    total_valuation: companies.reduce((sum, company) => sum + company.investment.valuation, 0),
+    active_deals: companies.filter(company => 
+      ['due_diligence', 'term_sheet', 'screening'].includes(company.deal_status)
+    ).length,
+    invested_companies: companies.filter(company => company.deal_status === 'invested').length,
+    sectors: Array.from(new Set(companies.map(company => company.sector))),
+    stages: Array.from(new Set(companies.map(company => company.stage))),
+    average_ownership: companies.reduce((sum, company) => sum + company.investment.ownership_percentage, 0) / companies.length,
+    total_arr: companies.reduce((sum, company) => sum + company.metrics.arr, 0),
+    total_employees: companies.reduce((sum, company) => sum + company.metrics.employees, 0)
+  }
+}
+
+// Search companies
+export const searchCompanies = (query: string): Company[] => {
+  const companies = getAllCompanies()
+  const lowerQuery = query.toLowerCase()
+  
+  return companies.filter(company => 
+    company.name.toLowerCase().includes(lowerQuery) ||
+    company.sector.toLowerCase().includes(lowerQuery) ||
+    company.description.toLowerCase().includes(lowerQuery) ||
+    company.headquarters.city.toLowerCase().includes(lowerQuery)
+  )
+}

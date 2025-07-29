@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  suna-postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: suna
+      POSTGRES_USER: suna
+      POSTGRES_PASSWORD: suna_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - suna_postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U suna -d suna"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  suna-redis:
+    image: redis:7-alpine
+    ports:
+      - "6381:6379"
+    volumes:
+      - suna_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  suna-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - DATABASE_URL=postgresql://suna:suna_password@suna-postgres:5432/suna
+      - REDIS_URL=redis://suna-redis:6379
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+    depends_on:
+      suna-postgres:
+        condition: service_healthy
+      suna-redis:
+        condition: service_healthy
+    volumes:
+      - ./config:/app/config
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  suna_postgres_data:
+  suna_redis_data:

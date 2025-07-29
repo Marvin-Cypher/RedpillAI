@@ -1,6 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, WebSocket, WebSocketDisconnect
 from sqlmodel import Session, select
+from sqlalchemy.orm import Query
 from datetime import datetime
 import json
 
@@ -8,11 +9,13 @@ from ..database import get_db
 from ..models.conversations import (
     Conversation, ConversationCreate, ConversationRead,
     Message, MessageCreate, MessageRead, MessageRole,
-    AIInsight, AIInsightType
+    AIInsight, AIInsightType, ConversationType
 )
 from ..models.deals import Deal
+from ..models.companies import Company
 from ..models.users import User
 from ..core.auth import get_current_active_user
+from ..services.ai_service import ai_service
 
 router = APIRouter()
 
@@ -124,16 +127,61 @@ async def send_message(
     db.commit()
     db.refresh(user_message)
     
-    # TODO: Generate AI response
-    # For now, create a mock AI response
-    ai_response_content = f"I understand you're asking about: '{message.content[:50]}...'. Let me analyze this in the context of the deal and provide insights."
+    # Get deal and company information for AI context
+    deal_statement = select(Deal, Company).join(Company).where(Deal.id == conversation.deal_id)
+    deal_result = db.exec(deal_statement).first()
     
-    ai_message = Message(
-        conversation_id=conversation_id,
-        role=MessageRole.ASSISTANT,
-        content=ai_response_content,
-        context=json.dumps({"generated": True, "model": "mock-ai"})
-    )
+    if not deal_result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Deal not found for conversation"
+        )
+    
+    deal, company = deal_result
+    
+    # Get conversation history for context
+    history_statement = select(Message).where(
+        Message.conversation_id == conversation_id
+    ).order_by(Message.created_at.asc()).limit(20)
+    
+    history_messages = db.exec(history_statement).all()
+    conversation_history = [
+        {"role": msg.role, "content": msg.content} 
+        for msg in history_messages
+    ]
+    
+    # Generate AI response using OpenAI
+    try:
+        ai_response_content = await ai_service.generate_chat_response(
+            user_message=message.content,
+            conversation_history=conversation_history,
+            deal=deal,
+            company=company
+        )
+        
+        # Determine which model was used
+        model_used = "phala/qwen-2.5-7b-instruct" if ai_service.use_redpill else "gpt-4" if ai_service.client else "mock"
+        
+        ai_message = Message(
+            conversation_id=conversation_id,
+            role=MessageRole.ASSISTANT,
+            content=ai_response_content,
+            context=json.dumps({
+                "generated": True, 
+                "model": model_used,
+                "company": company.name,
+                "deal_stage": deal.stage
+            })
+        )
+        
+    except Exception as e:
+        print(f"AI generation error: {e}")
+        ai_message = Message(
+            conversation_id=conversation_id,
+            role=MessageRole.ASSISTANT,
+            content=f"I apologize, but I'm experiencing technical difficulties analyzing {company.name if deal_result else 'this deal'}. Please try again.",
+            context=json.dumps({"error": True, "message": str(e)[:200]})
+        )
     db.add(ai_message)
     
     # Update conversation timestamp
@@ -154,37 +202,110 @@ async def quick_analysis(
     current_user: User = Depends(get_current_active_user)
 ):
     """Get quick AI analysis for a deal."""
-    # Verify deal exists
-    deal_statement = select(Deal).where(Deal.id == deal_id)
-    deal = db.exec(deal_statement).first()
+    # Get deal and company information
+    deal_statement = select(Deal, Company).join(Company).where(Deal.id == deal_id)
+    deal_result = db.exec(deal_statement).first()
     
-    if not deal:
+    if not deal_result:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Deal not found"
         )
     
-    # Mock AI analysis based on type
-    analysis_responses = {
-        "risks": f"Based on my analysis of {deal.company.name if hasattr(deal, 'company') else 'this company'}, key risks include: market competition, regulatory uncertainty, and execution challenges.",
-        "competition": f"The competitive landscape shows several players in this space. Key differentiators to evaluate include technology moat, team experience, and go-to-market strategy.",
-        "team": f"Team analysis indicates strong technical background. Recommend deeper dive into previous startup experience and domain expertise.",
-        "market": f"Market size analysis suggests significant opportunity. Total addressable market estimated at $10B+ with strong growth trends.",
-        "memo": f"Generating comprehensive investment memo for {deal.company.name if hasattr(deal, 'company') else 'this opportunity'}. This will include market analysis, competitive positioning, and investment recommendation."
-    }
+    deal, company = deal_result
     
-    response_content = analysis_responses.get(
-        analysis_type, 
-        "Analysis type not recognized. Available types: risks, competition, team, market, memo"
-    )
+    # Generate AI analysis
+    try:
+        analysis_result = await ai_service.generate_quick_analysis(
+            analysis_type=analysis_type,
+            deal=deal,
+            company=company
+        )
+        
+        # Store as AI insight if successful
+        if "error" not in analysis_result:
+            insight = AIInsight(
+                deal_id=deal_id,
+                insight_type=analysis_type,
+                title=f"{analysis_type.title()} Analysis - {company.name}",
+                content=analysis_result["content"],
+                confidence_score=analysis_result.get("confidence", 80),
+                generated_by="ai_agent",
+                extra_metadata=json.dumps({
+                    "model": analysis_result.get("model", "gpt-4"),
+                    "word_count": analysis_result.get("word_count", 0),
+                    "analysis_type": analysis_type
+                })
+            )
+            db.add(insight)
+            db.commit()
+        
+        return analysis_result
+        
+    except Exception as e:
+        print(f"Quick analysis error: {e}")
+        return {
+            "error": f"Failed to generate analysis: {str(e)[:100]}",
+            "deal_id": deal_id,
+            "analysis_type": analysis_type,
+            "company": company.name
+        }
+
+
+@router.post("/investment-memo")
+async def generate_investment_memo(
+    deal_id: str,
+    additional_context: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Generate a comprehensive investment memo for a deal."""
+    # Get deal and company information
+    deal_statement = select(Deal, Company).join(Company).where(Deal.id == deal_id)
+    deal_result = db.exec(deal_statement).first()
     
-    return {
-        "deal_id": deal_id,
-        "analysis_type": analysis_type,
-        "content": response_content,
-        "generated_at": datetime.utcnow(),
-        "confidence": 75
-    }
+    if not deal_result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Deal not found"
+        )
+    
+    deal, company = deal_result
+    
+    try:
+        memo_result = await ai_service.generate_investment_memo(
+            deal=deal,
+            company=company,
+            additional_context=additional_context
+        )
+        
+        # Store as research memo if successful
+        if "error" not in memo_result:
+            from ..models.deals import ResearchMemo
+            
+            research_memo = ResearchMemo(
+                deal_id=deal_id,
+                title=memo_result["title"],
+                content=memo_result["content"],
+                summary=memo_result["content"][:500] + "..." if len(memo_result["content"]) > 500 else memo_result["content"],
+                confidence_score=85,
+                generated_by="ai_agent"
+            )
+            db.add(research_memo)
+            db.commit()
+            db.refresh(research_memo)
+            
+            memo_result["memo_id"] = research_memo.id
+        
+        return memo_result
+        
+    except Exception as e:
+        print(f"Investment memo generation error: {e}")
+        return {
+            "error": f"Failed to generate investment memo: {str(e)[:100]}",
+            "deal_id": deal_id,
+            "company": company.name
+        }
 
 
 @router.websocket("/ws/{deal_id}")
@@ -242,3 +363,272 @@ async def get_deal_insights(
     
     insights = db.exec(statement).all()
     return insights
+
+
+@router.get("/test-ai")
+async def test_ai_connection(
+    current_user: User = Depends(get_current_active_user)
+):
+    """Test AI connection and configuration."""
+    try:
+        # Test message
+        test_messages = [
+            {"role": "system", "content": "You are a helpful VC analyst."},
+            {"role": "user", "content": "What are the key factors to consider when evaluating a crypto startup?"}
+        ]
+        
+        if ai_service.use_redpill:
+            # Test redpill.ai
+            response = await ai_service._call_redpill_api(test_messages, max_tokens=200)
+            content = response["choices"][0]["message"]["content"]
+            
+            return {
+                "status": "success",
+                "provider": "redpill.ai",
+                "model": ai_service.default_model,
+                "api_url": ai_service.base_url,
+                "response": content[:200] + "..." if len(content) > 200 else content,
+                "message": "Redpill.ai API is connected and working!"
+            }
+        elif ai_service.client:
+            # Test OpenAI
+            response = ai_service.client.chat.completions.create(
+                model="gpt-3.5-turbo",  # Use cheaper model for testing
+                messages=test_messages,
+                max_tokens=100
+            )
+            
+            return {
+                "status": "success", 
+                "provider": "OpenAI",
+                "model": "gpt-3.5-turbo",
+                "response": response.choices[0].message.content,
+                "message": "OpenAI API is connected and working!"
+            }
+        else:
+            # Mock mode
+            return {
+                "status": "mock",
+                "provider": "Mock",
+                "model": "mock",
+                "response": ai_service._generate_mock_response("crypto startup evaluation", "TestStartup"),
+                "message": "AI is running in mock mode. Add API keys to enable real AI."
+            }
+            
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "provider": "redpill.ai" if ai_service.use_redpill else "OpenAI",
+            "message": "AI API connection failed. Please check your configuration."
+        }
+
+
+# New comprehensive chat endpoint with logging
+@router.post("/ai-chat")
+async def ai_chat_with_logging(
+    request: dict,
+    db: Session = Depends(get_db)
+    # current_user = Depends(get_current_user_optional)  # Removed for now
+):
+    """
+    AI chat endpoint with comprehensive logging for debugging.
+    Records all conversations with chat_id for easy debugging.
+    """
+    import time
+    import uuid
+    
+    start_time = time.time()
+    chat_id = f"chat_{uuid.uuid4().hex[:8]}"
+    
+    # Extract request data
+    message = request.get("message", "")
+    project_id = request.get("project_id")
+    project_type = request.get("project_type")  # "company" or "deal"
+    conversation_history = request.get("conversation_history", [])
+    
+    # Determine conversation type and context
+    conversation_type = ConversationType.OPEN
+    deal_id = None
+    company_id = None
+    context_name = "Dashboard"
+    
+    if project_id and project_type:
+        if project_type == "company":
+            conversation_type = ConversationType.COMPANY
+            company_id = project_id
+            # Get company name
+            try:
+                company = db.exec(select(Company).where(Company.id == project_id)).first()
+                if company:
+                    context_name = company.name
+                else:
+                    context_name = f"Company: {project_id}"
+            except Exception as e:
+                print(f"Warning: Could not find company {project_id}: {e}")
+                context_name = f"Company: {project_id}"
+        elif project_type == "deal":
+            conversation_type = ConversationType.DEAL
+            deal_id = project_id
+            # Get deal name
+            try:
+                deal = db.exec(select(Deal).where(Deal.id == project_id)).first()
+                if deal:
+                    context_name = deal.company_name
+                else:
+                    context_name = f"Deal: {project_id}"
+            except Exception as e:
+                print(f"Warning: Could not find deal {project_id}: {e}")
+                context_name = f"Deal: {project_id}"
+    
+    # Create conversation record
+    conversation = Conversation(
+        conversation_type=conversation_type,
+        deal_id=deal_id,
+        company_id=company_id,
+        user_id="anonymous",  # current_user.id if current_user else "anonymous",
+        title=message[:100] if message else "New conversation",
+        context_name=context_name,
+        chat_id=chat_id
+    )
+    db.add(conversation)
+    db.commit()
+    
+    # Create user message record
+    user_message = Message(
+        conversation_id=conversation.id,
+        role=MessageRole.USER,
+        content=message,
+        extra_metadata=json.dumps({
+            "project_type": project_type,
+            "project_id": project_id,
+            "context_name": context_name
+        })
+    )
+    db.add(user_message)
+    
+    # Track research steps
+    research_steps = []
+    
+    try:
+        # Call AI service
+        response = await ai_service.chat(
+            message=message,
+            project_context={
+                "project_id": project_id,
+                "project_name": context_name,
+                "project_type": project_type
+            } if project_id else None,
+            conversation_history=conversation_history
+        )
+        
+        # Calculate processing time
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        
+        # Create AI response message record
+        ai_message = Message(
+            conversation_id=conversation.id,
+            role=MessageRole.ASSISTANT,
+            content=response.get("content", ""),
+            model_used=response.get("model", "unknown"),
+            processing_time_ms=processing_time_ms,
+            tokens_used=response.get("usage", {}).get("total_tokens") if response.get("usage") else None,
+            extra_metadata=json.dumps({
+                "reasoning_content": response.get("reasoning_content"),
+                "project_context": response.get("projectContext")
+            })
+        )
+        db.add(ai_message)
+        
+        # Update conversation
+        conversation.updated_at = datetime.utcnow()
+        db.commit()
+        
+        # Return response with chat_id for debugging
+        return {
+            "success": True,
+            "chat_id": chat_id,
+            "content": response.get("content", ""),
+            "reasoning_content": response.get("reasoning_content"),
+            "usage": response.get("usage"),
+            "model": response.get("model"),
+            "projectContext": response.get("projectContext")
+        }
+        
+    except Exception as e:
+        # Log error
+        error_message = Message(
+            conversation_id=conversation.id,
+            role=MessageRole.SYSTEM,
+            content=f"Error: {str(e)}",
+            error_message=str(e),
+            processing_time_ms=int((time.time() - start_time) * 1000)
+        )
+        db.add(error_message)
+        db.commit()
+        
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": str(e),
+                "chat_id": chat_id,
+                "message": f"AI service error - use chat_id '{chat_id}' for debugging"
+            }
+        )
+
+
+@router.get("/debug/{chat_id}")
+async def debug_conversation(
+    chat_id: str,
+    db: Session = Depends(get_db)
+    # current_user = Depends(get_current_user_optional)  # Removed for now
+):
+    """
+    Get conversation details by chat_id for debugging.
+    Perfect for troubleshooting specific conversations.
+    """
+    conversation = db.exec(
+        select(Conversation).where(Conversation.chat_id == chat_id)
+    ).first()
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail=f"Conversation with chat_id '{chat_id}' not found")
+    
+    # Get all messages
+    messages = db.exec(
+        select(Message).where(Message.conversation_id == conversation.id).order_by(Message.created_at)
+    ).all()
+    
+    # Format response for debugging
+    return {
+        "chat_id": chat_id,
+        "conversation": {
+            "id": conversation.id,
+            "type": conversation.conversation_type,
+            "context_name": conversation.context_name,
+            "deal_id": conversation.deal_id,
+            "company_id": conversation.company_id,
+            "created_at": conversation.created_at.isoformat(),
+            "updated_at": conversation.updated_at.isoformat()
+        },
+        "messages": [
+            {
+                "role": msg.role,
+                "content": msg.content,
+                "timestamp": msg.created_at.isoformat(),
+                "processing_time_ms": msg.processing_time_ms,
+                "model_used": msg.model_used,
+                "tokens_used": msg.tokens_used,
+                "error_message": msg.error_message,
+                "metadata": json.loads(msg.extra_metadata) if msg.extra_metadata else None,
+                "research_steps": json.loads(msg.research_steps) if msg.research_steps else None
+            }
+            for msg in messages
+        ],
+        "summary": {
+            "total_messages": len(messages),
+            "total_processing_time_ms": sum(msg.processing_time_ms or 0 for msg in messages),
+            "total_tokens": sum(msg.tokens_used or 0 for msg in messages),
+            "has_errors": any(msg.error_message for msg in messages)
+        }
+    }

@@ -20,6 +20,15 @@ redis_client = redis.from_url(settings.redis_url)
 
 def create_db_and_tables():
     """Create database tables."""
+    from .models.users import User
+    from .models.deals import Deal
+    from .models.companies import Company
+    from .models.conversations import Conversation, Message
+    from .models.workflows import (
+        WorkflowExecution, MarketDataSnapshot, ResearchAnalysis,
+        InvestmentMemo, WorkflowTemplate, AnalyticsEvent
+    )
+    
     SQLModel.metadata.create_all(engine)
 
 

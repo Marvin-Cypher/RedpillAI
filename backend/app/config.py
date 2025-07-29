@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     debug: bool = True
     
     # Database
-    database_url: str = "postgresql://redpill:redpill@localhost:5432/redpill"
+    database_url: str = "sqlite:///./redpill.db"
     database_echo: bool = False
     
     # Redis
@@ -23,27 +23,48 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     
     # AI Services
-    openai_api_key: Optional[str] = None
+    openai_api_key: Optional[str] = "sk-9JABKD0bYW6s8VN6PoIG0LUOj1uo44TrXm0MNJWXe7GWP1wR"
     anthropic_api_key: Optional[str] = None
     pinecone_api_key: Optional[str] = None
     pinecone_environment: str = "us-east-1"
     pinecone_index_name: str = "redpill-documents"
+    
+    # Redpill.ai Configuration
+    redpill_api_key: Optional[str] = None
+    redpill_api_url: str = "https://api.redpill.ai/v1"
+    use_redpill_ai: bool = True  # Prefer redpill.ai over OpenAI when available
     
     # External APIs
     coingecko_api_key: Optional[str] = None
     messari_api_key: Optional[str] = None
     etherscan_api_key: Optional[str] = None
     
+    # OpenBB Platform API Keys
+    fmp_api_key: Optional[str] = None
+    polygon_api_key: Optional[str] = None
+    alpha_vantage_api_key: Optional[str] = None
+    quandl_api_key: Optional[str] = None
+    benzinga_api_key: Optional[str] = None
+    
+    # Company Enrichment Settings
+    enable_web_scraping: bool = True
+    enrichment_timeout_seconds: int = 30
+    max_enrichment_sources: int = 5
+    
+    # Rate Limiting
+    api_rate_limit_per_minute: int = 100
+    
     # File Storage
     upload_directory: str = "./uploads"
     max_file_size: int = 50 * 1024 * 1024  # 50MB
     
     # CORS
-    allowed_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    allowed_origins: str = "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3004,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002,http://127.0.0.1:3004"
     
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"  # Allow extra fields in .env without validation errors
 
 
 settings = Settings()

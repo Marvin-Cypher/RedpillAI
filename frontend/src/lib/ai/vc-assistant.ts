@@ -1,5 +1,6 @@
 import { CryptoResearchAgent } from "./agents/crypto-research-agent"
 import { DeepResearchAgent } from "./agents/deep-research-agent"
+import { QuickResearchAgent } from "./quick-research-agent"
 import { CoinGeckoService } from "../services/coingecko"
 import { RedpillAIProvider } from "./redpill-provider"
 
@@ -26,18 +27,22 @@ export interface StreamingCallback {
 export class VCAssistant {
   private researchAgent: CryptoResearchAgent
   private deepResearchAgent: DeepResearchAgent
+  private quickResearchAgent: QuickResearchAgent
   private coinGeckoService: CoinGeckoService
   private apiKey: string
 
-  constructor(apiKey: string, coinGeckoApiKey: string) {
+  constructor(apiKey: string, coinGeckoApiKey?: string) {
     this.apiKey = apiKey
+    // Note: Research agents still use API key directly for now
+    // TODO: Migrate these to server-side endpoints for better security
     this.researchAgent = new CryptoResearchAgent(apiKey)
     this.deepResearchAgent = new DeepResearchAgent(apiKey, {
-      maxIterations: 4,
-      maxSources: 15,
-      confidenceThreshold: 0.7
+      maxIterations: 1, // Reduced for speed
+      maxSources: 5,    // Reduced for speed
+      confidenceThreshold: 0.5
     })
-    this.coinGeckoService = new CoinGeckoService(coinGeckoApiKey)
+    this.quickResearchAgent = new QuickResearchAgent(apiKey)
+    this.coinGeckoService = new CoinGeckoService(coinGeckoApiKey || '')
   }
 
   async chat(
@@ -46,29 +51,55 @@ export class VCAssistant {
     conversationHistory: Message[] = [],
     onStepUpdate?: (step: any) => void
   ): Promise<string> {
+    console.log('🤖 VCAssistant.chat called:', {
+      message: message.substring(0, 50) + '...',
+      projectId,
+      hasStepCallback: !!onStepUpdate,
+      conversationLength: conversationHistory.length
+    })
+    
     try {
+      // Check query types with logging
+      const isMarketData = this.isMarketDataQuery(message)
+      const isDeepResearch = this.isDeepResearchQuery(message)
+      const isRegularResearch = this.isResearchQuery(message)
+      
+      console.log('🔍 Query classification:', {
+        message: message.substring(0, 30) + '...',
+        isMarketData,
+        isDeepResearch,
+        isRegularResearch
+      })
+
       // Check if this is a market data query
-      if (this.isMarketDataQuery(message)) {
+      if (isMarketData) {
+        console.log('📊 Routing to market data handler')
         const projectName = projectId ? await this.getProjectName(projectId) : undefined
         return await this.handleMarketDataQuery(message, projectName)
       }
 
       // Check for deep research queries first
-      if (this.isDeepResearchQuery(message)) {
+      if (isDeepResearch) {
+        console.log('🧠 Routing to deep research handler')
         const projectName = projectId ? await this.getProjectName(projectId) : undefined
         const researchQuery = projectName ? `${message} ${projectName}` : message
         return await this.handleDeepResearch(researchQuery, projectName, onStepUpdate)
       }
 
       // Determine if this is a research query
-      if (this.isResearchQuery(message)) {
+      if (isRegularResearch) {
+        console.log('🚀 Routing to quick research handler')
         const projectName = projectId ? await this.getProjectName(projectId) : undefined
-        const marketData = projectName ? await this.getMarketDataForProject(projectName) : undefined
-        return await this.researchAgent.research(message, projectName, marketData)
+        
+        // Use quick research for faster results with progress
+        const researchQuery = projectName ? `${message} ${projectName}` : message
+        return await this.handleQuickResearch(researchQuery, projectName, onStepUpdate)
       }
 
-      // For general chat, use simple AI response
-      return await this.generalChat(message, conversationHistory)
+      // For general chat, use simple AI response with project context
+      console.log('💬 Routing to general chat handler')
+      const projectName = projectId ? await this.getProjectName(projectId) : undefined
+      return await this.generalChat(message, conversationHistory, projectName)
     } catch (error) {
       console.error("VCAssistant error:", error)
       console.error("Error details:", error instanceof Error ? error.message : 'Unknown error')
@@ -113,11 +144,12 @@ For now, I can help with basic information about crypto projects and VCs. Please
   }
 
   private isResearchQuery(message: string): boolean {
+    // Trigger research for broader set of research-related queries
     const researchKeywords = [
-      "analyze", "research", "compare", "evaluate", "assess",
-      "due diligence", "market", "competition", "tokenomics",
-      "team", "technical", "risks", "opportunities", "investment",
-      "protocol", "blockchain", "defi", "layer", "smart contract"
+      "research", "analysis", "investigate", "find out", "look up", "search for",
+      "what's the latest", "recent", "current", "update", "news about",
+      "comprehensive research", "detailed analysis", "full report",
+      "extensive evaluation", "thorough assessment", "in-depth study"
     ]
     
     const lowerMessage = message.toLowerCase()
@@ -125,24 +157,23 @@ For now, I can help with basic information about crypto projects and VCs. Please
   }
 
   private isDeepResearchQuery(message: string): boolean {
+    // Only trigger deep research for very specific requests
     const deepResearchKeywords = [
-      "comprehensive analysis", "due diligence", "investment memo",
-      "research report", "market intelligence", "competitive analysis",
-      "deep dive", "thorough investigation", "full analysis",
-      "detailed report", "complete assessment", "latest news",
-      "recent developments", "current status", "market update"
+      "due diligence", "investment memo", "research report", 
+      "deep dive analysis", "comprehensive report"
     ]
     
     const lowerMessage = message.toLowerCase()
-    return deepResearchKeywords.some(keyword => lowerMessage.includes(keyword)) ||
-           (lowerMessage.includes("latest") || lowerMessage.includes("recent") || lowerMessage.includes("current"))
+    return deepResearchKeywords.some(keyword => lowerMessage.includes(keyword))
   }
 
   private isMarketDataQuery(message: string): boolean {
     const marketKeywords = [
       "price", "market cap", "volume", "trading", "liquidity",
       "supply", "token", "chart", "performance", "mcap",
-      "fdv", "tvl", "current price", "24h", "ath", "atl"
+      "fdv", "tvl", "current price", "24h", "ath", "atl",
+      "arr", "revenue", "valuation", "funding", "investment",
+      "latest arr", "annual recurring revenue", "financial"
     ]
     
     const lowerMessage = message.toLowerCase()
@@ -155,7 +186,10 @@ For now, I can help with basic information about crypto projects and VCs. Please
     onStepUpdate?: (step: any) => void
   ): Promise<string> {
     try {
-      console.log(`🔬 Conducting deep research for: "${query}"`)
+      console.log(`🔬 Conducting deep research for: "${query}"`, {
+        hasStepCallback: !!onStepUpdate,
+        projectName
+      })
       
       const researchState = await this.deepResearchAgent.conductDeepResearch(
         query,
@@ -208,6 +242,62 @@ For the most current information, you might want to:
 - Examine community discussions and social media
 
 Please try your query again, or ask me to focus on specific aspects I can analyze with available data.`
+    }
+  }
+
+  private async handleQuickResearch(
+    query: string, 
+    projectName?: string,
+    onStepUpdate?: (step: any) => void
+  ): Promise<string> {
+    try {
+      console.log(`🚀 Conducting quick research for: "${query}"`, {
+        hasStepCallback: !!onStepUpdate,
+        projectName
+      })
+      
+      const result = await this.quickResearchAgent.conductQuickResearch(
+        query,
+        onStepUpdate
+      )
+
+      // Format the research results for VC context
+      let report = `# Research Report\n\n**Query:** ${query}\n\n`
+      
+      if (result.summary) {
+        report += `${result.summary}\n\n`
+      }
+
+      if (result.keyFindings.length > 0) {
+        report += `## Key Research Findings\n\n`
+        result.keyFindings.forEach((finding, idx) => {
+          report += `${idx + 1}. ${finding}\n`
+        })
+        report += `\n`
+      }
+
+      if (result.sources.length > 0) {
+        report += `## Sources\n\n`
+        report += `*Research based on ${result.sources.length} sources with ${Math.round(result.confidence * 100)}% confidence*\n\n`
+        
+        result.sources.slice(0, 5).forEach((source, idx) => {
+          report += `${idx + 1}. [${source.title}](${source.url}) - ${source.source}\n`
+        })
+      }
+
+      report += `\n*Research completed: ${result.timestamp.toLocaleString()}*`
+
+      return report
+
+    } catch (error) {
+      console.error('Quick research failed:', error)
+      return `I attempted to research "${query}" but encountered technical difficulties. 
+
+Here's what I can tell you based on my knowledge base:
+
+${projectName ? `${projectName} is a project that I can analyze using available information.` : 'I can provide general analysis based on available information.'}
+
+For the most current information, please try a more specific query or check back later.`
     }
   }
 
@@ -291,12 +381,21 @@ If specific market data isn't available, use your knowledge of crypto projects a
 
   private async getProjectName(projectId: string): Promise<string | undefined> {
     // In a real implementation, this would query the database
-    // For now, try to get from localStorage or use mock data
+    // For now, check localStorage and URL-based project names
     try {
-      const projects = JSON.parse(localStorage.getItem('projects') || '[]')
-      const project = projects.find((p: any) => p.id === projectId)
-      if (project?.company_name || project?.name) {
-        return project.company_name || project.name
+      // First check localStorage for projects
+      if (typeof window !== 'undefined') {
+        const projects = JSON.parse(localStorage.getItem('projects') || '[]')
+        const project = projects.find((p: any) => p.id === projectId)
+        if (project?.company_name || project?.name) {
+          return project.company_name || project.name
+        }
+      }
+      
+      // Check if projectId is actually a company name from URL (like "chainlink", "polkadot")
+      if (projectId && isNaN(Number(projectId))) {
+        // Capitalize first letter for display
+        return projectId.charAt(0).toUpperCase() + projectId.slice(1)
       }
       
       // Fallback to mock project data for demo
@@ -307,22 +406,30 @@ If specific market data isn't available, use your knowledge of crypto projects a
         "4": "Eigenlayer",
         "5": "Babylon",
         "6": "Berachain",
-        "7": "Scroll"
+        "7": "Scroll",
+        "chainlink": "Chainlink",
+        "polkadot": "Polkadot"
       }
       
       return mockProjects[projectId] || `Project ${projectId}`
     } catch (error) {
       // Fallback to generic project name
-      return `Project ${projectId}`
+      return projectId || 'Unknown Project'
     }
   }
 
-  private async generalChat(message: string, history: Message[]): Promise<string> {
+  private async generalChat(message: string, history: Message[], projectName?: string): Promise<string> {
     // Create context from conversation history
-    const messages = [
-      {
-        role: "system",
-        content: `You are an expert crypto venture capital assistant. You help VCs with:
+    const systemPrompt = projectName 
+      ? `You are an expert crypto venture capital assistant analyzing ${projectName}. You help VCs with:
+- Investment research and analysis for ${projectName}
+- Market intelligence and trends
+- Due diligence insights
+- Portfolio management advice
+- Crypto and blockchain expertise
+
+Focus your analysis specifically on ${projectName}. Keep responses concise, actionable, and focused on VC decision-making.`
+      : `You are an expert crypto venture capital assistant. You help VCs with:
 - Investment research and analysis
 - Market intelligence and trends
 - Due diligence insights
@@ -330,6 +437,11 @@ If specific market data isn't available, use your knowledge of crypto projects a
 - Crypto and blockchain expertise
 
 Keep responses concise, actionable, and focused on VC decision-making.`
+
+    const messages = [
+      {
+        role: "system",
+        content: systemPrompt
       },
       ...history.slice(-10).map(msg => ({
         role: msg.role === "user" ? "user" : "assistant",

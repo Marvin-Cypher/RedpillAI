@@ -7,6 +7,7 @@ export class RedpillAIProvider {
     this.client = new OpenAI({
       baseURL: "https://api.redpill.ai/v1",
       apiKey: apiKey,
+      dangerouslyAllowBrowser: true // Required for browser usage
     })
   }
 

@@ -1,120 +1,300 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
+/* CopilotKit styles */
+@import "@copilotkit/react-ui/styles.css";
+
+/* Hybrid AI Interface styles */
+@import "../styles/hybrid-ai.css";
+
 @layer base {
+  /* Suna Design System - OKLCH Color Variables */
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222.2 84% 4.9%;
- 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
- 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
- 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
- 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
- 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
- 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 47.4% 11.2%;
- 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
- 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
- 
-    --radius: 0.5rem;
+    /* Primary Colors */
+    --background: oklch(0.9741 0 0);
+    --foreground: oklch(0.2277 0.0034 67.65);
+    
+    /* Card Colors */
+    --card: oklch(0.9741 0 0);
+    --card-foreground: oklch(0.2277 0.0034 67.65);
+    
+    /* Primary Brand */
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    
+    /* Secondary Colors */
+    --secondary: oklch(54.65% 0.246 262.87);
+    --secondary-foreground: oklch(0.985 0 0);
+    
+    /* Muted Colors */
+    --muted: oklch(0.93 0 0);
+    --muted-foreground: oklch(0.52 0.002 67.65);
+    
+    /* Accent Colors */
+    --accent: oklch(0.93 0 0);
+    --accent-foreground: oklch(0.2277 0.0034 67.65);
+    
+    /* Destructive Colors */
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.985 0 0);
+    
+    /* Border and Input */
+    --border: oklch(0.85 0 0);
+    --input: oklch(0.85 0 0);
+    --ring: oklch(0.205 0 0);
+    
+    /* Sidebar Colors */
+    --sidebar: oklch(0.9741 0 0);
+    --sidebar-foreground: oklch(0.2277 0.0034 67.65);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.93 0 0);
+    --sidebar-accent-foreground: oklch(0.2277 0.0034 67.65);
+    --sidebar-border: oklch(0.85 0 0);
+    --sidebar-ring: oklch(0.205 0 0);
+    
+    /* Chart Colors */
+    --chart-1: oklch(0.62 0.25 29);
+    --chart-2: oklch(0.70 0.20 95);
+    --chart-3: oklch(0.65 0.23 142);
+    --chart-4: oklch(0.72 0.18 197);
+    --chart-5: oklch(0.68 0.22 252);
+    
+    /* Border Radius System */
+    --radius: 0.625rem;
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
   }
- 
+
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
- 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
- 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
- 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
- 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
- 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
- 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
- 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
- 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Dark Mode Colors */
+    --background: oklch(0.185 0.005 285.823);
+    --foreground: oklch(0.985 0 0);
+    
+    --card: oklch(0.2 0.005 285.823);
+    --card-foreground: oklch(0.985 0 0);
+    
+    --primary: oklch(0.985 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    
+    --secondary: oklch(54.65% 0.246 262.87);
+    --secondary-foreground: oklch(0.985 0 0);
+    
+    --muted: oklch(0.25 0.005 285.823);
+    --muted-foreground: oklch(0.65 0.002 67.65);
+    
+    --accent: oklch(0.25 0.005 285.823);
+    --accent-foreground: oklch(0.985 0 0);
+    
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.985 0 0);
+    
+    --border: oklch(0.25 0.005 285.823);
+    --input: oklch(0.25 0.005 285.823);
+    --ring: oklch(0.985 0 0);
+    
+    /* Dark Sidebar */
+    --sidebar: oklch(0.185 0.005 285.823);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.985 0 0);
+    --sidebar-primary-foreground: oklch(0.205 0 0);
+    --sidebar-accent: oklch(0.25 0.005 285.823);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(0.25 0.005 285.823);
+    --sidebar-ring: oklch(0.985 0 0);
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
   }
+  
   body {
     @apply bg-background text-foreground;
-    @apply dark:bg-dark-900 dark:text-white;
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-feature-settings: 'palt';
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+  
+  code, pre {
+    font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
   }
 }
 
-/* Custom Redpill styles */
+/* Suna Animation System */
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes shimmer-gray {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes enterFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-200px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes enterFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(200px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes exitToLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-200px);
+  }
+}
+
+@keyframes exitToRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(200px);
+  }
+}
+
+/* Suna Utility Classes */
+.animate-accordion-down {
+  animation: accordion-down 0.2s ease-out;
+}
+
+.animate-accordion-up {
+  animation: accordion-up 0.2s ease-out;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, oklch(0.205 0 0), transparent);
+  background-size: 400% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-shimmer-gray {
+  background: linear-gradient(90deg, transparent, oklch(0.85 0 0), transparent);
+  background-size: 400% 100%;
+  animation: shimmer-gray 2s infinite;
+}
+
+/* Responsive utilities */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .break-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
+  }
+}
+
+/* Suna Background Patterns */
+.bg-pattern-grid {
+  background-image: 
+    linear-gradient(to right, oklch(0.85 0 0) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.85 0 0) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.dark .bg-pattern-grid {
+  background-image: 
+    linear-gradient(to right, oklch(0.25 0.005 285.823) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.25 0.005 285.823) 1px, transparent 1px);
+}
+
+/* Suna Chat Markdown Styles */
+.prose.chat-markdown {
+  @apply max-w-none text-foreground;
+}
+
+.prose.chat-markdown h1,
+.prose.chat-markdown h2,
+.prose.chat-markdown h3,
+.prose.chat-markdown h4,
+.prose.chat-markdown h5,
+.prose.chat-markdown h6 {
+  @apply text-foreground font-semibold;
+}
+
+.prose.chat-markdown pre {
+  @apply bg-muted border border-border rounded-lg;
+}
+
+.prose.chat-markdown code {
+  @apply bg-muted px-1 py-0.5 rounded text-sm;
+}
+
+.prose.chat-markdown blockquote {
+  @apply border-l-4 border-border pl-4 italic text-muted-foreground;
+}
+
+/* Override any existing Redpill styles with Suna design */
 .redpill-gradient {
-  background: linear-gradient(135deg, theme('colors.dark.900') 0%, theme('colors.dark.800') 100%);
+  background: oklch(0.185 0.005 285.823);
 }
 
 .redpill-card {
-  @apply bg-card border border-border rounded-lg shadow-sm;
-  @apply dark:bg-dark-800 dark:border-dark-700;
+  @apply bg-card border border-border rounded-xl shadow-sm;
 }
 
 .redpill-button-primary {
-  @apply bg-redpill-600 hover:bg-redpill-700 text-white;
+  @apply bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl;
 }
 
 .redpill-button-secondary {
-  @apply bg-dark-700 hover:bg-dark-600 text-white border border-dark-600;
-}
-
-/* Status indicator styles */
-.status-planned {
-  @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400;
-}
-
-.status-meeting {
-  @apply bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400;
-}
-
-.status-research {
-  @apply bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400;
-}
-
-.status-deal {
-  @apply bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400;
-}
-
-.status-track {
-  @apply bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400;
-}
-
-.status-passed {
-  @apply bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400;
+  @apply bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border rounded-xl;
 }

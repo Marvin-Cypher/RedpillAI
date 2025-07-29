@@ -21,12 +21,15 @@ import {
   Star,
   Download,
   Eye,
-  Trash2
+  Trash2,
+  Brain
 } from 'lucide-react'
 import { StatusSelector } from '@/components/deals/StatusSelector'
 import { DocumentUpload } from './DocumentUpload'
 import { EditableProjectData } from './EditableProjectData'
 import { InvestmentMemoManager } from '../memo/InvestmentMemoManager'
+import { AgenticChatInterface, AgenticChatButton } from '@/components/ai/AgenticChatInterface'
+import { cn } from '@/lib/utils'
 
 interface ProjectDetailProps {
   projectId: string
@@ -202,6 +205,8 @@ const getDefaultProject = (projectId: string, companyName?: string) => ({
 
 export function ProjectDetail({ projectId, projectData: passedProjectData, onBack, onStatusChange, onProjectUpdate, pendingMemo, onMemoAdded }: ProjectDetailProps) {
   const [activeTab, setActiveTab] = useState('overview')
+  const [chatOpen, setChatOpen] = useState(false)
+  const [chatMode, setChatMode] = useState<'slide' | 'inline' | 'fullscreen'>('slide')
   
   // Get project data - prefer passed data, then check mock data, then create default
   const rawProject = passedProjectData || (projectId ? (mockProjects[projectId] || getDefaultProject(projectId, passedProjectData?.company_name)) : getDefaultProject('new'))
@@ -344,6 +349,10 @@ export function ProjectDetail({ projectId, projectData: passedProjectData, onBac
           </div>
         </div>
         <div className="flex items-center space-x-3">
+          <AgenticChatButton 
+            project={project}
+            onClick={() => setChatOpen(true)}
+          />
           <StatusSelector
             currentStatus={project.status}
             dealId={project.id}
@@ -512,10 +521,10 @@ export function ProjectDetail({ projectId, projectData: passedProjectData, onBac
               <p className="text-gray-400 mb-4">
                 Use AI to research and analyze this project
               </p>
-              <Button className="redpill-button-primary">
-                <MessageSquare className="w-4 h-4 mr-2" />
-                New Research Chat
-              </Button>
+              <AgenticChatButton 
+                project={project}
+                onClick={() => setChatOpen(true)}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -539,6 +548,15 @@ export function ProjectDetail({ projectId, projectData: passedProjectData, onBac
         onClose={() => setIsUploadOpen(false)}
         onUpload={handleDocumentUpload}
       />
+      
+      {/* Agentic AI Chat Interface */}
+      <AgenticChatInterface
+        project={project}
+        isOpen={chatOpen}
+        onToggle={setChatOpen}
+      >
+        <div></div>
+      </AgenticChatInterface>
     </div>
   )
 }

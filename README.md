@@ -1,6 +1,6 @@
-# RedpillAI - AI-Powered Crypto VC CRM
+# RedpillAI - Three-Pillar AI Platform for VC
 
-A comprehensive venture capital CRM platform specifically designed for crypto investments, powered by advanced AI research capabilities and real-time market data integration.
+A comprehensive AI-powered venture capital platform built on **three integrated pillars**: **AG-UI Protocol (AI Agents)**, **OpenBB Platform (Financial Data)**, and **OpenProject (Portfolio Management)** - designed specifically for crypto and technology investments.
 
 ![RedpillAI Dashboard](https://via.placeholder.com/800x400/1a1a1a/ffffff?text=RedpillAI+Dashboard)
 
@@ -55,10 +55,10 @@ A comprehensive venture capital CRM platform specifically designed for crypto in
 - **Pydantic** - Data validation and serialization
 
 ### AI & Integrations
-- **Redpill AI** - Multi-model AI router with reasoning capabilities
-- **OpenAI SDK** - Standardized AI model interface
-- **CoinGecko API** - Real-time crypto market data
-- **DeepSeek R1** - Advanced reasoning model for complex analysis
+- **AG-UI Protocol** - Standardized agent communication system
+- **OpenBB Platform** - Professional financial data with 350+ providers
+- **OpenProject API** - Portfolio and document management
+- **Three-Pillar Bridge** - Event-driven integration layer
 
 ## 🚀 Quick Start
 
@@ -78,16 +78,18 @@ Create `.env.local` files in both frontend and backend directories:
 
 **Frontend (`frontend/.env.local`):**
 ```env
-REDPILL_AI_API_KEY=your_redpill_ai_key
-COINGECKO_API_KEY=your_coingecko_key
 NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_URL=http://localhost:3000
 ```
 
 **Backend (`backend/.env`):**
 ```env
 DATABASE_URL=postgresql://user:password@localhost/redpillai
-REDPILL_AI_API_KEY=your_redpill_ai_key
-COINGECKO_API_KEY=your_coingecko_key
+OPENBB_PAT=your_openbb_token
+FMP_API_KEY=your_fmp_key
+POLYGON_API_KEY=your_polygon_key
+OPENPROJECT_URL=your_openproject_url
+OPENPROJECT_API_KEY=your_api_key
 ```
 
 ### 3. Install Dependencies
@@ -137,8 +139,8 @@ Visit `http://localhost:3000` to access the application.
 1. Click the "Deploy with Vercel" button above
 2. **Verify Root Directory is set to `frontend`** 
 3. Add environment variables:
-   - `REDPILL_AI_API_KEY` - Get from [redpill.ai](https://redpill.ai)
-   - `COINGECKO_API_KEY` - Get from [coingecko.com/api](https://coingecko.com/api)
+   - `OPENBB_PAT` - Get from [OpenBB Hub](https://my.openbb.co)
+   - `FMP_API_KEY` - Get from [Financial Modeling Prep](https://financialmodelingprep.com)
    - `NEXTAUTH_SECRET` - Generate with `openssl rand -base64 32`
    - `NEXTAUTH_URL` - Your Vercel app URL (e.g., `https://your-app.vercel.app`)
 4. Deploy!
@@ -168,16 +170,16 @@ Visit `http://localhost:3000` to access the application.
 
 ## 🔧 Configuration
 
-### AI Model Configuration
-The platform supports multiple AI models through Redpill AI router:
-- **DeepSeek R1**: Advanced reasoning for complex analysis
-- **GPT-4**: General-purpose research and writing
-- **Claude**: Long-form document analysis
-- **Llama 3**: Open-source alternative
+### Three-Pillar Configuration
+The platform integrates three core systems:
+- **AG-UI Protocol**: Standardized agent communication and workflows
+- **OpenBB Platform**: Professional financial data with 350+ providers
+- **OpenProject**: Portfolio management and document collaboration
 
 ### API Keys Required
-1. **Redpill AI**: Sign up at [redpill.ai](https://redpill.ai) for AI model access
-2. **CoinGecko**: Get free API key at [coingecko.com](https://coingecko.com/api)
+1. **OpenBB**: Sign up at [my.openbb.co](https://my.openbb.co) for financial data access
+2. **Financial Modeling Prep**: Get API key at [financialmodelingprep.com](https://financialmodelingprep.com)
+3. **OpenProject**: Set up instance at [openproject.org](https://openproject.org)
 
 ## 🧪 Development
 
@@ -199,16 +201,16 @@ RedpillAI/
 ```
 
 ### Key Components
-- **DealPipeline**: Main pipeline interface with drag-and-drop
-- **ChatWindow**: AI chat interface with context awareness
-- **ProjectDetail**: Comprehensive project management interface
-- **InvestmentMemoManager**: Memo creation and management system
+- **AgentInterface**: AG-UI Protocol agent management
+- **OpenBBDataroom**: Financial data and analytics dashboard
+- **PortfolioManager**: OpenProject integration interface
+- **ThreePillarBridge**: Cross-system workflow coordination
 
-### AI Integration Architecture
-- **VCAssistant**: Main AI coordinator class
-- **RedpillAIProvider**: Redpill AI API integration
-- **CryptoResearchAgent**: Specialized crypto research workflows
-- **CoinGeckoService**: Market data integration
+### Three-Pillar Architecture
+- **AG-UI Client**: Standardized agent communication
+- **OpenBB Service**: Professional financial data access
+- **OpenProject Service**: Portfolio and document management
+- **Event-Driven Bridge**: Integrated workflow automation
 
 ## 🤝 Contributing
 
@@ -227,8 +229,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- [Redpill AI](https://redpill.ai) for providing advanced AI model routing
-- [CoinGecko](https://coingecko.com) for comprehensive crypto market data
+- [AG-UI Protocol](https://github.com/ag-ui-protocol/ag-ui) for standardized agent communication
+- [OpenBB Platform](https://openbb.co) for professional financial data access
+- [OpenProject](https://openproject.org) for open-source portfolio management
 - [Shadcn/UI](https://ui.shadcn.com) for beautiful UI components
 - [Lucide](https://lucide.dev) for the icon library
 

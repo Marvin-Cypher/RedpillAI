@@ -61,10 +61,25 @@ def verify_token(token: str) -> TokenData:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(lambda: None if settings.debug else security)
 ) -> User:
     """Get the current authenticated user."""
+    # In debug mode, skip authentication and return mock user
+    if settings.debug:
+        from ..models.users import User
+        import uuid
+        
+        mock_user = User(
+            id=str(uuid.uuid4()),
+            email="demo@redpill.vc",
+            full_name="Demo User",
+            role="partner",
+            is_active=True,
+            hashed_password="mock-password"
+        )
+        return mock_user
+    
     token_data = verify_token(credentials.credentials)
     
     statement = select(User).where(User.id == token_data.user_id)
@@ -86,11 +101,32 @@ async def get_current_user(
     return user
 
 
-async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
+async def get_current_active_user(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> User:
     """Get the current active user."""
+    # In debug mode, create a mock user for development
+    if settings.debug:
+        from ..models.users import User
+        import uuid
+        
+        mock_user = User(
+            id=str(uuid.uuid4()),
+            email="demo@redpill.vc",
+            full_name="Demo User",
+            role="partner",
+            is_active=True,
+            hashed_password="mock-password"
+        )
+        return mock_user
+    
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+# Removed optional auth for now - causing import errors
 
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:

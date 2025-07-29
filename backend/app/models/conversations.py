@@ -13,12 +13,25 @@ class MessageRole(str, Enum):
     SYSTEM = "system"
 
 
+class ConversationType(str, Enum):
+    """Type of conversation context."""
+    DEAL = "deal"
+    COMPANY = "company"
+    OPEN = "open"
+
+
 class ConversationBase(SQLModel):
     """Base conversation model."""
-    deal_id: str = Field(foreign_key="deals.id", index=True)
+    conversation_type: ConversationType = Field(default=ConversationType.OPEN)
+    deal_id: Optional[str] = Field(default=None, foreign_key="deals.id", index=True)
+    company_id: Optional[str] = Field(default=None, foreign_key="companies.id", index=True)
     user_id: str = Field(foreign_key="users.id", index=True)
     title: Optional[str] = Field(default=None, max_length=255)
     is_active: bool = Field(default=True)
+    
+    # Additional context
+    context_name: Optional[str] = None  # e.g., "Anthropic", "Dashboard", etc.
+    chat_id: Optional[str] = Field(default_factory=lambda: f"chat_{uuid.uuid4().hex[:8]}", index=True)
 
 
 class Conversation(ConversationBase, table=True):
@@ -34,7 +47,8 @@ class Conversation(ConversationBase, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Relationships
-    deal: "Deal" = Relationship(back_populates="conversations")
+    deal: Optional["Deal"] = Relationship(back_populates="conversations")
+    company: Optional["Company"] = Relationship(back_populates="conversations")
     messages: list["Message"] = Relationship(back_populates="conversation")
 
 
@@ -58,6 +72,13 @@ class MessageBase(SQLModel):
     context: Optional[str] = None  # JSON string for additional context
     tokens_used: Optional[int] = None
     processing_time_ms: Optional[int] = None
+    
+    # Research and debugging fields
+    research_steps: Optional[str] = None  # JSON array of research progress
+    search_results: Optional[str] = None  # JSON array of search results
+    model_used: Optional[str] = None  # Which AI model was used
+    error_message: Optional[str] = None  # Any errors that occurred
+    extra_metadata: Optional[str] = None  # Additional metadata as JSON
 
 
 class Message(MessageBase, table=True):

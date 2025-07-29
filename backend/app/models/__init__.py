@@ -1,6 +1,6 @@
 from .deals import Deal, DealCreate, DealUpdate, DealStatus, InvestmentStage
 from .companies import Company, CompanyCreate, CompanyUpdate
-from .conversations import Conversation, ConversationCreate, Message
+from .conversations import Conversation, ConversationCreate, Message, ConversationType
 from .users import User, UserCreate, UserUpdate
 
 __all__ = [

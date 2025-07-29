@@ -2,12 +2,21 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Providers } from './providers'
+import { AppLayout } from '@/components/layout/AppLayout'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+})
+
+// Use system fonts for now until Geist is available
+const systemMono = {
+  variable: "--font-geist-mono"
+}
 
 export const metadata: Metadata = {
-  title: 'Redpill - VC Investment AI Platform',
-  description: 'AI-powered VC deal flow management and research platform',
+  title: 'RedPill VC - AI-Native Venture Capital Platform',
+  description: 'AI-powered VC platform with deal flow management, portfolio tracking, and intelligent investment analysis',
 }
 
 export default function RootLayout({
@@ -16,10 +25,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className={inter.className}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} ${systemMono.variable} antialiased font-sans`}>
         <Providers>
-          {children}
+          <AppLayout>
+            {children}
+          </AppLayout>
         </Providers>
       </body>
     </html>
