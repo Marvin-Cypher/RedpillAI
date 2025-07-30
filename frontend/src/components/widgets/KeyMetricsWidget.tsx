@@ -1,20 +1,26 @@
 /**
  * Key Metrics Widget
- * Shows key performance metrics for the portfolio company
+ * Shows key performance metrics for the portfolio company using real data API
  */
 
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   DollarSign, 
   TrendingUp, 
   TrendingDown,
   Clock, 
   Building,
-  BarChart3
+  BarChart3,
+  RefreshCw,
+  Database,
+  Wifi,
+  AlertTriangle
 } from 'lucide-react';
 import { WidgetProps } from '@/lib/widgets/types';
+import { useCachedCompanyData, cacheUtils } from '@/hooks/useCachedCompanyData';
 
 interface MetricsData {
   revenue_current: number;
@@ -27,15 +33,34 @@ interface MetricsData {
   gross_margin: number;
 }
 
-const KeyMetricsWidget: React.FC<WidgetProps> = ({
+interface KeyMetricsWidgetProps extends WidgetProps {
+  companyName?: string;
+  website?: string;
+}
+
+const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
   widget,
   data,
-  loading,
-  error,
+  loading: externalLoading,
+  error: externalError,
   isEditing,
   onUpdate,
-  onRemove
+  onRemove,
+  companyName,
+  website
 }) => {
+  // Get company name from widget config if not passed as prop
+  const effectiveCompanyName = companyName || widget.config?.companyName || 'Unknown Company';
+  const effectiveWebsite = website || widget.config?.website;
+  
+  // Fetch real company data using our cache-aware hook
+  const { data: realData, loading: dataLoading, error: dataError, cacheInfo, refresh, softRefresh } = useCachedCompanyData(
+    effectiveCompanyName,
+    effectiveWebsite
+  );
+  
+  const loading = externalLoading || dataLoading;
+  const error = externalError || dataError;
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { 
       style: 'currency', 
@@ -57,15 +82,16 @@ const KeyMetricsWidget: React.FC<WidgetProps> = ({
     );
   };
 
-  const metricsData: MetricsData = data || {
-    revenue_current: 450000,
-    revenue_growth: 15.2,
-    burn_rate: 180000,
-    runway_months: 18,
-    employees: 45,
-    customers: 1250,
-    arr: 5400000,
-    gross_margin: 72.5
+  // Extract metrics from real API data or use fallback
+  const metricsData: MetricsData = {
+    revenue_current: realData?.key_metrics?.revenue || data?.revenue_current || 450000,
+    revenue_growth: realData?.key_metrics?.revenue_growth || data?.revenue_growth || 15.2,
+    burn_rate: realData?.key_metrics?.burn_rate || data?.burn_rate || 180000,
+    runway_months: realData?.key_metrics?.runway || data?.runway_months || 18,
+    employees: parseInt(realData?.employee_count?.replace(/[^0-9]/g, '') || '') || data?.employees || 45,
+    customers: realData?.key_metrics?.customers || data?.customers || 1250,
+    arr: realData?.key_metrics?.arr || data?.arr || 5400000,
+    gross_margin: realData?.key_metrics?.gross_margin || data?.gross_margin || 72.5
   };
 
   if (loading) {
@@ -97,15 +123,53 @@ const KeyMetricsWidget: React.FC<WidgetProps> = ({
   return (
     <Card className="h-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-lg font-semibold">Key Performance Metrics</CardTitle>
-        {isEditing && (
-          <div className="flex space-x-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onUpdate?.({ ...widget.config })}
-              className="h-6 w-6 p-0 hover:bg-gray-100"
-            >
+        <div className="flex items-center space-x-2">
+          <CardTitle className="text-lg font-semibold">Key Performance Metrics</CardTitle>
+          {effectiveCompanyName !== 'Unknown Company' && (
+            <Badge variant="outline" className="text-xs">
+              {effectiveCompanyName}
+            </Badge>
+          )}
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          {/* Cache Status Indicator */}
+          {cacheInfo && (
+            <div className="flex items-center space-x-1">
+              {cacheInfo.source === 'cache' && <Database className="w-3 h-3 text-green-500" />}
+              {cacheInfo.source === 'api' && <Wifi className="w-3 h-3 text-blue-500" />}
+              {cacheInfo.source === 'cache_expired' && <Clock className="w-3 h-3 text-yellow-500" />}
+              <Badge variant="outline" className={`text-xs ${cacheUtils.getSourceColor(cacheInfo.source)}`}>
+                {cacheInfo.source}
+              </Badge>
+              {cacheInfo.cost && (
+                <Badge variant="outline" className="text-xs">
+                  {cacheUtils.formatCost(cacheInfo.cost)}
+                </Badge>
+              )}
+            </div>
+          )}
+          
+          {/* Refresh Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={softRefresh}
+            disabled={loading}
+            className="h-6 w-6 p-0 hover:bg-gray-100"
+            title="Refresh data (cache-first)"
+          >
+            <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+          
+          {isEditing && (
+            <div className="flex space-x-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onUpdate?.({ ...widget.config })}
+                className="h-6 w-6 p-0 hover:bg-gray-100"
+              >
               <BarChart3 className="h-3 w-3" />
             </Button>
             <Button
@@ -121,8 +185,9 @@ const KeyMetricsWidget: React.FC<WidgetProps> = ({
             >
               ×
             </Button>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="pt-2 overflow-hidden">
         <div className="grid grid-cols-2 gap-2 h-full">

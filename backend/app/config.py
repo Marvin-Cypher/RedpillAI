@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     messari_api_key: Optional[str] = None
     etherscan_api_key: Optional[str] = None
     
+    # Tavily API for company data enrichment
+    TAVILY_API_KEY: Optional[str] = None
+    
     # OpenBB Platform API Keys
     fmp_api_key: Optional[str] = None
     polygon_api_key: Optional[str] = None

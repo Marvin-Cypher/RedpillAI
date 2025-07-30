@@ -13,6 +13,7 @@ import { getDealStatusForCompany, subscribeToDealStatusChanges } from '@/lib/dea
 import { getCompanyById, updateCompany } from '@/lib/companyDatabase'
 import { CustomizableDashboard } from '@/components/dashboard/CustomizableDashboard'
 import '@/components/widgets' // Auto-register widgets
+import { WidgetType } from '@/lib/widgets/types'
 import { 
   ArrowLeft,
   TrendingUp,
@@ -110,9 +111,9 @@ export default function CompanyDetailPage() {
 
   useEffect(() => {
     // Load company from database
-    const loadCompany = () => {
+    const loadCompany = async () => {
       try {
-        const companyFromDb = getCompanyById(params.companyId as string)
+        const companyFromDb = await getCompanyById(params.companyId as string)
         if (companyFromDb) {
           // Convert Company to CompanyData format
           const companyData: CompanyData = {
@@ -544,7 +545,75 @@ export default function CompanyDetailPage() {
                 return undefined; // Not a crypto company
               })()
             }}
-            initialWidgets={[]}
+            initialWidgets={[
+              {
+                id: 'key-metrics',
+                type: WidgetType.KEY_METRICS,
+                title: 'Key Performance Metrics',
+                config: {
+                  companyName: company.name,
+                  website: company.website,
+                  show_trends: true,
+                  metric_period: 'monthly'
+                },
+                position: { x: 0, y: 0, w: 6, h: 4 },
+                dataSource: {
+                  asset_type: 'equity' as const,
+                  ticker: company.name
+                },
+                isVisible: true
+              },
+              {
+                id: 'fundamentals',
+                type: WidgetType.FUNDAMENTALS,
+                title: 'Company Fundamentals',
+                config: {
+                  companyName: company.name,
+                  website: company.website,
+                  metrics: ['market_cap', 'pe_ratio', 'revenue_ttm', 'gross_margin'],
+                  display_format: 'cards'
+                },
+                position: { x: 6, y: 0, w: 6, h: 3 },
+                dataSource: {
+                  asset_type: 'equity' as const,
+                  ticker: company.name
+                },
+                isVisible: true
+              },
+              {
+                id: 'investment-summary',
+                type: WidgetType.INVESTMENT_SUMMARY,  
+                title: 'Investment Summary',
+                config: {
+                  companyName: company.name,
+                  show_details: true,
+                  currency_format: 'USD'
+                },
+                position: { x: 6, y: 3, w: 6, h: 3 },
+                dataSource: {
+                  asset_type: 'equity' as const,
+                  ticker: company.name
+                },
+                isVisible: true
+              },
+              {
+                id: 'token-price',
+                type: WidgetType.TOKEN_PRICE,
+                title: 'Token Price',
+                config: {
+                  companyName: company.name,
+                  refresh_interval: '60',
+                  show_market_cap: true,
+                  show_volume: true
+                },
+                position: { x: 0, y: 4, w: 4, h: 4 },
+                dataSource: {
+                  asset_type: 'crypto' as const,
+                  ticker: company.name
+                },
+                isVisible: true
+              }
+            ]}
             onLayoutChange={(widgets) => {
               console.log('Layout changed:', widgets);
               // Save to backend API
