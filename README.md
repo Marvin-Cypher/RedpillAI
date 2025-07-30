@@ -1,6 +1,6 @@
-# RedpillAI - Three-Pillar AI Platform for VC
+# RedpillAI - Your Secret Intelligence For Investment
 
-A comprehensive AI-powered venture capital platform built on **three integrated pillars**: **AG-UI Protocol (AI Agents)**, **OpenBB Platform (Financial Data)**, and **OpenProject (Portfolio Management)** - designed specifically for crypto and technology investments.
+Redpill VC is a secure, investor-focused AI platform engineered to elevate decision-making and streamline the workflows of venture capital professionals. It seamlessly blends traditional VC processes with cutting-edge artificial intelligence, serving as an AI co-pilot for fund managers and analysts
 
 <img width="1606" height="1088" alt="Screenshot 2025-07-29 at 21 33 23" src="https://github.com/user-attachments/assets/39480e4e-1a1c-419d-974f-d38919811d3c" />
 
