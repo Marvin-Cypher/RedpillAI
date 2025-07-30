@@ -2,8 +2,7 @@
 
 A comprehensive AI-powered venture capital platform built on **three integrated pillars**: **AG-UI Protocol (AI Agents)**, **OpenBB Platform (Financial Data)**, and **OpenProject (Portfolio Management)** - designed specifically for crypto and technology investments.
 
-![RedpillAI Dashboard]()
-<img width="1606" height="1088" alt="Screenshot 2025-07-29 at 21 33 23" src="https://github.com/user-attachments/assets/8433f8ec-3fd9-46be-b7ca-d975c1d382cf" />
+![RedpillAI Dashboard](https://github.com/user-attachments/assets/8433f8ec-3fd9-46be-b7ca-d975c1d382c)
 
 ## 🚀 Features
 
