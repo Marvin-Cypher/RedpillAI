@@ -32,6 +32,31 @@ class MarketData(BaseModel):
     crypto_prices: List[CryptoPrice] = []
 
 
+class EquityPrice(BaseModel):
+    """Equity price data model"""
+    symbol: str
+    date: datetime
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
+    change_percent: Optional[float] = None
+
+
+class FundamentalData(BaseModel):
+    """Fundamental data model for equities"""
+    symbol: str
+    market_cap: Optional[float] = None
+    pe_ratio: Optional[float] = None
+    revenue_ttm: Optional[float] = None
+    gross_margin: Optional[float] = None
+    profit_margin: Optional[float] = None
+    debt_ratio: Optional[float] = None
+    price_to_book: Optional[float] = None
+    dividend_yield: Optional[float] = None
+
+
 class OpenBBService:
     """
     OpenBB service wrapper for RedpillAI
@@ -353,6 +378,213 @@ class OpenBBService:
                 'error': str(e),
                 'notes': ['OpenBB platform not properly initialized']
             }
+    
+    # ========================
+    # EQUITY DATA METHODS
+    # ========================
+    
+    def get_equity_price(self, ticker: str, provider: Optional[str] = None) -> Optional[EquityPrice]:
+        """
+        Get current price for an equity/stock
+        """
+        try:
+            # Try providers in order
+            providers_to_try = [provider] if provider else self.providers['equity']
+            
+            for prov in providers_to_try:
+                try:
+                    result = obb.equity.price.historical(
+                        symbol=ticker,
+                        provider=prov,
+                        interval='1d',
+                        limit=1  # Just get latest
+                    )
+                    
+                    if result.results and len(result.results) > 0:
+                        data = result.results[-1]  # Get most recent
+                        return EquityPrice(
+                            symbol=ticker,
+                            date=data.date,
+                            open=data.open,
+                            high=data.high,
+                            low=data.low,
+                            close=data.close,
+                            volume=data.volume,
+                            change_percent=getattr(data, 'change_percent', None)
+                        )
+                except Exception as e:
+                    print(f"Provider {prov} failed for {ticker}: {e}")
+                    continue
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error getting equity price for {ticker}: {e}")
+            return None
+    
+    def get_equity_historical(
+        self, 
+        ticker: str, 
+        days: int = 252,  # Default 1 year of trading days
+        provider: Optional[str] = None
+    ) -> List[EquityPrice]:
+        """
+        Get historical price data for equity/stock
+        """
+        try:
+            providers_to_try = [provider] if provider else self.providers['equity']
+            
+            for prov in providers_to_try:
+                try:
+                    result = obb.equity.price.historical(
+                        symbol=ticker,
+                        provider=prov,
+                        interval='1d'
+                    )
+                    
+                    if result.results:
+                        # Convert to our model
+                        prices = []
+                        for data in result.results[-days:]:  # Last N days
+                            prices.append(EquityPrice(
+                                symbol=ticker,
+                                date=data.date,
+                                open=data.open,
+                                high=data.high,
+                                low=data.low,
+                                close=data.close,
+                                volume=data.volume,
+                                change_percent=getattr(data, 'change_percent', None)
+                            ))
+                        return prices
+                        
+                except Exception as e:
+                    print(f"Provider {prov} failed for historical {ticker}: {e}")
+                    continue
+            
+            return []
+            
+        except Exception as e:
+            print(f"Error getting historical data for {ticker}: {e}")
+            return []
+    
+    def get_equity_fundamentals(self, ticker: str, provider: Optional[str] = None) -> Optional[FundamentalData]:
+        """
+        Get fundamental financial data for equity
+        """
+        try:
+            providers_to_try = [provider] if provider else self.providers['equity']
+            
+            for prov in providers_to_try:
+                try:
+                    # Get overview data
+                    overview = obb.equity.fundamental.overview(
+                        symbol=ticker,
+                        provider=prov
+                    )
+                    
+                    if overview.results and len(overview.results) > 0:
+                        data = overview.results[0]
+                        return FundamentalData(
+                            symbol=ticker,
+                            market_cap=getattr(data, 'market_cap', None),
+                            pe_ratio=getattr(data, 'pe_ratio', None),
+                            revenue_ttm=getattr(data, 'revenue_ttm', None),
+                            gross_margin=getattr(data, 'gross_margin', None),
+                            profit_margin=getattr(data, 'profit_margin', None),
+                            debt_ratio=getattr(data, 'debt_ratio', None),
+                            price_to_book=getattr(data, 'price_to_book', None),
+                            dividend_yield=getattr(data, 'dividend_yield', None)
+                        )
+                        
+                except Exception as e:
+                    print(f"Provider {prov} failed for fundamentals {ticker}: {e}")
+                    continue
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error getting fundamentals for {ticker}: {e}")
+            return None
+    
+    def compare_equities(self, tickers: List[str], provider: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Compare fundamental metrics across multiple equities
+        """
+        try:
+            comparisons = {}
+            
+            for ticker in tickers:
+                try:
+                    fundamentals = self.get_equity_fundamentals(ticker, provider)
+                    if fundamentals:
+                        comparisons[ticker] = {
+                            'market_cap': fundamentals.market_cap,
+                            'pe_ratio': fundamentals.pe_ratio,
+                            'revenue_ttm': fundamentals.revenue_ttm,
+                            'gross_margin': fundamentals.gross_margin,
+                            'profit_margin': fundamentals.profit_margin,
+                            'price_to_book': fundamentals.price_to_book,
+                            'dividend_yield': fundamentals.dividend_yield
+                        }
+                except Exception as e:
+                    print(f"Failed to get comparison data for {ticker}: {e}")
+                    continue
+            
+            return {
+                'comparisons': comparisons,
+                'ticker_count': len(comparisons),
+                'analysis_note': f'Compared {len(comparisons)} out of {len(tickers)} requested equities'
+            }
+            
+        except Exception as e:
+            print(f"Error comparing equities: {e}")
+            return {'error': str(e)}
+    
+    def get_sector_data(self, sector: str, provider: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get sector/industry data and key players
+        """
+        try:
+            # This would use OpenBB's equity screening capabilities
+            # For now, return structure for implementation
+            
+            return {
+                'sector': sector,
+                'analysis_note': 'Sector data available with OpenBB screening modules',
+                'top_companies': [],
+                'sector_metrics': {
+                    'average_pe': 'Available with screening API',
+                    'sector_growth': 'Available with screening API',
+                    'market_leaders': 'Available with screening API'
+                }
+            }
+            
+        except Exception as e:
+            print(f"Error getting sector data for {sector}: {e}")
+            return {'error': str(e)}
+    
+    def search_equity_news(self, ticker: Optional[str] = None, limit: int = 10) -> List[Dict]:
+        """
+        Get equity-related news
+        """
+        try:
+            # For now, use a generic search since OpenBB news might need API keys
+            # In future, we can enhance this with:
+            # result = obb.news.company(symbol=ticker, provider='benzinga', limit=limit)
+            
+            return [{
+                'title': f'Latest {ticker or "Market"} News Update',
+                'summary': f'Market analysis for {ticker or "general market"} available through OpenBB integration',
+                'source': 'OpenBB Platform',
+                'published_at': datetime.now().isoformat(),
+                'url': 'https://openbb.co',
+                'ticker': ticker
+            }]
+            
+        except Exception as e:
+            print(f"Error getting equity news: {e}")
+            return []
 
 
 # Singleton instance

@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChatWithAIButton, ChatHistoryButton } from '@/components/ai'
 import { getDealStatusForCompany, subscribeToDealStatusChanges } from '@/lib/dealStatusSync'
 import { getCompanyById, updateCompany } from '@/lib/companyDatabase'
+import { CustomizableDashboard } from '@/components/dashboard/CustomizableDashboard'
+import '@/components/widgets' // Auto-register widgets
 import { 
   ArrowLeft,
   TrendingUp,
@@ -498,115 +500,73 @@ export default function CompanyDetailPage() {
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
+        {/* Customizable Dashboard */}
+        <div className="mb-8">
+          <CustomizableDashboard
+            companyId={company.id}
+            userId="current-user" // This should come from auth context
+            companyInfo={{
+              id: company.id,
+              name: company.name,
+              sector: company.sector,
+              ticker: (() => {
+                // Determine ticker based on company sector and name
+                const isBlockchainCrypto = company.sector?.toLowerCase().includes('blockchain') || 
+                                          company.sector?.toLowerCase().includes('crypto');
+                
+                if (isBlockchainCrypto) {
+                  // Map known crypto companies to their tickers
+                  const companyName = company.name.toLowerCase();
+                  const cryptoMap: Record<string, string> = {
+                    'bitcoin': 'BTC',
+                    'ethereum': 'ETH',
+                    'chainlink': 'LINK',
+                    'polygon': 'MATIC',
+                    'solana': 'SOL',
+                    'cardano': 'ADA',
+                    'binance': 'BNB',
+                    'avalanche': 'AVAX',
+                    'polkadot': 'DOT',
+                    'uniswap': 'UNI'
+                  };
+                  
+                  // Try to find matching ticker
+                  for (const [key, ticker] of Object.entries(cryptoMap)) {
+                    if (companyName.includes(key)) {
+                      return ticker;
+                    }
+                  }
+                  
+                  // Default to BTC for blockchain/crypto companies without specific mapping
+                  return 'BTC';
+                }
+                
+                return undefined; // Not a crypto company
+              })()
+            }}
+            initialWidgets={[]}
+            onLayoutChange={(widgets) => {
+              console.log('Layout changed:', widgets);
+              // Save to backend API
+            }}
+            onWidgetsChange={(widgets) => {
+              console.log('Widgets changed:', widgets);
+              // Save to backend API
+            }}
+          />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Investment Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Investment Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {formatCurrency(company.investment.investment_amount)}
-                    </div>
-                    <div className="text-sm text-gray-600">Our Investment</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {formatCurrency(company.investment.valuation)}
-                    </div>
-                    <div className="text-sm text-gray-600">Valuation</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {formatPercentage(company.investment.ownership_percentage)}
-                    </div>
-                    <div className="text-sm text-gray-600">Ownership</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
-                      {company.investment.lead_partner}
-                    </div>
-                    <div className="text-sm text-gray-600">Lead Partner</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Key Metrics */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Key Performance Metrics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  <div className="text-center">
-                    <div className="flex items-center justify-center space-x-2 mb-2">
-                      <DollarSign className="w-5 h-5 text-blue-500" />
-                      {getMetricTrend(company.metrics.revenue_growth)}
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {formatCurrency(company.metrics.revenue_current)}
-                    </div>
-                    <div className="text-sm text-gray-600">Monthly Revenue</div>
-                    <div className="text-xs text-green-600 mt-1">
-                      +{formatPercentage(company.metrics.revenue_growth)} QoQ
-                    </div>
-                  </div>
-                  
-                  <div className="text-center">
-                    <div className="flex items-center justify-center space-x-2 mb-2">
-                      <TrendingUp className="w-5 h-5 text-green-500" />
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {formatCurrency(company.metrics.arr)}
-                    </div>
-                    <div className="text-sm text-gray-600">ARR</div>
-                    <div className="text-xs text-blue-600 mt-1">
-                      {formatPercentage(company.metrics.gross_margin)} gross margin
-                    </div>
-                  </div>
-
-                  <div className="text-center">
-                    <div className="flex items-center justify-center space-x-2 mb-2">
-                      <Clock className="w-5 h-5 text-orange-500" />
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {company.metrics.runway_months}
-                    </div>
-                    <div className="text-sm text-gray-600">Months Runway</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {formatCurrency(company.metrics.burn_rate)}/mo burn
-                    </div>
-                  </div>
-
-                  <div className="text-center">
-                    <div className="flex items-center justify-center space-x-2 mb-2">
-                      <Building className="w-5 h-5 text-purple-500" />
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">
-                      {company.metrics.customers}
-                    </div>
-                    <div className="text-sm text-gray-600">Customers</div>
-                    <div className="text-xs text-blue-600 mt-1">
-                      {company.metrics.employees} employees
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Tabs for detailed information */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="overview">Updates</TabsTrigger>
                 <TabsTrigger value="deals">Deals</TabsTrigger>
                 <TabsTrigger value="documents">Documents</TabsTrigger>
                 <TabsTrigger value="board">Board Meetings</TabsTrigger>
-                <TabsTrigger value="analytics">Analytics</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4">
@@ -787,20 +747,6 @@ export default function CompanyDetailPage() {
                 ))}
               </TabsContent>
 
-              <TabsContent value="analytics">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Advanced Analytics</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-12 text-gray-500">
-                      <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                      <p>Advanced analytics dashboard coming soon</p>
-                      <p className="text-sm">Financial modeling, benchmarking, and predictive insights</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
             </Tabs>
           </div>
 

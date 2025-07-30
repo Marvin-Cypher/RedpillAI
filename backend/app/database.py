@@ -24,6 +24,9 @@ def create_db_and_tables():
     from .models.deals import Deal
     from .models.companies import Company
     from .models.conversations import Conversation, Message
+    from .models.dashboards import (
+        DashboardLayout, WidgetConfiguration, CompanyDataSource, WidgetDataCache
+    )
     from .models.workflows import (
         WorkflowExecution, MarketDataSnapshot, ResearchAnalysis,
         InvestmentMemo, WorkflowTemplate, AnalyticsEvent

@@ -356,6 +356,7 @@ export function ProjectDetail({ projectId, projectData: passedProjectData, onBac
           <StatusSelector
             currentStatus={project.status}
             dealId={project.id}
+            companyName={project.name}
             onStatusChange={onStatusChange}
           />
           <Button variant="secondary" size="sm">

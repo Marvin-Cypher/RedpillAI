@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Flame, TrendingUp } from 'lucide-react'
 import { StatusSelector } from './StatusSelector'
 import { NewProjectModal } from './NewProjectModal'
+import { initializeDealStatuses, getDealStatusForCompany, subscribeToDealStatusChanges } from '@/lib/dealStatusSync'
 
 interface Deal {
   id: string
@@ -142,6 +143,30 @@ export function DealPipeline({ onDealSelect, selectedDealId, onNewProject, updat
   const [selectedStatus, setSelectedStatus] = useState<string>('planned')
   const [deals, setDeals] = useState<Deal[]>(mockDeals)
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false)
+
+  // Initialize deal statuses and sync with localStorage
+  useEffect(() => {
+    initializeDealStatuses()
+    
+    // Load persisted statuses for existing deals
+    setDeals(prevDeals => 
+      prevDeals.map(deal => {
+        const persistedStatus = getDealStatusForCompany(deal.company_name.toLowerCase().replace(/\s+/g, '-'))
+        return persistedStatus ? { ...deal, status: persistedStatus } : deal
+      })
+    )
+
+    // Subscribe to status changes from other components
+    const unsubscribe = subscribeToDealStatusChanges((update) => {
+      setDeals(prevDeals =>
+        prevDeals.map(deal =>
+          deal.id === update.dealId ? { ...deal, status: update.newStatus } : deal
+        )
+      )
+    })
+
+    return unsubscribe
+  }, [])
 
   // Sync deals with parent updates
   useEffect(() => {
@@ -290,6 +315,7 @@ export function DealPipeline({ onDealSelect, selectedDealId, onNewProject, updat
                   <StatusSelector 
                     currentStatus={deal.status}
                     dealId={deal.id}
+                    companyName={deal.company_name}
                     compact
                     onStatusChange={handleStatusChange}
                   />

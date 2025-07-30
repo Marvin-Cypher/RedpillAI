@@ -11,10 +11,12 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { ChevronDown } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { updateDealStatus } from '@/lib/dealStatusSync'
 
 interface StatusSelectorProps {
   currentStatus: string
   dealId: string
+  companyName: string
   compact?: boolean
   onStatusChange?: (dealId: string, newStatus: string) => void
 }
@@ -28,7 +30,7 @@ const statusOptions = [
   { value: 'passed', label: '❌ PASSED', color: 'status-passed' },
 ]
 
-export function StatusSelector({ currentStatus, dealId, compact = false, onStatusChange }: StatusSelectorProps) {
+export function StatusSelector({ currentStatus, dealId, companyName, compact = false, onStatusChange }: StatusSelectorProps) {
   const [status, setStatus] = useState(currentStatus)
   const [isUpdating, setIsUpdating] = useState(false)
 
@@ -40,8 +42,8 @@ export function StatusSelector({ currentStatus, dealId, compact = false, onStatu
     setIsUpdating(true)
     
     try {
-      // TODO: API call to update status
-      // await updateDealStatus(dealId, newStatus)
+      // Update status using the dealStatusSync utility
+      updateDealStatus(dealId, companyName, newStatus as 'planned' | 'meeting' | 'research' | 'deal' | 'track' | 'passed' | 'closed')
       
       const oldStatus = status
       setStatus(newStatus)

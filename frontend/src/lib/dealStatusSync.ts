@@ -5,7 +5,7 @@ export interface DealStatusUpdate {
   dealId: string
   companyId: string
   companyName: string
-  newStatus: 'sourcing' | 'screening' | 'due_diligence' | 'term_sheet' | 'invested' | 'passed'
+  newStatus: 'planned' | 'meeting' | 'research' | 'deal' | 'track' | 'passed' | 'closed'
   updatedAt: string
 }
 
@@ -93,10 +93,10 @@ export const initializeDealStatuses = () => {
   // If no existing data, initialize with mock data
   if (updates.length === 0) {
     const defaultDeals = [
-      { dealId: '1', companyId: 'quantum-ai', companyName: 'Quantum AI', newStatus: 'due_diligence' as const },
-      { dealId: '2', companyId: 'greentech-solutions', companyName: 'GreenTech Solutions', newStatus: 'screening' as const },
-      { dealId: '3', companyId: 'fintech-pro', companyName: 'FinTech Pro', newStatus: 'term_sheet' as const },
-      { dealId: '4', companyId: 'healthtech-analytics', companyName: 'HealthTech Analytics', newStatus: 'sourcing' as const }
+      { dealId: '1', companyId: 'quantum-ai', companyName: 'Quantum AI', newStatus: 'research' as const },
+      { dealId: '2', companyId: 'greentech-solutions', companyName: 'GreenTech Solutions', newStatus: 'meeting' as const },
+      { dealId: '3', companyId: 'fintech-pro', companyName: 'FinTech Pro', newStatus: 'deal' as const },
+      { dealId: '4', companyId: 'healthtech-analytics', companyName: 'HealthTech Analytics', newStatus: 'planned' as const }
     ]
 
     defaultDeals.forEach(deal => {
