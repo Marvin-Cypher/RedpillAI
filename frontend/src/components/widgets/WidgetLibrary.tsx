@@ -38,6 +38,7 @@ interface WidgetLibraryProps {
   onAddWidget: (widgetType: WidgetType) => void;
   isOpen: boolean;
   onClose: () => void;
+  companyAssetType?: 'crypto' | 'equity'; // Filter widgets by company asset type
 }
 
 interface WidgetLibraryItem {
@@ -48,6 +49,7 @@ interface WidgetLibraryItem {
   category: string;
   default_size: { w: number; h: number };
   config_schema: Record<string, any>;
+  compatibleAssetTypes?: ('crypto' | 'equity')[]; // Asset types this widget supports
 }
 
 const WIDGET_ICONS = {
@@ -71,7 +73,8 @@ const CATEGORY_COLORS = {
 export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({
   onAddWidget,
   isOpen,
-  onClose
+  onClose,
+  companyAssetType
 }) => {
   const [widgets, setWidgets] = useState<WidgetLibraryItem[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -122,7 +125,8 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({
       icon: widgetMeta.icon,
       category: widgetMeta.category,
       default_size: { w: widgetMeta.defaultSize.w, h: widgetMeta.defaultSize.h },
-      config_schema: widgetMeta.configSchema
+      config_schema: widgetMeta.configSchema,
+      compatibleAssetTypes: (widgetMeta as any).compatibleAssetTypes
     }));
   };
 
@@ -138,7 +142,13 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({
     const matchesSearch = widget.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          widget.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || widget.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    
+    // Filter by asset type compatibility
+    const matchesAssetType = !widget.compatibleAssetTypes || 
+                            !companyAssetType || 
+                            widget.compatibleAssetTypes.includes(companyAssetType);
+    
+    return matchesSearch && matchesCategory && matchesAssetType;
   });
 
   const handleAddWidget = (widgetType: WidgetType) => {
@@ -298,7 +308,8 @@ export const WidgetLibrary: React.FC<WidgetLibraryProps> = ({
 // Widget Library Trigger Button Component
 export const WidgetLibraryTrigger: React.FC<{
   onAddWidget: (widgetType: WidgetType) => void;
-}> = ({ onAddWidget }) => {
+  companyAssetType?: 'crypto' | 'equity';
+}> = ({ onAddWidget, companyAssetType }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -315,6 +326,7 @@ export const WidgetLibraryTrigger: React.FC<{
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         onAddWidget={onAddWidget}
+        companyAssetType={companyAssetType}
       />
     </>
   );

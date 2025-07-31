@@ -6,6 +6,7 @@ export interface Company {
   name: string
   domain?: string
   website?: string
+  ticker?: string // Stock/crypto ticker symbol (e.g., AMZN, BTC, LINK)
   company_type?: 'crypto' | 'traditional' | 'fintech' | 'ai' | 'saas'
   sector: string
   stage: string
@@ -60,6 +61,7 @@ const DEFAULT_COMPANIES: Company[] = [
     name: 'Amazon',
     domain: 'amazon.com',
     website: 'https://amazon.com',
+    ticker: 'AMZN',
     company_type: 'traditional',
     sector: 'E-commerce/Cloud',
     stage: 'Public',
@@ -418,4 +420,145 @@ export const searchCompanies = (query: string): Company[] => {
     company.description.toLowerCase().includes(lowerQuery) ||
     company.headquarters.city.toLowerCase().includes(lowerQuery)
   )
+}
+
+// Smart ticker detection for companies
+export const getCompanyTicker = (company: Company): string | null => {
+  // Return explicit ticker if available
+  if (company.ticker) {
+    return company.ticker
+  }
+  
+  // Known company name to ticker mappings
+  const tickerMap: Record<string, string> = {
+    // Traditional stocks
+    'amazon': 'AMZN',
+    'apple': 'AAPL',
+    'microsoft': 'MSFT',
+    'google': 'GOOGL',
+    'alphabet': 'GOOGL',
+    'meta': 'META',
+    'facebook': 'META',
+    'tesla': 'TSLA',
+    'nvidia': 'NVDA',
+    'netflix': 'NFLX',
+    'adobe': 'ADBE',
+    'salesforce': 'CRM',
+    'oracle': 'ORCL',
+    'intel': 'INTC',
+    'ibm': 'IBM',
+    'cisco': 'CSCO',
+    'uber': 'UBER',
+    'airbnb': 'ABNB',
+    'zoom': 'ZM',
+    'slack': 'WORK',
+    'twitter': 'TWTR',
+    'linkedin': 'LNKD',
+    'paypal': 'PYPL',
+    'square': 'SQ',
+    'stripe': 'STRIPE', // Private company
+    
+    // Crypto/Blockchain companies and their tokens
+    'bitcoin': 'BTC',
+    'ethereum': 'ETH',
+    'chainlink': 'LINK',
+    'polygon': 'MATIC',
+    'solana': 'SOL',
+    'cardano': 'ADA',
+    'binance': 'BNB',
+    'avalanche': 'AVAX',
+    'polkadot': 'DOT',
+    'uniswap': 'UNI',
+    'aave': 'AAVE',
+    'compound': 'COMP',
+    'maker': 'MKR',
+    'the graph': 'GRT',
+    'filecoin': 'FIL',
+    'cosmos': 'ATOM',
+    'tezos': 'XTZ',
+    'algorand': 'ALGO',
+    'near protocol': 'NEAR',
+    'fantom': 'FTM',
+    'harmony': 'ONE',
+    'helium': 'HNT',
+    'render token': 'RNDR',
+    'arbitrum': 'ARB',
+    'optimism': 'OP',
+    'immutable': 'IMX',
+    'loopring': 'LRC',
+    '1inch': '1INCH',
+    'synthetix': 'SNX',
+    'yearn finance': 'YFI',
+    'curve': 'CRV',
+    'convex': 'CVX',
+    'frax': 'FRAX',
+    'lido': 'LDO',
+    'rocket pool': 'RPL'
+  }
+  
+  // Check company name variations
+  const companyName = company.name.toLowerCase()
+  if (tickerMap[companyName]) {
+    return tickerMap[companyName]
+  }
+  
+  // Check if company name contains known company names
+  for (const [name, ticker] of Object.entries(tickerMap)) {
+    if (companyName.includes(name) || name.includes(companyName)) {
+      return ticker
+    }
+  }
+  
+  // Check domain for known patterns
+  if (company.domain) {
+    const domain = company.domain.toLowerCase().replace(/\.(com|org|io|net)$/, '')
+    if (tickerMap[domain]) {
+      return tickerMap[domain]
+    }
+  }
+  
+  return null
+}
+
+// Determine if company should use crypto or equity data sources
+export const getCompanyAssetType = (company: Company): 'crypto' | 'equity' => {
+  // Check explicit company type
+  if (company.company_type === 'crypto') {
+    return 'crypto'
+  }
+  
+  // Check if it's a blockchain/crypto company by sector
+  const cryptoSectors = [
+    'blockchain',
+    'cryptocurrency', 
+    'crypto',
+    'defi',
+    'web3',
+    'nft',
+    'metaverse',
+    'dao'
+  ]
+  
+  const sector = company.sector.toLowerCase()
+  if (cryptoSectors.some(cryptoSector => sector.includes(cryptoSector))) {
+    return 'crypto'
+  }
+  
+  // Check if ticker is a known crypto symbol
+  const ticker = getCompanyTicker(company)
+  if (ticker) {
+    const cryptoTickers = [
+      'BTC', 'ETH', 'LINK', 'MATIC', 'SOL', 'ADA', 'BNB', 'AVAX', 'DOT', 'UNI',
+      'AAVE', 'COMP', 'MKR', 'GRT', 'FIL', 'ATOM', 'XTZ', 'ALGO', 'NEAR', 'FTM',
+      'ONE', 'HNT', 'RNDR', 'ARB', 'OP', 'IMX', 'LRC', '1INCH', 'SNX', 'YFI',
+      'CRV', 'CVX', 'FRAX', 'LDO', 'RPL'
+    ]
+    
+    if (cryptoTickers.includes(ticker)) {
+      return 'crypto'
+    }
+  }
+  
+  // Default to equity for traditional companies
+  return 'equity'
 }

@@ -36,22 +36,19 @@ import { WidgetLibraryTrigger } from '../widgets/WidgetLibrary';
 import { Widget, WidgetType } from '@/lib/widgets/types';
 import { widgetRegistry } from '@/lib/widgets/registry';
 import { fetchWidgetData } from '@/lib/widgets/data';
+import { getCompanyAssetType, Company } from '@/lib/companyDatabase';
 import { cn } from '@/lib/utils';
 
 // Make responsive grid layout
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
-interface CompanyInfo {
-  id: string;
-  name: string;
-  sector: string;
-  ticker?: string; // For crypto companies, this would be the token symbol
-}
+// Use Company interface from companyDatabase instead of custom CompanyInfo
+// interface CompanyInfo is replaced by Company from @/lib/companyDatabase
 
 interface CustomizableDashboardProps {
   companyId: string;
   userId: string;
-  companyInfo?: CompanyInfo;
+  companyInfo?: Company;
   initialWidgets?: Widget[];
   onLayoutChange?: (widgets: Widget[]) => void;
   onWidgetsChange?: (widgets: Widget[]) => void;
@@ -192,14 +189,13 @@ export const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
 
   // Add new widget
   const handleAddWidget = (widgetType: WidgetType) => {
-    // Determine data source based on company info
-    const isBlockchainCrypto = companyInfo?.sector?.toLowerCase().includes('blockchain') || 
-                              companyInfo?.sector?.toLowerCase().includes('crypto');
+    // Determine data source based on company info using proper asset type detection
+    const assetType = companyInfo ? getCompanyAssetType(companyInfo) : 'equity';
+    const isBlockchainCrypto = assetType === 'crypto';
     
-    const assetType = isBlockchainCrypto ? 'crypto' : 'equity';
     const dataSource = {
       ticker: companyInfo?.ticker || (isBlockchainCrypto ? 'BTC' : 'AAPL'),
-      asset_type: assetType as 'crypto' | 'equity',
+      asset_type: assetType,
       peer_tickers: isBlockchainCrypto 
         ? ['ETH', 'BNB', 'ADA', 'SOL'] 
         : ['MSFT', 'GOOGL', 'AMZN']
@@ -211,6 +207,15 @@ export const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
       dataSource,
       widgetRegistry.findNextPosition(state.widgets, { x: 0, y: 0, w: 6, h: 4 })
     );
+    
+    // Add company information to widget config
+    if (newWidget && companyInfo) {
+      newWidget.config = {
+        ...newWidget.config,
+        companyName: companyInfo.name,
+        website: companyInfo.website || undefined
+      };
+    }
 
     if (newWidget) {
       const updatedWidgets = [...state.widgets, newWidget];
@@ -342,6 +347,9 @@ export const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
   };
 
   const visibleWidgets = state.widgets.filter(w => w.isVisible);
+  
+  // Get company asset type for widget filtering
+  const companyAssetType = companyInfo ? getCompanyAssetType(companyInfo) : undefined;
 
   return (
     <div className="dashboard-container space-y-4">
@@ -391,7 +399,7 @@ export const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
           {/* Main controls */}
           {state.isEditing ? (
             <>
-              <WidgetLibraryTrigger onAddWidget={handleAddWidget} />
+              <WidgetLibraryTrigger onAddWidget={handleAddWidget} companyAssetType={companyAssetType} />
               <Button
                 variant="outline"
                 onClick={() => setShowResetDialog(true)}
@@ -438,7 +446,7 @@ export const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
               <p className="text-gray-500 mb-6">
                 Start building your personalized dashboard by adding widgets with real-time financial data.
               </p>
-              <WidgetLibraryTrigger onAddWidget={handleAddWidget} />
+              <WidgetLibraryTrigger onAddWidget={handleAddWidget} companyAssetType={companyAssetType} />
             </div>
           </CardContent>
         </Card>

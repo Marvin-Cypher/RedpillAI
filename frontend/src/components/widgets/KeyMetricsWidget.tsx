@@ -15,12 +15,10 @@ import {
   Building,
   BarChart3,
   RefreshCw,
-  Database,
-  Wifi,
   AlertTriangle
 } from 'lucide-react';
 import { WidgetProps } from '@/lib/widgets/types';
-import { useCachedCompanyData, cacheUtils } from '@/hooks/useCachedCompanyData';
+// Removed useCachedCompanyData import - widget should use data passed via props
 
 interface MetricsData {
   revenue_current: number;
@@ -51,16 +49,11 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
 }) => {
   // Get company name from widget config if not passed as prop
   const effectiveCompanyName = companyName || widget.config?.companyName || 'Unknown Company';
-  const effectiveWebsite = website || widget.config?.website;
   
-  // Fetch real company data using our cache-aware hook
-  const { data: realData, loading: dataLoading, error: dataError, cacheInfo, refresh, softRefresh } = useCachedCompanyData(
-    effectiveCompanyName,
-    effectiveWebsite
-  );
-  
-  const loading = externalLoading || dataLoading;
-  const error = externalError || dataError;
+  // Use data passed from widget system instead of fetching directly
+  const loading = externalLoading;
+  const realData = data;
+  const error = externalError;
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { 
       style: 'currency', 
@@ -111,10 +104,23 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
     return (
       <Card className="h-full border-red-200">
         <CardHeader>
-          <CardTitle className="text-red-600">Key Performance Metrics</CardTitle>
+          <CardTitle className="flex items-center space-x-2">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <span className="text-red-600">Key Performance Metrics</span>
+          </CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-center h-32">
-          <p className="text-red-600 text-sm">Error loading data</p>
+        <CardContent className="flex flex-col items-center justify-center h-32 space-y-2">
+          <p className="text-red-600 text-sm">Failed to load data</p>
+          <p className="text-gray-500 text-xs">{error || 'Unknown error'}</p>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled
+            className="mt-2"
+          >
+            <RefreshCw className="w-3 h-3 mr-1" />
+            Auto Retry
+          </Button>
         </CardContent>
       </Card>
     );
@@ -133,34 +139,12 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
         </div>
         
         <div className="flex items-center space-x-2">
-          {/* Cache Status Indicator */}
-          {cacheInfo && (
-            <div className="flex items-center space-x-1">
-              {cacheInfo.source === 'cache' && <Database className="w-3 h-3 text-green-500" />}
-              {cacheInfo.source === 'api' && <Wifi className="w-3 h-3 text-blue-500" />}
-              {cacheInfo.source === 'cache_expired' && <Clock className="w-3 h-3 text-yellow-500" />}
-              <Badge variant="outline" className={`text-xs ${cacheUtils.getSourceColor(cacheInfo.source)}`}>
-                {cacheInfo.source}
-              </Badge>
-              {cacheInfo.cost && (
-                <Badge variant="outline" className="text-xs">
-                  {cacheUtils.formatCost(cacheInfo.cost)}
-                </Badge>
-              )}
-            </div>
-          )}
+          {/* Widget status indicator */}
           
-          {/* Refresh Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={softRefresh}
-            disabled={loading}
-            className="h-6 w-6 p-0 hover:bg-gray-100"
-            title="Refresh data (cache-first)"
-          >
-            <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
+          {/* Status Indicator */}
+          {loading && (
+            <RefreshCw className="h-3 w-3 animate-spin text-gray-400" />
+          )}
           
           {isEditing && (
             <div className="flex space-x-1">

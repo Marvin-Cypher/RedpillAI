@@ -13,7 +13,6 @@ class ApiClient {
     try {
       const response = await fetch(`${API_BASE}${endpoint}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
         }
       });
@@ -287,8 +286,52 @@ export const widgetDataFetchers = {
   },
 
   key_metrics: async (widget: Widget, companyId: string) => {
-    // This would fetch metrics data from your backend
-    // For now, return mock data structure
+    const companyName = widget.config.companyName;
+    const website = widget.config.website;
+    
+    console.log('Key metrics widget data fetch:', { companyName, website, widget });
+    
+    if (!companyName) {
+      console.error('No company name provided to key_metrics widget');
+      throw new Error('Company name is required');
+    }
+    
+    // Try to fetch real company data from our API
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/data/companies/${encodeURIComponent(companyName)}/profile?${website ? `website=${encodeURIComponent(website)}` : ''}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        const companyData = result.data;
+        
+        console.log(`Key metrics data fetched for ${companyName}:`, companyData);
+        
+        // Transform Tavily data to widget format
+        return {
+          revenue_current: companyData.key_metrics?.revenue || 0,
+          revenue_growth: companyData.key_metrics?.revenue_growth || 0,
+          burn_rate: companyData.key_metrics?.burn_rate || 0,
+          runway_months: companyData.key_metrics?.runway || 0,
+          employees: parseInt(companyData.employee_count?.replace(/[^\d]/g, '') || '0') || companyData.key_metrics?.customers || 0,
+          customers: companyData.key_metrics?.customers || 0,
+          arr: companyData.key_metrics?.arr || 0,
+          gross_margin: companyData.key_metrics?.gross_margin || 0,
+          // Additional metadata from Tavily
+          founded_year: companyData.founded_year,
+          headquarters: companyData.headquarters,
+          description: companyData.description,
+          total_funding: companyData.total_funding,
+          industry: companyData.industry
+        };
+      } else {
+        console.error(`API request failed for ${companyName}: ${response.status} ${response.statusText}`);
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch real company data for ${companyName}, using fallback:`, error);
+    }
+    
+    // Fallback to mock data if API fails
     return {
       revenue_current: 450000,
       revenue_growth: 15.2,

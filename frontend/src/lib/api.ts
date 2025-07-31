@@ -56,6 +56,43 @@ export class ApiClient {
     return response.json()
   }
 
+  // HTTP method helpers
+  async get<T>(endpoint: string, options?: { params?: Record<string, any> }): Promise<T> {
+    let url = endpoint
+    if (options?.params) {
+      const searchParams = new URLSearchParams()
+      Object.entries(options.params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString())
+        }
+      })
+      const query = searchParams.toString()
+      if (query) {
+        url += (url.includes('?') ? '&' : '?') + query
+      }
+    }
+    
+    return this.request<T>(url, { method: 'GET' })
+  }
+
+  async post<T>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    })
+  }
+
+  async put<T>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    })
+  }
+
+  async delete<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, { method: 'DELETE' })
+  }
+
   // Auth endpoints
   async login(email: string, password: string) {
     return this.request<{ access_token: string; token_type: string }>('/api/v1/auth/login/json', {

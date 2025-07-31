@@ -120,6 +120,20 @@ class WidgetRegistry {
       [WidgetType.PORTFOLIO_ALLOCATION]: {
         chart_type: 'pie',
         show_percentages: true
+      },
+      [WidgetType.KEY_METRICS]: {
+        companyName: 'Unknown Company',
+        show_trends: true,
+        metric_period: 'monthly'
+      },
+      [WidgetType.TOKEN_PRICE]: {
+        refresh_interval: '60',
+        show_market_cap: true,
+        show_volume: true
+      },
+      [WidgetType.INVESTMENT_SUMMARY]: {
+        show_details: true,
+        currency_format: 'USD'
       }
     };
 
@@ -136,7 +150,10 @@ class WidgetRegistry {
       [WidgetType.NEWS_FEED]: 300, // 5 minutes
       [WidgetType.PEER_COMPARISON]: 1800, // 30 minutes
       [WidgetType.TECHNICAL_ANALYSIS]: 300, // 5 minutes
-      [WidgetType.PORTFOLIO_ALLOCATION]: 3600 // 1 hour
+      [WidgetType.PORTFOLIO_ALLOCATION]: 3600, // 1 hour
+      [WidgetType.KEY_METRICS]: 1800, // 30 minutes
+      [WidgetType.TOKEN_PRICE]: 60, // 1 minute
+      [WidgetType.INVESTMENT_SUMMARY]: 3600 // 1 hour
     };
 
     return refreshIntervals[type] || 300;

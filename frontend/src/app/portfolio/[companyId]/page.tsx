@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChatWithAIButton, ChatHistoryButton } from '@/components/ai'
 import { getDealStatusForCompany, subscribeToDealStatusChanges } from '@/lib/dealStatusSync'
-import { getCompanyById, updateCompany } from '@/lib/companyDatabase'
+import { getCompanyById, updateCompany, getCompanyTicker, getCompanyAssetType } from '@/lib/companyDatabase'
 import { CustomizableDashboard } from '@/components/dashboard/CustomizableDashboard'
 import '@/components/widgets' // Auto-register widgets
 import { WidgetType } from '@/lib/widgets/types'
@@ -510,110 +510,102 @@ export default function CompanyDetailPage() {
               id: company.id,
               name: company.name,
               sector: company.sector,
-              ticker: (() => {
-                // Determine ticker based on company sector and name
-                const isBlockchainCrypto = company.sector?.toLowerCase().includes('blockchain') || 
-                                          company.sector?.toLowerCase().includes('crypto');
-                
-                if (isBlockchainCrypto) {
-                  // Map known crypto companies to their tickers
-                  const companyName = company.name.toLowerCase();
-                  const cryptoMap: Record<string, string> = {
-                    'bitcoin': 'BTC',
-                    'ethereum': 'ETH',
-                    'chainlink': 'LINK',
-                    'polygon': 'MATIC',
-                    'solana': 'SOL',
-                    'cardano': 'ADA',
-                    'binance': 'BNB',
-                    'avalanche': 'AVAX',
-                    'polkadot': 'DOT',
-                    'uniswap': 'UNI'
-                  };
-                  
-                  // Try to find matching ticker
-                  for (const [key, ticker] of Object.entries(cryptoMap)) {
-                    if (companyName.includes(key)) {
-                      return ticker;
-                    }
-                  }
-                  
-                  // Default to BTC for blockchain/crypto companies without specific mapping
-                  return 'BTC';
-                }
-                
-                return undefined; // Not a crypto company
-              })()
+              ticker: getCompanyTicker(company) || undefined
             }}
-            initialWidgets={[
-              {
-                id: 'key-metrics',
-                type: WidgetType.KEY_METRICS,
-                title: 'Key Performance Metrics',
-                config: {
-                  companyName: company.name,
-                  website: company.website,
-                  show_trends: true,
-                  metric_period: 'monthly'
+            initialWidgets={(() => {
+              const assetType = getCompanyAssetType(company as any);
+              const baseWidgets = [
+                {
+                  id: 'key-metrics',
+                  type: WidgetType.KEY_METRICS,
+                  title: 'Key Performance Metrics',
+                  config: {
+                    companyName: company.name,
+                    website: company.website,
+                    show_trends: true,
+                    metric_period: 'monthly'
+                  },
+                  position: { x: 0, y: 0, w: 6, h: 4 },
+                  dataSource: {
+                    asset_type: assetType,
+                    ticker: getCompanyTicker(company as any) || company.name
+                  },
+                  isVisible: true
                 },
-                position: { x: 0, y: 0, w: 6, h: 4 },
-                dataSource: {
-                  asset_type: 'equity' as const,
-                  ticker: company.name
+                {
+                  id: 'investment-summary',
+                  type: WidgetType.INVESTMENT_SUMMARY,  
+                  title: 'Investment Summary',
+                  config: {
+                    companyName: company.name,
+                    show_details: true,
+                    currency_format: 'USD'
+                  },
+                  position: { x: 6, y: 3, w: 6, h: 3 },
+                  dataSource: {
+                    asset_type: assetType,
+                    ticker: getCompanyTicker(company as any) || company.name
+                  },
+                  isVisible: true
                 },
-                isVisible: true
-              },
-              {
-                id: 'fundamentals',
-                type: WidgetType.FUNDAMENTALS,
-                title: 'Company Fundamentals',
-                config: {
-                  companyName: company.name,
-                  website: company.website,
-                  metrics: ['market_cap', 'pe_ratio', 'revenue_ttm', 'gross_margin'],
-                  display_format: 'cards'
-                },
-                position: { x: 6, y: 0, w: 6, h: 3 },
-                dataSource: {
-                  asset_type: 'equity' as const,
-                  ticker: company.name
-                },
-                isVisible: true
-              },
-              {
-                id: 'investment-summary',
-                type: WidgetType.INVESTMENT_SUMMARY,  
-                title: 'Investment Summary',
-                config: {
-                  companyName: company.name,
-                  show_details: true,
-                  currency_format: 'USD'
-                },
-                position: { x: 6, y: 3, w: 6, h: 3 },
-                dataSource: {
-                  asset_type: 'equity' as const,
-                  ticker: company.name
-                },
-                isVisible: true
-              },
-              {
-                id: 'token-price',
-                type: WidgetType.TOKEN_PRICE,
-                title: 'Token Price',
-                config: {
-                  companyName: company.name,
-                  refresh_interval: '60',
-                  show_market_cap: true,
-                  show_volume: true
-                },
-                position: { x: 0, y: 4, w: 4, h: 4 },
-                dataSource: {
-                  asset_type: 'crypto' as const,
-                  ticker: company.name
-                },
-                isVisible: true
+                {
+                  id: 'news-feed',
+                  type: WidgetType.NEWS_FEED,
+                  title: 'Latest News',
+                  config: {
+                    companyName: company.name,
+                    max_items: 5
+                  },
+                  position: { x: 4, y: 4, w: 8, h: 4 },
+                  dataSource: {
+                    asset_type: assetType,
+                    ticker: getCompanyTicker(company as any) || company.name
+                  },
+                  isVisible: true
+                }
+              ];
+
+              // Add asset-type specific widgets
+              if (assetType === 'crypto') {
+                baseWidgets.push({
+                  id: 'token-price',
+                  type: WidgetType.TOKEN_PRICE,
+                  title: 'Token Price',
+                  config: {
+                    companyName: company.name,
+                    refresh_interval: '60',
+                    show_market_cap: true,
+                    show_volume: true
+                  },
+                  position: { x: 0, y: 4, w: 4, h: 4 },
+                  dataSource: {
+                    asset_type: assetType,
+                    ticker: getCompanyTicker(company as any) || company.name
+                  },
+                  isVisible: true
+                });
+              } else {
+                baseWidgets.push({
+                  id: 'fundamentals',
+                  type: WidgetType.FUNDAMENTALS,
+                  title: 'Company Fundamentals',
+                  config: {
+                    companyName: company.name,
+                    website: company.website,
+                    metrics: ['market_cap', 'pe_ratio', 'revenue_ttm', 'gross_margin'],
+                    display_format: 'cards'
+                  },
+                  position: { x: 6, y: 0, w: 6, h: 3 },
+                  dataSource: {
+                    asset_type: assetType,
+                    ticker: getCompanyTicker(company as any) || company.name
+                  },
+                  isVisible: true
+                });
               }
-            ]}
+
+              return baseWidgets;
+            })()}
             onLayoutChange={(widgets) => {
               console.log('Layout changed:', widgets);
               // Save to backend API

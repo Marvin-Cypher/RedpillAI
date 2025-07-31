@@ -62,7 +62,7 @@ const WIDGET_METADATA = {
   [WidgetType.FUNDAMENTALS]: {
     type: WidgetType.FUNDAMENTALS,
     name: 'Fundamentals',
-    description: 'Key financial metrics and ratios',
+    description: 'Key financial metrics and ratios for traditional companies',
     defaultSize: { x: 0, y: 0, w: 6, h: 3 },
     configSchema: {
       metrics: {
@@ -89,7 +89,8 @@ const WIDGET_METADATA = {
       }
     },
     icon: 'BarChart3',
-    category: 'analysis'
+    category: 'analysis',
+    compatibleAssetTypes: ['equity'] // Only show for traditional/equity companies
   },
   [WidgetType.NEWS_FEED]: {
     type: WidgetType.NEWS_FEED,
@@ -246,7 +247,8 @@ const WIDGET_METADATA = {
       }
     },
     icon: 'Activity',
-    category: 'market'
+    category: 'market',
+    compatibleAssetTypes: ['crypto'] // Only show for crypto companies
   }
 };
 
