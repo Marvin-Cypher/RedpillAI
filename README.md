@@ -106,10 +106,13 @@ cd backend
 pip install -r requirements.txt
 ```
 
-### 4. Database Setup
+### 4. Database Setup & Seeding
 ```bash
 cd backend
 alembic upgrade head
+
+# CRITICAL: Seed the database with portfolio companies
+python3 seed_companies.py
 ```
 
 ### 5. Start Development Servers
@@ -127,6 +130,15 @@ npm run dev
 ```
 
 Visit `http://localhost:3000` to access the application.
+
+## 🛠️ Troubleshooting
+
+If you encounter issues (wrong company data, 404 errors, etc.), see [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for detailed solutions.
+
+**Quick fixes:**
+- **Wrong company data?** Run `python3 backend/seed_companies.py`  
+- **Widget 404 errors?** Check API URLs in `frontend/src/lib/widgets/data.ts`
+- **Empty dashboard?** Database needs seeding (see above)
 
 ## 🌐 Deploy to Vercel
 

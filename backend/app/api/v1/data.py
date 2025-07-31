@@ -10,6 +10,9 @@ from ...services.tavily_service import TavilyService
 from ...models.cache import CacheResponse, BatchResponse
 from ...core.auth import get_current_user
 from ...models.users import User
+from ...models.companies import Company
+from sqlmodel import Session, select
+from ...database import get_session
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -81,11 +84,69 @@ async def get_company_profile_simple(
 
 
 async def generate_realistic_company_data(company_name: str, website: Optional[str] = None) -> Dict[str, Any]:
-    """Generate realistic company data based on known companies."""
+    """Generate realistic company data using enriched company database first, then fallback."""
     
-    logger.info(f"Generating data for company: {company_name}")
+    logger.info(f"Fetching data for company: {company_name}")
     
-    # Company database with realistic data
+    # First, try to get data from the enriched companies database
+    try:
+        from ...database import engine
+        
+        normalized_name = company_name.lower().replace(" ", "").replace("-", "")
+        
+        with Session(engine) as session:
+            # Look for company with enriched data
+            company_query = select(Company).where(
+                Company.name.ilike(f"%{company_name}%")
+            )
+            company = session.exec(company_query).first()
+            
+            if company and company.enriched_data:
+                logger.info(f"✅ Found enriched company data for {company_name}")
+                
+                # Return enriched data in expected format
+                return {
+                    "name": company.name,
+                    "description": company.description or company.enriched_data.get("description", ""),
+                    "founded_year": company.founded_year or company.enriched_data.get("founded_year"),
+                    "headquarters": company.headquarters or company.enriched_data.get("headquarters", ""),
+                    "employee_count": company.employee_count or company.enriched_data.get("employee_count", ""),
+                    "total_funding": company.enriched_data.get("total_funding", 0),
+                    "industry": company.enriched_data.get("industry", company.sector),
+                    "key_metrics": company.key_metrics or {},
+                    "website": company.website,
+                    "data_quality": "enriched",
+                    "last_updated": company.data_last_refreshed.isoformat() if company.data_last_refreshed else None,
+                    "source": "database_enriched"
+                }
+                
+    except Exception as e:
+        logger.warning(f"Could not access enriched company database for {company_name}: {e}")
+    
+    # Fallback: try to get data from the seeded database cache
+    try:
+        from ...models.cache import CompanyDataCache
+        
+        normalized_name = company_name.lower().replace(" ", "").replace("-", "")
+        
+        with Session(engine) as session:
+            # Look for cached profile data for this company
+            cache_query = select(CompanyDataCache).where(
+                CompanyDataCache.company_identifier == normalized_name,
+                CompanyDataCache.data_type == "profile"
+            )
+            cache_entry = session.exec(cache_query).first()
+            
+            if cache_entry and cache_entry.cached_data:
+                logger.info(f"✅ Found seeded data for {company_name}")
+                # Enrich with stock data for public companies
+                enriched_data = enrich_with_stock_data(cache_entry.cached_data, company_name)
+                return enriched_data
+                
+    except Exception as e:
+        logger.warning(f"Could not access seeded database for {company_name}: {e}")
+    
+    # Fallback to hardcoded data for specific known companies
     companies_db = {
         "layerzero": {
             "name": "LayerZero Labs",
@@ -106,70 +167,254 @@ async def generate_realistic_company_data(company_name: str, website: Optional[s
                 "valuation": 3000000000
             }
         },
-        "celestia": {
-            "name": "Celestia Labs",
-            "description": "Celestia is building the first modular blockchain network that allows anyone to easily deploy their own blockchain with minimal overhead.",
-            "founded_year": 2021,
-            "headquarters": "Berlin, Germany",
-            "employee_count": "25-50",
-            "total_funding": 55000000,
-            "industry": "Blockchain Infrastructure",
-            "key_metrics": {
-                "revenue": 3200000,
-                "revenue_growth": 280.0,
-                "burn_rate": 800000,
-                "runway": 18,
-                "customers": 45,
-                "arr": 4500000,
-                "gross_margin": 78.0,
-                "valuation": 1000000000
-            }
-        },
-        "eigenlayer": {
-            "name": "EigenLayer",
-            "description": "EigenLayer is a protocol built on Ethereum that introduces restaking, allowing users to extend cryptoeconomic security to additional applications on the network.",
-            "founded_year": 2021,
+        "amazon": {
+            "name": "Amazon",
+            "description": "Amazon is a multinational technology company focusing on e-commerce, cloud computing, digital streaming, and artificial intelligence.",
+            "founded_year": 1994,
             "headquarters": "Seattle, USA",
-            "employee_count": "30-75",
-            "total_funding": 64500000,
-            "industry": "Blockchain Infrastructure", 
+            "employee_count": "1,500,000",
+            "total_funding": 0,
+            "industry": "E-commerce/Cloud",
             "key_metrics": {
-                "revenue": 8500000,
-                "revenue_growth": 340.0,
-                "burn_rate": 1200000,
-                "runway": 22,
-                "customers": 85,
-                "arr": 11000000,
-                "gross_margin": 82.0,
-                "valuation": 1500000000
+                "revenue": 574780000000,
+                "revenue_growth": 9.4,
+                "burn_rate": 0,
+                "runway": 999,
+                "employees": 1500000,
+                "customers": 300000000,
+                "arr": 574780000000,
+                "gross_margin": 47.1,
+                "valuation": 1800000000000
+            },
+            "stock_data": {
+                "symbol": "AMZN",
+                "current_price": 155.50,
+                "market_cap": 1800000000000,
+                "pe_ratio": 58.2,
+                "price_to_book": 8.4,
+                "debt_ratio": 0.23,
+                "dividend_yield": 0.0,
+                "price_change_24h": 2.15,
+                "price_change_percentage_24h": 1.4,
+                "volume_24h": 45000000,
+                "shares_outstanding": 11576000000
             }
         },
-        "babylon": {
-            "name": "Babylon",
-            "description": "Babylon is unlocking Bitcoin's $1.3T capital to secure the decentralized economy through its trustless staking protocol.",
-            "founded_year": 2022,
-            "headquarters": "Palo Alto, USA",
-            "employee_count": "15-30",
-            "total_funding": 18000000,
-            "industry": "Blockchain Infrastructure",
+        "nvidia": {
+            "name": "NVIDIA",
+            "description": "NVIDIA is the world leader in GPU computing, AI acceleration, and data center technologies. The company pioneered GPU computing and is at the forefront of AI infrastructure.",
+            "founded_year": 1993,
+            "headquarters": "Santa Clara, California",
+            "employee_count": "26,000",
+            "total_funding": 0,
+            "industry": "Semiconductors/AI Hardware",
             "key_metrics": {
-                "revenue": 950000,
+                "revenue": 60922000000,
+                "revenue_growth": 122.0,
+                "burn_rate": 0,
+                "runway": 999,
+                "employees": 26000,
+                "customers": 40000,
+                "arr": 60922000000,
+                "gross_margin": 73.0,
+                "valuation": 1200000000000
+            },
+            "stock_data": {
+                "symbol": "NVDA",
+                "current_price": 875.50,
+                "market_cap": 1200000000000,
+                "pe_ratio": 75.8,
+                "price_to_book": 13.2,
+                "debt_ratio": 0.09,
+                "dividend_yield": 0.003,
+                "price_change_24h": 12.50,
+                "price_change_percentage_24h": 1.4,
+                "volume_24h": 28000000,
+                "shares_outstanding": 2465000000
+            }
+        },
+        "chainlink": {
+            "name": "Chainlink",
+            "description": "Chainlink is a decentralized oracle network that provides real-world data to smart contracts on the blockchain. It's the industry standard for connecting smart contracts to external data sources.",
+            "founded_year": 2014,
+            "headquarters": "Grand Cayman, Cayman Islands",
+            "employee_count": "150",
+            "total_funding": 32000000,
+            "industry": "Blockchain/Oracle Networks",
+            "key_metrics": {
+                "revenue": 45000000,
+                "revenue_growth": 85.0,
+                "burn_rate": 2500000,
+                "runway": 24,
+                "employees": 150,
+                "customers": 1500,
+                "arr": 54000000,
+                "gross_margin": 88.0,
+                "valuation": 5000000000
+            },
+            "crypto_data": {
+                "symbol": "LINK",
+                "current_price": 14.50,
+                "market_cap": 8500000000,
+                "market_cap_rank": 15,
+                "volume_24h": 450000000,
+                "circulating_supply": 556849970,
+                "total_supply": 1000000000,
+                "price_change_24h": 0.45,
+                "price_change_percentage_24h": 3.21
+            }
+        },
+        "phala": {
+            "name": "Phala Network",
+            "description": "Phala Network is a decentralized cloud computing platform that offers confidential computing and privacy-preserving smart contracts for Web3 applications.",
+            "founded_year": 2019,
+            "headquarters": "Singapore",
+            "employee_count": "75",
+            "total_funding": 15000000,
+            "industry": "Blockchain/Privacy Infrastructure",
+            "key_metrics": {
+                "revenue": 2400000,
                 "revenue_growth": 180.0,
-                "burn_rate": 400000,
-                "runway": 16,
+                "burn_rate": 350000,
+                "runway": 18,
+                "employees": 75,
+                "customers": 75,
+                "arr": 2880000,
+                "gross_margin": 82.0,
+                "valuation": 150000000
+            },
+            "crypto_data": {
+                "symbol": "PHA",
+                "current_price": 0.12,
+                "market_cap": 120000000,
+                "market_cap_rank": 235,
+                "volume_24h": 8500000,
+                "circulating_supply": 1000000000,
+                "total_supply": 1000000000,
+                "price_change_24h": 0.008,
+                "price_change_percentage_24h": 7.2
+            }
+        },
+        "near": {
+            "name": "NEAR Protocol",
+            "description": "NEAR Protocol is a Layer 1 blockchain designed as a community-run cloud computing platform that is fast, secure, and scalable. It uses sharding technology for better performance.",
+            "founded_year": 2018,
+            "headquarters": "San Francisco, USA",
+            "employee_count": "100",
+            "total_funding": 550000000,
+            "industry": "Blockchain/Layer 1",
+            "key_metrics": {
+                "revenue": 18000000,
+                "revenue_growth": 210.0,
+                "burn_rate": 4500000,
+                "runway": 36,
+                "employees": 100,
+                "customers": 800,
+                "arr": 21600000,
+                "gross_margin": 91.0,
+                "valuation": 3500000000
+            },
+            "crypto_data": {
+                "symbol": "NEAR",
+                "current_price": 3.45,
+                "market_cap": 3450000000,
+                "market_cap_rank": 25,
+                "volume_24h": 185000000,
+                "circulating_supply": 1000000000,
+                "total_supply": 1000000000,
+                "price_change_24h": 0.18,
+                "price_change_percentage_24h": 5.5
+            }
+        },
+        "quantumaisolutions": {
+            "name": "Quantum AI Solutions",
+            "description": "Quantum AI Solutions is building the next generation of quantum-enhanced machine learning algorithms for enterprise applications.",
+            "founded_year": 2022,
+            "headquarters": "San Francisco, USA",
+            "employee_count": "18",
+            "total_funding": 2000000,
+            "industry": "AI/ML",
+            "key_metrics": {
+                "revenue": 180000,
+                "revenue_growth": 23.5,
+                "burn_rate": 180000,
+                "runway": 14,
+                "employees": 18,
+                "customers": 12,
+                "arr": 2160000,
+                "gross_margin": 82.5,
+                "valuation": 20000000
+            }
+        },
+        "greentechsolutions": {
+            "name": "GreenTech Solutions",
+            "description": "GreenTech Solutions develops innovative solar panel technology for residential and commercial applications.",
+            "founded_year": 2023,
+            "headquarters": "Berlin, Germany",
+            "employee_count": "8",
+            "total_funding": 500000,
+            "industry": "CleanTech",
+            "key_metrics": {
+                "revenue": 45000,
+                "revenue_growth": 15.2,
+                "burn_rate": 85000,
+                "runway": 18,
+                "employees": 8,
                 "customers": 25,
-                "arr": 1200000,
-                "gross_margin": 75.0,
-                "valuation": 400000000
+                "arr": 540000,
+                "gross_margin": 65.0,
+                "valuation": 5000000
+            }
+        },
+        "fintechpro": {
+            "name": "FinTech Pro",
+            "description": "FinTech Pro provides B2B payment solutions for enterprise clients with advanced fraud detection and compliance features.",
+            "founded_year": 2021,
+            "headquarters": "New York, USA",
+            "employee_count": "45",
+            "total_funding": 10000000,
+            "industry": "FinTech",
+            "key_metrics": {
+                "revenue": 450000,
+                "revenue_growth": 35.8,
+                "burn_rate": 320000,
+                "runway": 22,
+                "employees": 45,
+                "customers": 120,
+                "arr": 5400000,
+                "gross_margin": 88.5,
+                "valuation": 80000000
+            }
+        },
+        "healthtechanalytics": {
+            "name": "HealthTech Analytics",
+            "description": "HealthTech Analytics provides data analytics platform for healthcare providers to improve patient outcomes and operational efficiency.",  
+            "founded_year": 2022,
+            "headquarters": "Boston, USA",
+            "employee_count": "15",
+            "total_funding": 3000000,
+            "industry": "HealthTech",
+            "key_metrics": {
+                "revenue": 95000,
+                "revenue_growth": 18.3,
+                "burn_rate": 150000,
+                "runway": 16,
+                "employees": 15,
+                "customers": 8,
+                "arr": 1140000,
+                "gross_margin": 72.0,
+                "valuation": 25000000
             }
         }
     }
-    
+
     # Normalize company name for lookup
     normalized_name = company_name.lower().replace(" ", "").replace("-", "")
     
     if normalized_name in companies_db:
-        return companies_db[normalized_name]
+        # Enrich with stock data for public companies
+        enriched_data = enrich_with_stock_data(companies_db[normalized_name], company_name)
+        return enriched_data
     
     # For unknown companies, try to fetch real data from Tavily API
     try:
@@ -238,6 +483,52 @@ async def generate_realistic_company_data(company_name: str, website: Optional[s
             "valuation": 0
         }
     }
+
+
+def enrich_with_stock_data(company_data: Dict[str, Any], company_name: str) -> Dict[str, Any]:
+    """Add stock data for public companies based on company name."""
+    name_lower = company_name.lower()
+    
+    # Add stock data for known public companies
+    stock_data_map = {
+        "amazon": {
+            "symbol": "AMZN",
+            "current_price": 155.50,
+            "market_cap": 1800000000000,
+            "pe_ratio": 58.2,
+            "price_to_book": 8.4,
+            "debt_ratio": 0.23,
+            "dividend_yield": 0.0,
+            "price_change_24h": 2.15,
+            "price_change_percentage_24h": 1.4,
+            "volume_24h": 45000000,
+            "shares_outstanding": 11576000000
+        },
+        "nvidia": {
+            "symbol": "NVDA",
+            "current_price": 875.50,
+            "market_cap": 1200000000000,
+            "pe_ratio": 75.8,
+            "price_to_book": 13.2,
+            "debt_ratio": 0.09,
+            "dividend_yield": 0.003,
+            "price_change_24h": 12.50,
+            "price_change_percentage_24h": 1.4,
+            "volume_24h": 28000000,
+            "shares_outstanding": 2465000000
+        }
+    }
+    
+    # Check if this company has stock data
+    for company_key, stock_data in stock_data_map.items():
+        if company_key in name_lower:
+            # Make a copy of the company data and add stock data
+            enriched_data = company_data.copy()
+            enriched_data["stock_data"] = stock_data
+            return enriched_data
+    
+    # Return original data if no stock data available
+    return company_data
 
 
 @router.post("/companies/batch-profile")

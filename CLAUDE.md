@@ -4,6 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Work Memories
 
+### Critical Data Flow Issues Fixed (2025-01-31)
+- **Polkadot Widget 404 Error**: Fixed by correcting API_BASE URL from `/api/market` to `/api/v1/market` in `frontend/src/lib/widgets/data.ts`
+- **Wrong Polkadot Data**: Root cause was Polkadot missing from `backend/seed_companies.py` PORTFOLIO_COMPANIES list. Added proper Polkadot blockchain project data and re-seeded database.
+- **Database Seeding**: Critical to run `python3 backend/seed_companies.py` after fresh setup to populate portfolio companies with real data instead of falling back to Tavily API which returns wrong companies.
+
+### Recent System State (2025-01-31)
+- Database contains 12 companies including: Phala Network, NVIDIA, Chainlink, Amazon, Polygon, Solana, Uniswap, Aave, The Graph, **Polkadot**, OpenAI, Coinbase
+- All companies have proper enriched_data and key_metrics for widgets
+- CoinGecko integration working for crypto companies (DOT $3.68, market cap $5.6B)
+
 ## Architecture Overview
 
 **RedPill VC CRM** - AI-powered venture capital platform with three-pillar architecture:
@@ -43,13 +53,30 @@ docker-compose up -d  # PostgreSQL + Redis + MinIO + apps
 
 ## Common Development Issues & Solutions
 
-### Database Schema Errors
+### Database Setup & Seeding
+**CRITICAL**: Always run the seed script after database setup to populate portfolio companies:
+```bash
+cd backend
+python3 seed_companies.py
+```
+
+**Issue**: Empty database or wrong company data (e.g., "Polkadot Digital" instead of blockchain Polkadot)
+**Root Cause**: Database not seeded with proper portfolio companies
+**Solution**: Run seed script above. This populates Companies table and CompanyDataCache with proper data.
+
+### API Endpoint 404 Errors
+**Issue**: Frontend widgets returning "HTTP 404: Not Found" on refresh
+**Root Cause**: Frontend API_BASE URL mismatch with backend route mounting
+**Solution**: Ensure API_BASE in `frontend/src/lib/widgets/data.ts` matches backend routes (use `/api/v1/market` not `/api/market`)
+
+### Database Schema Errors  
 **Issue**: `sqlite3.OperationalError: no such column: companies.company_type`
 **Solution**: Reset database with current schema
 ```bash
 cd backend
 rm -f redpill.db
 python -c "from app.database import engine; from app.models import *; import sqlmodel; sqlmodel.SQLModel.metadata.create_all(engine)"
+python3 seed_companies.py  # Always re-seed after reset
 ```
 
 ### Frontend Module Resolution Errors  
@@ -82,7 +109,16 @@ npm run dev
 - `/api/v1/companies` - Company CRUD
 - `/api/v1/deals` - Deal pipeline management
 - `/api/v1/chat` - AI conversation system with logging
-- `/api/v1/market` - Market data integration
+- `/api/v1/market` - Market data integration (OpenBB Platform)
+- `/api/v1/data` - Cost-optimized data service with intelligent caching
+
+### Data Flow Architecture
+**Primary Data Sources (in priority order):**
+1. **Companies Database** (`backend/app/models/companies.py`) - Enriched portfolio company data
+2. **CompanyDataCache** (`backend/app/models/cache.py`) - Cached profile data from seeding
+3. **Tavily API** - External company research (fallback, can return wrong data)
+4. **CoinGecko API** - Crypto token data for blockchain companies
+5. **OpenBB Platform** - Market data and financial information
 
 ### AI Integration Patterns
 - **Multi-Provider**: Redpill AI primary, OpenAI fallback, mock development mode
@@ -96,8 +132,21 @@ components/
 ├── ai/              # AI interface (EnhancedAIChat, AgenticChatInterface)
 ├── deals/           # Deal management (DealPipeline, StatusSelector)
 ├── project/         # Project details (ProjectDetail, DocumentUpload)
+├── widgets/         # Dashboard widgets (TokenPriceWidget, KeyMetricsWidget, etc.)
 └── layout/          # Layout components (AppLayout, Navigation)
 ```
+
+### Widget System Architecture
+**Widget Data Flow:**
+1. Widget calls `fetchWidgetData()` in `frontend/src/lib/widgets/data.ts`
+2. Data fetcher calls appropriate API endpoint (e.g., `/api/v1/data/companies/{name}/profile`)
+3. Backend checks Companies database → CompanyDataCache → External APIs (Tavily/CoinGecko)
+4. Widget receives structured data and renders with BaseWidget wrapper
+
+**Common Widget Issues:**
+- **Wrong Data**: Check if company exists in database (run seed script if missing)
+- **404 Errors**: Verify API_BASE URL matches backend route mounting  
+- **Missing Crypto Data**: Ensure crypto companies have `crypto_data` in cache entries
 
 ## Configuration Patterns
 
