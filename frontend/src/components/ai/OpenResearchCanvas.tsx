@@ -98,8 +98,8 @@ export function OpenResearchCanvas({
   onSaveMemo
 }: OpenResearchCanvasProps) {
   console.log('🎨 OpenResearchCanvas render:', { isOpen, projectName, projectType })
-  const { currentSession, sendMessage, addMessage, isTyping } = useAI()
-  const [isExpanded, setIsExpanded] = useState(false)
+  const { currentSession, sendMessage, addMessage, isTyping, isResearching } = useAI()
+  const [isExpanded, setIsExpanded] = useState(isResearching)
   const [inputValue, setInputValue] = useState('')
   const [researchSections, setResearchSections] = useState<ResearchSection[]>([])
   const [approvedSections, setApprovedSections] = useState<number[]>([])
@@ -157,6 +157,14 @@ export function OpenResearchCanvas({
       setCurrentChatId(currentSession.id)
     }
   }, [currentSession])
+
+  // Auto-expand when research mode is activated
+  useEffect(() => {
+    if (isResearching && !isExpanded) {
+      console.log('🔬 Auto-expanding research canvas due to research mode')
+      setIsExpanded(true)
+    }
+  }, [isResearching, isExpanded])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -217,31 +225,29 @@ export function OpenResearchCanvas({
     setStreamingContent('🔄 **Regenerating response...**\n\nCreating improved analysis...')
     
     try {
-      // Call backend to regenerate
-      const backendResponse = await fetch('http://localhost:8000/api/v1/chat/ai-chat', {
+      // Call backend to regenerate using Next.js proxy route
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           message: `Please regenerate and improve the previous response about: ${message.content.substring(0, 100)}...`,
-          project_id: projectId,
-          project_type: projectType,
-          conversation_history: messages.slice(0, index).map(msg => ({
+          projectId: projectId,
+          conversationHistory: messages.slice(0, index).map(msg => ({
             role: msg.sender,
             content: msg.content,
             timestamp: msg.timestamp
           }))
         })
       })
-
-      if (backendResponse.ok) {
-        const backendData = await backendResponse.json()
-        
-        // Update the message in place
-        // Messages are managed by UnifiedAISystem, not locally
-        console.log('Regeneration complete, new content received')
+      
+      if (!response.ok) {
+        throw new Error(`Regeneration failed: ${response.status}`)
       }
+      
+      const responseData = await response.json()
+      console.log('Regeneration complete, new content received:', responseData.response?.substring(0, 100))
     } catch (error) {
       console.error('Regeneration error:', error)
     } finally {
@@ -310,44 +316,47 @@ export function OpenResearchCanvas({
           })
         }
 
-        // Generate analysis based on search results
-        const backendResponse = await fetch('http://localhost:8000/api/v1/chat/ai-chat', {
+        // Generate analysis based on search results using Next.js API route
+        const response = await fetch('/api/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            message: `Generate comprehensive analysis for "${section.title}" about ${projectName}. 
+            message: `[SYSTEM_TASK] Generate comprehensive analysis for "${section.title}" about ${projectName}. 
             
-            Focus on: ${section.description}
-            
-            Research queries executed: ${section.searchQueries.join(', ')}
-            
-            Provide detailed analysis with:
-            - Key findings and insights
-            - Data points and metrics where relevant
-            - Professional VC perspective
-            - Actionable conclusions
-            
-            Format as a well-structured research section with clear headings and bullet points.`,
-            project_id: projectId,
-            project_type: projectType,
-            conversation_history: messages.map(msg => ({
+Focus on: ${section.description}
+
+Previous queries: ${section.searchQueries.join(', ')}
+
+Provide detailed analysis with:
+- Key findings and insights
+- Data points and metrics where relevant
+- Professional VC perspective
+- Actionable conclusions
+
+Format as a well-structured markdown section with clear headings and bullet points.`,
+            projectId: projectId,
+            conversationHistory: messages.map(msg => ({
               role: msg.sender,
               content: msg.content,
               timestamp: msg.timestamp
             }))
           })
         })
-
-        if (backendResponse.ok) {
-          const backendData = await backendResponse.json()
+        
+        if (!response.ok) {
+          throw new Error(`API call failed: ${response.status}`)
+        }
+        
+        const responseData = await response.json()
+        const analysisContent = responseData.response || responseData.content || `## ${section.title}\n\n${section.description}\n\n*Analysis not available*`
           
           // Create research section
           const newSection: ResearchSection = {
             id: `section-${Date.now()}-${i}`,
             title: section.title,
-            content: backendData.content || `## ${section.title}\n\n${section.description}\n\n*Analysis in progress...*`,
+            content: analysisContent,
             status: 'completed',
             order: i,
             approved: false,
@@ -362,25 +371,24 @@ export function OpenResearchCanvas({
           // Add as a message to the UnifiedAISystem session for persistence
           const aiMessage: AIMessage = {
             id: `research-${Date.now()}-${i}`,
-            content: `## ${section.title}\n\n${backendData.content}`,
+            content: `## ${section.title}\n\n${analysisContent}`,
             sender: 'ai',
             timestamp: new Date(),
             type: 'research',
             chatId: currentChatId,
             metadata: {
-              reasoning: backendData.reasoning_content,
+              reasoning: `Research section for ${section.title}`,
               confidence: 0.85,
               sources: [`Research: ${section.title}`, 'AI Analysis'],
-              model: backendData.model,
-              usage: backendData.usage,
-              chat_id: backendData.chat_id
+              model: responseData.model || 'AI Assistant',
+              usage: responseData.usage,
+              chat_id: responseData.chat_id
             }
           }
           
-          // Use the addMessage function to properly integrate with UnifiedAISystem
-          addMessage(aiMessage)
-          console.log('📧 Added research message to session via addMessage:', aiMessage.id)
-        }
+        // Use the addMessage function to properly integrate with UnifiedAISystem
+        addMessage(aiMessage)
+        console.log('📧 Added research message to session via addMessage:', aiMessage.id)
       } catch (error) {
         console.error(`Error generating ${section.title}:`, error)
         
@@ -426,30 +434,33 @@ export function OpenResearchCanvas({
     
     try {
       // Generate research plan
-      const planResponse = await fetch('http://localhost:8000/api/v1/chat/ai-chat', {
+      const planResponse = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: `Create a comprehensive research plan for: "${query}". For the project "${projectName}", generate a structured research plan with 4-6 specific sections. Each section should have:
-          1. A clear title
-          2. Brief description of what will be researched
-          3. 2-3 specific search queries to find relevant information
-          
-          Format as JSON with this structure:
-          {
-            "sections": [
-              {
-                "title": "Section Title",
-                "description": "What this section will cover",
-                "searchQueries": ["query 1", "query 2", "query 3"]
-              }
-            ]
-          }`,
-          project_id: projectId,
-          project_type: projectType,
-          conversation_history: messages.map(msg => ({
+          message: `[SYSTEM_TASK] Generate a structured analysis plan for: "${query}". 
+
+Project: "${projectName}"
+
+Create exactly 5 sections. Each section needs:
+- Title (clear and specific)
+- Description (what will be analyzed)
+- Search queries (3 specific queries)
+
+Return ONLY a JSON object with this structure:
+{
+  "sections": [
+    {
+      "title": "string",
+      "description": "string",
+      "searchQueries": ["string", "string", "string"]
+    }
+  ]
+}`,
+          projectId: projectId,
+          conversationHistory: messages.map(msg => ({
             role: msg.sender,
             content: msg.content,
             timestamp: msg.timestamp
@@ -716,27 +727,75 @@ export function OpenResearchCanvas({
                   Start by asking a research question
                 </h3>
                 <p className="text-gray-500 text-sm leading-relaxed">
-                  Ask detailed questions about {projectName} and I'll help you conduct comprehensive research and analysis.
+                  Ask detailed questions about {projectName} and I&apos;ll help you conduct comprehensive research and analysis.
                 </p>
               </div>
             </div>
           ) : (
             <div 
-              className="research-document font-noto"
+              className="research-document"
               style={{ 
                 transform: `scale(${documentZoom / 100})`,
                 transformOrigin: 'top left',
-                minHeight: '100%'
+                minHeight: '100%',
+                fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif'
               }}
             >
-              {/* Research Document Header */}
-              <div className="mb-8 pb-4 border-b border-gray-200">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Research Document</h1>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <div><strong>Project:</strong> {projectName}</div>
-                  <div><strong>Research Query:</strong> {messages.filter(m => m.sender === 'user').pop()?.content || 'Analysis'}</div>
-                  <div><strong>Date:</strong> {new Date().toLocaleDateString()}</div>
-                  <div><strong>Chat ID:</strong> {currentChatId}</div>
+              {/* ANA-style Research Document Header */}
+              <div className="mb-8 p-6 bg-gradient-to-r from-slate-50 to-blue-50 border border-gray-200 rounded-lg shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h1 className="text-2xl font-bold text-gray-900 mb-3 flex items-center">
+                      📄 Research Document
+                    </h1>
+                    <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                      <div className="space-y-2">
+                        <div className="flex items-center">
+                          <span className="font-medium text-gray-700 w-20">Project:</span>
+                          <span className="font-mono text-blue-700 bg-blue-100 px-2 py-1 rounded text-xs">{projectName}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="font-medium text-gray-700 w-20">Query:</span>
+                          <span className="italic">{messages.filter(m => m.sender === 'user').pop()?.content || 'Analysis'}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center">
+                          <span className="font-medium text-gray-700 w-16">Date:</span>
+                          <span className="font-mono text-xs">{new Date().toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="font-medium text-gray-700 w-16">Session:</span>
+                          <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{currentChatId}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 ml-4">
+                    <Button
+                      onClick={() => setDocumentZoom(prev => Math.min(150, prev + 10))}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-7"
+                    >
+                      🔍+
+                    </Button>
+                    <Button
+                      onClick={() => setDocumentZoom(prev => Math.max(50, prev - 10))}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-7"
+                    >
+                      🔍-
+                    </Button>
+                    <span className="text-xs text-gray-500 text-center">{documentZoom}%</span>
+                  </div>
                 </div>
               </div>
 
@@ -765,95 +824,240 @@ export function OpenResearchCanvas({
                 </div>
               )}
 
-              {/* Research Plan Approval - Show in document panel */}
+              {/* ANA-style Research Plan Approval */}
               {approvalFlow.isActive && (
-                console.log('🎨 Rendering approval flow UI') ||
-                <div className="mb-8 p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-yellow-900 mb-2">
-                      📋 Research Plan Approval Required
-                    </h3>
-                    <div className="text-sm text-yellow-800 bg-white p-4 rounded border">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {approvalFlow.proposedPlan}
-                      </ReactMarkdown>
+                <div className="mb-8 bg-white border border-amber-200 rounded-lg shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                        <span className="text-lg">📋</span>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-amber-900">
+                          Research Plan Approval Required
+                        </h3>
+                        <p className="text-sm text-amber-700 mt-1">
+                          Review the proposed research structure below
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={handleApproveResearchPlan}
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                      disabled={approvalFlow.isExecuting}
-                    >
-                      <Check className="w-4 h-4 mr-2" />
-                      {approvalFlow.isExecuting ? 'Executing Research...' : 'Approve & Start Research'}
-                    </Button>
-                    <Button
-                      onClick={handleRejectResearchPlan}
-                      size="sm"
-                      variant="outline"
-                      className="border-red-200 text-red-700 hover:bg-red-50"
-                      disabled={approvalFlow.isExecuting}
-                    >
-                      <X className="w-4 h-4 mr-2" />
-                      Modify Plan
-                    </Button>
+                  
+                  <div className="p-6">
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            h1: ({ children }) => <h1 className="text-lg font-bold text-gray-900 mb-3">{children}</h1>,
+                            h2: ({ children }) => <h2 className="text-base font-semibold text-gray-800 mb-2">{children}</h2>,
+                            p: ({ children }) => <p className="mb-2 text-gray-700 leading-relaxed">{children}</p>,
+                            ul: ({ children }) => <ul className="mb-2 pl-4 space-y-1">{children}</ul>,
+                            li: ({ children }) => <li className="text-gray-700 leading-relaxed">{children}</li>,
+                            strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>
+                          }}
+                        >
+                          {approvalFlow.proposedPlan}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-600">
+                        This will create {approvalFlow.researchPlan?.sections.length || 5} research sections
+                      </div>
+                      <div className="flex gap-3">
+                        <Button
+                          onClick={handleRejectResearchPlan}
+                          size="sm"
+                          variant="outline"
+                          className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                          disabled={approvalFlow.isExecuting}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Modify Plan
+                        </Button>
+                        <Button
+                          onClick={handleApproveResearchPlan}
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                          disabled={approvalFlow.isExecuting}
+                        >
+                          <Check className="w-4 h-4 mr-2" />
+                          {approvalFlow.isExecuting ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Executing Research...
+                            </>
+                          ) : (
+                            'Approve & Start Research'
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Research Sections */}
+              {/* ANA-style Research Sections */}
               {researchSections.length > 0 && (
-                <div className="space-y-8">
-                  <div className="mb-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-2">Research Sections</h2>
-                    <div className="flex items-center space-x-4 text-sm text-gray-600">
-                      <span>{researchSections.length} sections</span>
-                      <span>{researchSections.filter(s => s.approved).length} approved</span>
+                <div className="space-y-6">
+                  <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                      📑 Research Sections
+                    </h2>
+                    <div className="flex items-center space-x-6 text-sm">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <span className="text-gray-600">{researchSections.length} sections total</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span className="text-gray-600">{researchSections.filter(s => s.status === 'completed').length} completed</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                        <span className="text-gray-600">{researchSections.filter(s => s.approved).length} approved</span>
+                      </div>
                     </div>
                   </div>
                   
                   {researchSections.map((section, index) => (
-                    <div key={section.id} className="border border-gray-200 rounded-lg">
-                      {/* Section Header */}
-                      <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <div key={section.id} className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                      {/* ANA-style Section Header */}
+                      <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-slate-50 border-b border-gray-200">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              Research Section {index + 1}
-                            </h3>
-                            <Badge 
-                              variant="outline" 
-                              className={section.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}
-                            >
-                              {section.status}
-                            </Badge>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span className="text-sm font-semibold text-blue-700">{index + 1}</span>
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                  {section.title}
+                                </h3>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs ${
+                                      section.status === 'completed' 
+                                        ? 'bg-green-100 text-green-800 border-green-200' 
+                                        : section.status === 'in_progress'
+                                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                                        : 'bg-gray-100 text-gray-600 border-gray-200'
+                                    }`}
+                                  >
+                                    {section.status === 'completed' ? '✓ Complete' : 
+                                     section.status === 'in_progress' ? '⏳ In Progress' : 
+                                     '⏸️ Pending'}
+                                  </Badge>
+                                  {section.timestamp && (
+                                    <span className="text-xs text-gray-500">
+                                      {new Date(section.timestamp).toLocaleTimeString()}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <Button
-                            onClick={() => handleSaveMemo(section.content)}
-                            size="sm"
-                            variant="outline"
-                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                          >
-                            <Save className="w-4 h-4 mr-1" />
-                            Save as Memo
-                          </Button>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              onClick={() => handleSaveMemo(section.content)}
+                              size="sm"
+                              variant="outline"
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs"
+                            >
+                              <Save className="w-3 h-3 mr-1" />
+                              Save
+                            </Button>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Section Content */}
-                      <div className="px-6 py-4">
-                        <h4 className="text-md font-semibold text-gray-800 mb-3">{section.title}</h4>
+                      {/* ANA-style Section Content */}
+                      <div className="p-6">
                         
-                        {/* Key Strengths section like in the original */}
+                        {/* ANA-style editable content section */}
                         <div className="mb-4">
-                          <h5 className="text-sm font-semibold text-gray-700 mb-2">Key Strengths:</h5>
-                          <div className="prose prose-sm max-w-none text-gray-700">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {section.content}
-                            </ReactMarkdown>
+                          <div className="flex items-center justify-between mb-3">
+                            <h5 className="text-sm font-semibold text-gray-800">Research Content</h5>
+                            <Button
+                              onClick={() => {
+                                // Toggle edit mode for this section
+                                const isEditing = section.id.includes('editing')
+                                setResearchSections(prev => prev.map(s => 
+                                  s.id === section.id 
+                                    ? { ...s, id: isEditing ? s.id.replace('-editing', '') : s.id + '-editing' }
+                                    : s
+                                ))
+                              }}
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-md border border-blue-200"
+                            >
+                              {section.id.includes('editing') ? '✓ Save' : '✏️ Edit'}
+                            </Button>
                           </div>
+                          
+                          {section.id.includes('editing') ? (
+                            // Edit mode - ANA-style textarea
+                            <div className="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm">
+                              <textarea
+                                value={section.content}
+                                onChange={(e) => {
+                                  setResearchSections(prev => prev.map(s => 
+                                    s.id === section.id 
+                                      ? { ...s, content: e.target.value }
+                                      : s
+                                  ))
+                                }}
+                                className="w-full h-80 p-4 border-0 focus:outline-none focus:ring-0 text-sm font-mono resize-none"
+                                placeholder="Edit your research content here..."
+                                style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
+                              />
+                              <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
+                                Supports Markdown formatting
+                              </div>
+                            </div>
+                          ) : (
+                            // View mode - ANA-style rendered markdown with better typography
+                            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                              <div className="prose prose-gray max-w-none p-6" style={{
+                                fontSize: '14px',
+                                lineHeight: '1.6',
+                                color: '#374151'
+                              }}>
+                                <div className="markdown-body">
+                                  <ReactMarkdown 
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                      h1: ({ children }) => <h1 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">{children}</h1>,
+                                      h2: ({ children }) => <h2 className="text-lg font-semibold text-gray-800 mb-3 mt-6">{children}</h2>,
+                                      h3: ({ children }) => <h3 className="text-base font-semibold text-gray-800 mb-2 mt-4">{children}</h3>,
+                                      p: ({ children }) => <p className="mb-3 text-gray-700 leading-relaxed">{children}</p>,
+                                      ul: ({ children }) => <ul className="mb-3 pl-4 space-y-1">{children}</ul>,
+                                      ol: ({ children }) => <ol className="mb-3 pl-4 space-y-1">{children}</ol>,
+                                      li: ({ children }) => <li className="text-gray-700 leading-relaxed">{children}</li>,
+                                      code: ({ children, className }) => {
+                                        const inline = !className
+                                        return inline ? (
+                                          <code className="px-1 py-0.5 bg-gray-100 text-gray-800 rounded text-sm font-mono">{children}</code>
+                                        ) : (
+                                          <code className="block p-3 bg-gray-900 text-gray-100 rounded-md text-sm font-mono overflow-x-auto">{children}</code>
+                                        )
+                                      },
+                                      blockquote: ({ children }) => <blockquote className="border-l-4 border-blue-200 pl-4 py-2 bg-blue-50 text-gray-700 italic mb-3">{children}</blockquote>,
+                                      strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                                      em: ({ children }) => <em className="italic text-gray-700">{children}</em>,
+                                      a: ({ children, href }) => <a href={href} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">{children}</a>
+                                    }}
+                                  >
+                                    {section.content}
+                                  </ReactMarkdown>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Research metadata */}
@@ -874,24 +1078,62 @@ export function OpenResearchCanvas({
                 </div>
               )}
 
-              {/* Summary/Conclusion section like original */}
+              {/* ANA-style Research Summary */}
               {researchSections.length > 0 && (
-                <div className="mt-12 pt-8 border-t border-gray-200">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Research Summary</h2>
-                  <div className="prose prose-sm max-w-none text-gray-700">
-                    <p>
-                      This research analysis provides comprehensive insights into {projectName} based on available data. 
-                      The findings are organized into {researchSections.length} key sections covering various aspects 
-                      of the analysis.
-                    </p>
+                <div className="mt-12 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <span className="text-lg">📊</span>
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold text-green-900">Research Summary</h2>
+                        <p className="text-sm text-green-700 mt-1">
+                          Complete analysis of {projectName}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <div className="text-sm text-gray-600 grid grid-cols-2 gap-4">
-                      <div><strong>Total Sections:</strong> {researchSections.length}</div>
-                      <div><strong>Completion Status:</strong> {researchSections.filter(s => s.status === 'completed').length}/{researchSections.length}</div>
-                      <div><strong>Generated:</strong> {new Date().toLocaleString()}</div>
-                      <div><strong>Chat ID:</strong> {currentChatId}</div>
+                  <div className="p-6">
+                    <div className="prose prose-sm max-w-none text-gray-700 mb-6">
+                      <p className="text-base leading-relaxed">
+                        This research analysis provides comprehensive insights into <strong>{projectName}</strong> based on available data. 
+                        The findings are organized into <strong>{researchSections.length} key sections</strong> covering various aspects 
+                        of the analysis, including market conditions, competitive landscape, technical capabilities, and strategic considerations.
+                      </p>
+                    </div>
+                    
+                    <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg p-4 border border-gray-200">
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                        <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm">
+                          <div className="text-2xl font-bold text-blue-600">{researchSections.length}</div>
+                          <div className="text-gray-600 text-center">Total Sections</div>
+                        </div>
+                        <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm">
+                          <div className="text-2xl font-bold text-green-600">
+                            {researchSections.filter(s => s.status === 'completed').length}
+                          </div>
+                          <div className="text-gray-600 text-center">Completed</div>
+                        </div>
+                        <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm">
+                          <div className="text-2xl font-bold text-purple-600">
+                            {Math.round((researchSections.filter(s => s.status === 'completed').length / researchSections.length) * 100)}%
+                          </div>
+                          <div className="text-gray-600 text-center">Progress</div>
+                        </div>
+                        <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm">
+                          <div className="text-lg font-bold text-gray-600">
+                            {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </div>
+                          <div className="text-gray-600 text-center">Generated</div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
+                        <div>Session ID: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{currentChatId}</span></div>
+                        <div>Last updated: {new Date().toLocaleTimeString()}</div>
+                      </div>
                     </div>
                   </div>
                 </div>

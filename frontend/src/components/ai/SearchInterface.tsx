@@ -431,7 +431,7 @@ export function SearchInterface({ projectId, projectName, onResultSelect }: Sear
       {!isSearching && results.length === 0 && query && (
         <div className="text-center py-8 text-gray-500">
           <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-          <p className="text-sm">No results found for "{query}"</p>
+          <p className="text-sm">No results found for &quot;{query}&quot;</p>
           <p className="text-xs">Try a different search term or mode</p>
         </div>
       )}

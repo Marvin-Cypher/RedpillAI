@@ -59,6 +59,13 @@ export class VCAssistant {
     })
     
     try {
+      // Check if this is a system task that should bypass routing
+      if (message.startsWith('[SYSTEM_TASK]')) {
+        console.log('🔧 System task detected, routing directly to AI')
+        const cleanMessage = message.replace('[SYSTEM_TASK]', '').trim()
+        return await this.generalChat(cleanMessage, conversationHistory, null)
+      }
+      
       // Check query types with logging
       const isMarketData = this.isMarketDataQuery(message)
       const isDeepResearch = this.isDeepResearchQuery(message)

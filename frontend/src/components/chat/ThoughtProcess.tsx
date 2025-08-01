@@ -151,7 +151,7 @@ export function ThoughtProcess({ steps, isActive, className }: ThoughtProcessPro
                       
                       {step.metadata?.searchQuery && (
                         <div className="text-xs text-blue-400 mb-1">
-                          Query: "{step.metadata.searchQuery}"
+                          Query: &quot;{step.metadata.searchQuery}&quot;
                         </div>
                       )}
                       

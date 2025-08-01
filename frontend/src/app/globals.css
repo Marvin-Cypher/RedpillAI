@@ -2,11 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CopilotKit styles */
-@import "@copilotkit/react-ui/styles.css";
-
-/* Hybrid AI Interface styles */
-@import "../styles/hybrid-ai.css";
+/* Legacy CopilotKit styles removed - now using UnifiedAISystem */
 
 @layer base {
   /* Suna Design System - OKLCH Color Variables */

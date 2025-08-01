@@ -21,8 +21,11 @@ import {
   Briefcase,
   MessageSquare,
   Zap,
-  Brain
+  Brain,
+  LogOut,
+  User
 } from 'lucide-react'
+import { useAuthStore } from '@/lib/stores/authStore'
 
 const navigation = [
   { 
@@ -59,12 +62,22 @@ const quickActions = [
 export function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
+  const { user, logout } = useAuthStore()
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
       return pathname === '/' || pathname === '/dashboard'
     }
     return pathname.startsWith(href)
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      // Navigation will be handled by AuthGuard in AppLayout
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
   }
 
   return (
@@ -143,8 +156,36 @@ export function Navigation() {
             </div>
           </div>
 
+          {/* User Profile and Logout */}
+          <div className="px-3 pb-3 mt-auto">
+            <div className="border-t border-gray-200 pt-3">
+              <div className="flex items-center space-x-3 px-3 py-2 text-sm">
+                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-gray-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {user?.name || user?.email || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {user?.role || 'Investor'}
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={handleLogout}
+                variant="ghost" 
+                size="sm"
+                className="w-full justify-start mt-2 text-gray-600 hover:text-red-600 hover:bg-red-50"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign out
+              </Button>
+            </div>
+          </div>
+
           {/* Bottom section */}
-          <div className="px-3 pb-6 mt-auto">
+          <div className="px-3 pb-6">
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-100">
               <div className="flex items-center space-x-2 mb-2">
                 <Zap className="w-5 h-5 text-blue-600" />
@@ -251,6 +292,37 @@ export function Navigation() {
                         </Link>
                       )
                     })}
+                  </div>
+                </div>
+
+                {/* Mobile User Profile and Logout */}
+                <div className="px-3 pb-6 mt-auto">
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center space-x-3 px-3 py-2 text-sm mb-3">
+                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-gray-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {user?.name || user?.email || 'User'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {user?.role || 'Investor'}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false)
+                        handleLogout()
+                      }}
+                      variant="ghost" 
+                      size="sm"
+                      className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-red-50"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign out
+                    </Button>
                   </div>
                 </div>
               </div>

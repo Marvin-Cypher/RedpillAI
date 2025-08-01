@@ -4,26 +4,15 @@
  */
 
 import { Widget, PriceData, FundamentalData, NewsItem, ComparisonData } from './types';
+import { apiClient as centralApiClient } from '@/lib/api';
 
-const API_BASE = 'http://localhost:8000/api/v1/market';
+const API_BASE = '/api/v1/market';
 
-// Generic API client with error handling
-class ApiClient {
+// Widget-specific API client using the centralized apiClient
+class WidgetApiClient {
   private async request<T>(endpoint: string): Promise<T> {
     try {
-      const response = await fetch(`${API_BASE}${endpoint}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer fake-token', // TODO: Replace with real auth token
-        }
-      });
-
-      if (!response.ok) {
-        console.warn(`API endpoint ${endpoint} returned ${response.status}: ${response.statusText}`);
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
-      }
-
-      return response.json();
+      return await centralApiClient.get<T>(`${API_BASE}${endpoint}`);
     } catch (error) {
       console.warn(`Failed to fetch from ${endpoint}:`, error);
       throw error;
@@ -74,7 +63,7 @@ class ApiClient {
   }
 }
 
-const apiClient = new ApiClient();
+const widgetApiClient = new WidgetApiClient();
 
 // Mock data generators for development
 const generateMockPriceData = (ticker: string, days: number): { data: PriceData[] } => {
@@ -119,9 +108,9 @@ export const widgetDataFetchers = {
     
     try {
       if (asset_type === 'crypto') {
-        return await apiClient.getCryptoHistorical(ticker, days);
+        return await widgetApiClient.getCryptoHistorical(ticker, days);
       } else {
-        return await apiClient.getEquityHistorical(ticker, days);
+        return await widgetApiClient.getEquityHistorical(ticker, days);
       }
     } catch (error) {
       console.warn(`Using mock data for price chart (${ticker}):`, error);
@@ -191,10 +180,10 @@ export const widgetDataFetchers = {
     try {
       // Try real APIs first
       if (asset_type === 'crypto') {
-        return await apiClient.getCryptoNews(ticker, limit);
+        return await widgetApiClient.getCryptoNews(ticker, limit);
       } else if (asset_type === 'equity') {
         if (!ticker) throw new Error('No ticker specified for news');
-        return await apiClient.getEquityNews(ticker, limit);
+        return await widgetApiClient.getEquityNews(ticker, limit);
       } else {
         throw new Error('News not available for this asset type');
       }
@@ -285,7 +274,7 @@ export const widgetDataFetchers = {
     }
 
     try {
-      return await apiClient.compareEquities(allTickers.slice(0, widget.config.max_peers || 4));
+      return await widgetApiClient.compareEquities(allTickers.slice(0, widget.config.max_peers || 4));
     } catch (error) {
       console.warn(`Using mock data for peer comparison (${ticker}):`, error);
       const comparisons: Record<string, Partial<FundamentalData>> = {};
@@ -319,9 +308,9 @@ export const widgetDataFetchers = {
       // Get historical data and calculate indicators
       let historicalData;
       if (asset_type === 'crypto') {
-        historicalData = await apiClient.getCryptoHistorical(ticker, days);
+        historicalData = await widgetApiClient.getCryptoHistorical(ticker, days);
       } else {
-        historicalData = await apiClient.getEquityHistorical(ticker, days);
+        historicalData = await widgetApiClient.getEquityHistorical(ticker, days);
       }
 
       // Calculate technical indicators based on config

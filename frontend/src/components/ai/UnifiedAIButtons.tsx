@@ -125,21 +125,17 @@ export function AIResearchButton({
   size = 'sm',
   className = ''
 }: AIButtonProps & { topic?: string }) {
-  const { openAI, startResearch } = useAI()
+  const { openResearch, sendMessage } = useAI()
 
   const handleClick = () => {
-    openAI({
-      projectId,
-      projectType,
-      projectName,
-      mode: 'sidebar'
-    })
+    // Use the new openResearch method for better UX
+    openResearch(projectId, projectType, projectName)
     
     if (topic) {
-      // Small delay to ensure UI is ready
+      // Small delay to ensure UI is ready, then send research query
       setTimeout(() => {
-        startResearch(topic)
-      }, 500)
+        sendMessage(`research ${topic}`)
+      }, 800)
     }
   }
 

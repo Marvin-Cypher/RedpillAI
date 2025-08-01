@@ -58,6 +58,7 @@ export interface AIContextType {
   
   // Advanced features
   startResearch: (topic: string) => void
+  openResearch: (projectId?: string, projectType?: 'company' | 'deal' | 'open', projectName?: string) => void
   saveMemo: (content: string, title?: string) => void
   
   // State
@@ -181,6 +182,7 @@ export function UnifiedAISystem({
   const closeAI = useCallback(() => {
     setIsOpen(false)
     setCurrentMemoId(undefined)
+    setIsResearching(false) // Reset research state when closing
     // Keep session for potential reopen
   }, [])
 
@@ -231,17 +233,16 @@ export function UnifiedAISystem({
       setCurrentSession(updatedSession)
       saveSession(updatedSession)
 
-      // Call backend API
-      const response = await fetch('http://localhost:8000/api/v1/chat/ai-chat', {
+      // Call backend API using Next.js proxy route
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           message: content,
-          project_id: currentSession.projectId,
-          project_type: currentSession.projectType,
-          conversation_history: currentSession.messages.map(msg => ({
+          projectId: currentSession.projectId,
+          conversationHistory: currentSession.messages.map(msg => ({
             role: msg.sender,
             content: msg.content,
             timestamp: msg.timestamp
@@ -250,7 +251,7 @@ export function UnifiedAISystem({
       })
 
       if (!response.ok) {
-        throw new Error(`Backend error: ${response.status}`)
+        throw new Error(`API call failed: ${response.status}`)
       }
 
       const data = await response.json()
@@ -258,7 +259,7 @@ export function UnifiedAISystem({
       // Add AI response to session
       const aiMessage: AIMessage = {
         id: `msg-${Date.now() + 1}`,
-        content: data.content || 'No response',
+        content: data.response || data.content || 'No response',
         sender: 'ai',
         timestamp: new Date(),
         type: 'research',
@@ -270,7 +271,7 @@ export function UnifiedAISystem({
           model: data.model,
           usage: data.usage,
           chat_id: data.chat_id,
-          timestamp: new Date().toISOString()
+          timestamp: data.timestamp || new Date().toISOString()
         }
       }
 
@@ -318,7 +319,7 @@ export function UnifiedAISystem({
   }, [currentSession, saveSession])
 
   // Get chat history for a project
-  const getChatHistory = useCallback((projectId: string, projectType: string): AISession[] => {
+  const getChatHistory = useCallback((projectId: string, _projectType: string): AISession[] => {
     const storageKey = `chat-history-${projectId}`
     console.log('📖 Getting chat history from key:', storageKey)
     
@@ -380,6 +381,21 @@ export function UnifiedAISystem({
     sendMessage(`research ${topic}`)
   }, [sendMessage])
 
+  // Open research canvas directly
+  const openResearch = useCallback((projectId?: string, projectType?: 'company' | 'deal' | 'open', projectName?: string) => {
+    console.log('🔬 openResearch called:', { projectId, projectType, projectName })
+    
+    // Open AI interface with research flag
+    openAI({
+      projectId: projectId || globalProjectId,
+      projectType: projectType || globalProjectType || 'open',
+      projectName: projectName || globalProjectName || 'Research Project'
+    })
+    
+    // Set research mode
+    setIsResearching(true)
+  }, [openAI, globalProjectId, globalProjectType, globalProjectName])
+
   // Save memo
   const saveMemo = useCallback((content: string, title?: string) => {
     if (!currentSession) return
@@ -424,6 +440,7 @@ export function UnifiedAISystem({
     getChatHistory,
     loadChatSession,
     startResearch,
+    openResearch,
     saveMemo,
     isTyping,
     isResearching
@@ -481,8 +498,8 @@ export function useAIChat() {
 }
 
 export function useAIResearch() {
-  const { startResearch, isResearching, saveMemo } = useAI()
-  return { startResearch, isResearching, saveMemo }
+  const { startResearch, openResearch, isResearching, saveMemo } = useAI()
+  return { startResearch, openResearch, isResearching, saveMemo }
 }
 
 export function useAISession() {

@@ -21,8 +21,10 @@ export {
   ChatHistoryButton
 } from './UnifiedAIButtons'
 
-// Legacy components (for gradual migration)
+// Research Canvas Component
 export { OpenResearchCanvas } from './OpenResearchCanvas'
 
-// Backward compatibility
-export { AIProvider } from './AIProvider'
+// Additional Components
+export { AgenticChatInterface } from './AgenticChatInterface'
+export { SearchInterface } from './SearchInterface'
+export { ChatHistory } from './ChatHistory'

@@ -25,7 +25,7 @@ import {
   Building2
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
-import { ChatWithAIButton, useAI } from '@/components/ai'
+import { ChatWithAIButton, AIResearchButton, useAI } from '@/components/ai'
 
 interface WorkflowData {
   id: string
@@ -173,6 +173,13 @@ export default function ModernDashboard() {
             <ChatWithAIButton 
               projectType="open"
               projectName="Dashboard Overview"
+            />
+            <AIResearchButton
+              topic="portfolio analysis"
+              projectType="open"
+              projectName="Portfolio Dashboard"
+              className="text-sm"
+              size="sm"
             />
             <Button 
               onClick={testAIContext}

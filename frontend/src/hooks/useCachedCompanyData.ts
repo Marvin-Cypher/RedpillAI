@@ -50,7 +50,7 @@ export function useCachedCompanyData(companyName: string, website?: string) {
       setError(null);
       
       const response = await apiClient.get<CacheAwareResponse<any>>(
-        `/api/v1/data/companies/${encodeURIComponent(companyName)}/profile`,
+        `/data/companies/${encodeURIComponent(companyName)}/profile`,
         {
           params: {
             website,
@@ -119,7 +119,7 @@ export function useBatchCompanyData(companies: Array<{name: string, website?: st
         setLoading(true);
         setError(null);
 
-        const response = await apiClient.post<BatchResponse>('/api/v1/data/companies/batch-profile', 
+        const response = await apiClient.post<BatchResponse>('/data/companies/batch-profile', 
           companies,
           {
             params: {
@@ -178,7 +178,7 @@ export function useAssetPrice(symbol: string, assetType: 'crypto' | 'stock' = 'c
         setError(null);
 
         const response = await apiClient.get<CacheAwareResponse<any>>(
-          `/api/v1/data/prices/${symbol.toUpperCase()}`,
+          `/data/prices/${symbol.toUpperCase()}`,
           {
             params: { asset_type: assetType }
           }

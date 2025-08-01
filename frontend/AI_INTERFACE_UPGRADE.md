@@ -12,11 +12,14 @@ The RedPill VC platform features a unified AI system built around the UnifiedAIS
 - **Multi-Provider Support**: RedPill AI (primary) + OpenAI (fallback) + mock development mode
 - **Message Management**: addMessage function for consistent session updates
 
-### 2. **OpenResearchCanvas Interface**
-- **Document-Style Layout**: Clean research document format with structured sections
+### 2. **OpenResearchCanvas Interface (ANA-Style)**
+- **Document-Style Layout**: ANA-inspired two-panel layout (document left, chat right)
+- **Professional Markdown Rendering**: Custom ReactMarkdown components with proper typography
 - **Approval Workflow**: Research plan generation → user approval → structured execution
+- **Card-Based Sections**: Professional section organization with gradient headers
 - **Auto-Expansion**: Interface expands immediately when AI starts processing
-- **Thinking Indicators**: Visual feedback during AI reasoning and processing
+- **Enhanced Visual Hierarchy**: Improved headings, spacing, and content organization
+- **Real-Time Updates**: Streaming content updates with smooth animations
 
 ### 3. **Chat History System**
 - **Session Management**: Persistent chat history with metadata and previews
@@ -103,11 +106,12 @@ loadChatSession('session-1753818169177-8pn16rycl')
 
 ### Key Technologies
 - **React + TypeScript**: Type-safe component development
-- **ReactMarkdown**: Rich text rendering with plugins
+- **ReactMarkdown**: Rich text rendering with custom components and remark-gfm plugin
+- **Custom Markdown Components**: ANA-style typography with proper headings, lists, and code blocks
 - **React Syntax Highlighter**: Code highlighting with multiple themes
 - **Framer Motion**: Smooth animations and transitions
 - **Radix UI**: Accessible component primitives
-- **Tailwind CSS**: Utility-first styling
+- **Tailwind CSS**: Utility-first styling with professional card layouts
 
 ## 🔄 Workflow Types
 
@@ -183,14 +187,23 @@ COINGECKO_API_KEY=your_coingecko_key
 ## 🎨 Visual Improvements
 
 ### Before vs After
-- **Before**: Basic chat bubbles with limited formatting
-- **After**: Rich markdown, code highlighting, reasoning traces, workflow progress
+- **Before**: Basic chat bubbles with limited formatting and poor markdown rendering
+- **After**: ANA-style professional UI with rich markdown, enhanced typography, and structured layouts
+
+### ANA-Style Design Elements
+- **Two-Panel Layout**: Document canvas (left) with chat sidebar (right)
+- **Professional Typography**: Custom heading styles with proper hierarchy and spacing
+- **Card-Based Sections**: Each research section in clean cards with gradient headers
+- **Enhanced Markdown Rendering**: Custom ReactMarkdown components for better formatting
+- **Improved Visual Hierarchy**: Better contrast, spacing, and content organization
+- **Professional Color Scheme**: Subtle gradients and consistent styling throughout
 
 ### Color Coding
-- **User Messages**: Blue gradient
-- **Agent Messages**: Clean white with subtle borders
+- **User Messages**: Blue gradient with clean borders
+- **Agent Messages**: Clean white with professional styling
+- **Section Headers**: Gradient backgrounds with proper contrast
 - **Workflow Steps**: Color-coded by status (pending/active/completed/failed)
-- **Reasoning Traces**: Blue accent with expandable sections
+- **Research Sections**: Card-based layout with subtle shadows and borders
 
 ## 🚀 Performance Optimizations
 
@@ -221,11 +234,20 @@ COINGECKO_API_KEY=your_coingecko_key
 
 ## 🎉 Results
 
-The new AI interface provides:
-- **30x Better UX**: Modern, intuitive design following latest AI agent patterns
-- **Transparent Reasoning**: Users can see exactly how the AI thinks
-- **Structured Workflows**: Systematic approach to complex analysis
-- **Rich Formatting**: Professional presentation of analysis results
+The new ANA-style AI interface provides:
+- **Professional Research Experience**: ANA-inspired two-panel layout with document-style presentation
+- **Enhanced Markdown Rendering**: Custom ReactMarkdown components with proper typography and formatting
+- **Improved Visual Hierarchy**: Better contrast, spacing, and content organization
+- **Card-Based Section Design**: Professional section organization with gradient headers
+- **Transparent Reasoning**: Users can see exactly how the AI thinks through structured workflows  
+- **Real-Time Updates**: Streaming content with smooth animations and visual feedback
 - **Context Awareness**: Company-specific insights and recommendations
 
-This positions RedPill VC at the forefront of AI-powered investment platforms with a best-in-class user experience that showcases the full capabilities of modern reasoning models.
+### Key Improvements from ANA Integration:
+- **Fixed "terrible" markdown rendering** with custom ReactMarkdown components
+- **Professional typography** matching research document standards
+- **Two-panel layout** for optimal content consumption
+- **Enhanced visual design** with proper spacing and hierarchy
+- **Card-based sections** for better content organization
+
+This positions RedPill VC at the forefront of AI-powered investment platforms with a research-grade user experience that rivals professional tools like ANA, showcasing the full capabilities of modern reasoning models in a visually appealing and highly functional interface.

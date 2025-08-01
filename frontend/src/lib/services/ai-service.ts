@@ -17,10 +17,10 @@ export class SecureAIService {
   private getApiEndpoint(): string {
     // Use window.location.origin for browser or fallback for server-side
     if (typeof window !== 'undefined') {
-      return `${window.location.origin}/api/ai-chat`
+      return `${window.location.origin}/api/chat`
     }
     // Fallback for server-side rendering
-    return '/api/ai-chat'
+    return '/api/chat'
   }
 
   async chat(

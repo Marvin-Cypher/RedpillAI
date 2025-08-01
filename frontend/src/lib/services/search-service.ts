@@ -24,6 +24,16 @@ export class SearchService {
     console.log('SearchService initialized - using server-side API routes')
   }
 
+  private getApiUrl(path: string): string {
+    // When running server-side, we need a full URL
+    if (typeof window === 'undefined') {
+      // Server-side: use localhost
+      return `http://localhost:3000${path}`
+    }
+    // Client-side: use relative URL
+    return path
+  }
+
   /**
    * Main search method using server-side API
    */
@@ -31,7 +41,7 @@ export class SearchService {
     console.log(`🔍 Searching for: "${query}" with options:`, options)
 
     try {
-      const response = await fetch('/api/search', {
+      const response = await fetch(this.getApiUrl('/api/search'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

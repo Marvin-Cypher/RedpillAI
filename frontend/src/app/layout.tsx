@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Providers } from './providers'
 import { AppLayout } from '@/components/layout/AppLayout'
+import Script from 'next/script'
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -26,6 +27,23 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <Script id="extension-conflict-prevention" strategy="beforeInteractive">
+          {`
+          // Prevent wallet extension conflicts
+          if (typeof window !== 'undefined') {
+            const originalDefineProperty = Object.defineProperty;
+            Object.defineProperty = function(obj, prop, descriptor) {
+              if (prop === 'solana' || prop === 'ethereum' || prop === 'phantom') {
+                console.log('Blocking wallet extension property:', prop);
+                return obj;
+              }
+              return originalDefineProperty.call(this, obj, prop, descriptor);
+            };
+          }
+          `}
+        </Script>
+      </head>
       <body className={`${inter.variable} ${systemMono.variable} antialiased font-sans`}>
         <Providers>
           <AppLayout>
