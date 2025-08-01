@@ -1,20 +1,68 @@
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
-import requests
-import re
 from datetime import datetime
 
 from ..database import get_db
 from ..models.companies import Company, CompanyCreate, CompanyUpdate, CompanyRead, CompanySector, CompanyType
 from ..models.users import User
 from ..core.auth import get_current_active_user
-from ..services.openbb_service import openbb_service
-from ..services.coingecko_service import coingecko_service
+from ..services.market_data_service import market_data_service
 from ..services.tavily_service import TavilyService
 from ..services.company_enrichment import company_enrichment_service
+from ..services.company_service import company_service
 
 router = APIRouter()
+
+
+def _format_coingecko_for_enrichment(token_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Format token data for company enrichment."""
+    if not token_data:
+        return {}
+        
+    market_cap = token_data.get('market_cap', 0)
+    
+    # Categorize token by market cap for VC analysis
+    if market_cap > 10_000_000_000:  # >$10B
+        market_cap_category = 'Large Cap'
+    elif market_cap > 1_000_000_000:  # $1B-$10B
+        market_cap_category = 'Mid Cap'
+    elif market_cap > 100_000_000:  # $100M-$1B
+        market_cap_category = 'Small Cap'
+    elif market_cap > 10_000_000:  # $10M-$100M
+        market_cap_category = 'Micro Cap'
+    else:
+        market_cap_category = 'Nano Cap'
+    
+    # Calculate community score (0-100)
+    community = token_data.get('community_data', {})
+    twitter = min(community.get('twitter_followers', 0) / 100000, 10) * 4  # Max 40 points
+    reddit = min(community.get('reddit_subscribers', 0) / 50000, 10) * 3   # Max 30 points  
+    telegram = min(community.get('telegram_channel_user_count', 0) / 25000, 10) * 3  # Max 30 points
+    community_score = min(int(twitter + reddit + telegram), 100)
+    
+    # Calculate development score (0-100) 
+    dev = token_data.get('developer_data', {})
+    stars = min(dev.get('stars', 0) / 1000, 10) * 3        # Max 30 points
+    commits = min(dev.get('commit_count_4_weeks', 0) / 50, 10) * 5  # Max 50 points
+    forks = min(dev.get('forks', 0) / 500, 10) * 2        # Max 20 points
+    development_score = min(int(stars + commits + forks), 100)
+    
+    return {
+        'symbol': token_data.get('symbol'),
+        'name': token_data.get('name'),
+        'current_price': token_data.get('current_price', 0),
+        'market_cap': market_cap,
+        'market_cap_rank': token_data.get('market_cap_rank', 0),
+        'volume_24h': token_data.get('volume_24h', 0),
+        'price_change_24h': token_data.get('price_change_24h', 0),
+        'market_cap_category': market_cap_category,
+        'last_updated': token_data.get('last_updated'),
+        'data_source': 'coingecko',
+        'description': token_data.get('description', ''),
+        'community_score': community_score,
+        'development_score': development_score
+    }
 
 
 @router.post("/", response_model=CompanyRead)
@@ -388,13 +436,14 @@ async def enrich_company_data(
         # 2. Fallback: Web scraping for basic company info (if Tavily didn't provide enough data)
         if company_domain and not enriched_data.get('founded_year'):
             try:
-                website_data = await scrape_website_info(company_domain)
-                if website_data:
-                    # Only update fields that weren't filled by Tavily
-                    for key, value in website_data.items():
-                        if not enriched_data.get(key):
-                            enriched_data[key] = value
-                    enriched_data["data_sources"].append("website_scraping")
+                async with company_service as service:
+                    website_data = await service.scrape_website_info(company_domain)
+                    if website_data:
+                        # Only update fields that weren't filled by Tavily
+                        for key, value in website_data.items():
+                            if not enriched_data.get(key):
+                                enriched_data[key] = value
+                        enriched_data["data_sources"].append("website_scraping")
             except Exception as e:
                 print(f"Website scraping failed: {e}")
         
@@ -404,9 +453,9 @@ async def enrich_company_data(
         if company_type_enum == CompanyType.CRYPTO:
             # First try CoinGecko for comprehensive token detection
             try:
-                token_data = coingecko_service.search_token_by_company(company_name, company_domain)
+                token_data = await market_data_service.search_token_by_company(company_name, company_domain)
                 if token_data:
-                    crypto_data = coingecko_service.format_for_enrichment(token_data)
+                    crypto_data = _format_coingecko_for_enrichment(token_data)
                     enriched_data["crypto_data"] = crypto_data
                     enriched_data["data_sources"].append("coingecko")
                     
@@ -434,7 +483,7 @@ async def enrich_company_data(
                 # Try to find crypto data using OpenBB
                 for symbol in potential_symbols:
                     try:
-                        price_data = openbb_service.get_crypto_price(symbol)
+                        price_data = await market_data_service.get_crypto_price(symbol)
                         if price_data:
                             crypto_data = {
                                 "symbol": symbol,
@@ -462,7 +511,8 @@ async def enrich_company_data(
             enriched_data["data_sources"].append("traditional_enrichment_placeholder")
         
         # 5. Industry classification cleanup based on domain/name analysis
-        sector_classification = classify_company_sector(company_name, company_domain)
+        async with company_service as service:
+            sector_classification = service.classify_company_sector(company_name, company_domain)
         if sector_classification:
             enriched_data["sector"] = sector_classification
         
@@ -477,7 +527,7 @@ async def enrich_company_data(
         # 7. Add market intelligence using OpenBB (crypto context for crypto companies)
         if company_type_enum == CompanyType.CRYPTO:
             try:
-                market_overview = openbb_service.get_market_overview()
+                market_overview = await market_data_service.get_market_overview()
                 if market_overview and market_overview.crypto_prices:
                     enriched_data["market_context"] = {
                         "btc_price": market_overview.btc_price,
@@ -504,118 +554,10 @@ async def enrich_company_data(
         )
 
 
-async def scrape_website_info(domain: str) -> Optional[Dict[str, Any]]:
-    """
-    Basic website scraping for company information
-    """
-    try:
-        url = f"https://{domain}" if not domain.startswith('http') else domain
-        
-        # Simple HTTP request with timeout
-        response = requests.get(
-            url, 
-            timeout=10,
-            headers={'User-Agent': 'Mozilla/5.0 (compatible; RedpillAI/1.0)'}
-        )
-        
-        if response.status_code == 200:
-            content = response.text.lower()
-            
-            # Extract basic info using simple patterns
-            info = {}
-            
-            # Look for "about" or "founded" information
-            if 'founded' in content:
-                # Try to extract founding year
-                year_match = re.search(r'founded[^0-9]*(\d{4})', content)
-                if year_match:
-                    info["founded_year"] = int(year_match.group(1))
-            
-            # Enhanced employee count detection
-            employee_patterns = [
-                (r'(\d{1,3},?\d{3,6})\s*employees', lambda x: int(x.replace(',', ''))),
-                (r'over\s*(\d{1,3},?\d{3,6})\s*employees', lambda x: int(x.replace(',', ''))),
-                (r'(\d{1,3}k)\s*employees', lambda x: int(x[:-1]) * 1000),
-            ]
-            
-            for pattern, converter in employee_patterns:
-                match = re.search(pattern, content)
-                if match:
-                    try:
-                        info["employee_count"] = converter(match.group(1))
-                        break
-                    except:
-                        pass
-            
-            # If no exact number found, use heuristics
-            if "employee_count" not in info:
-                if any(word in content for word in ['fortune 500', 'nasdaq', 'nyse', 'global leader']):
-                    info["employee_count"] = 10000  # Large public company
-                elif 'enterprise' in content or 'worldwide' in content:
-                    info["employee_count"] = 1000
-                elif 'startup' in content or 'small' in content:
-                    info["employee_count"] = 50
-                else:
-                    info["employee_count"] = 100
-            
-            # Enhanced sector detection
-            # Check for NVIDIA-specific keywords
-            if any(word in content for word in ['gpu', 'graphics', 'nvidia', 'geforce', 'cuda', 'tegra', 'rtx']):
-                info["sector"] = "Semiconductors/Hardware"
-                info["description"] = "NVIDIA is the world leader in GPU computing and AI acceleration"
-                info["founded_year"] = 1993
-                info["headquarters"] = {"city": "Santa Clara", "country": "USA"}
-            elif any(word in content for word in ['blockchain', 'crypto', 'defi', 'web3']):
-                info["sector"] = "Blockchain/Crypto"
-            elif any(word in content for word in ['artificial intelligence', 'machine learning', 'deep learning']):
-                info["sector"] = "AI/ML"
-            elif any(word in content for word in ['fintech', 'financial', 'banking', 'payments']):
-                info["sector"] = "FinTech"
-            elif any(word in content for word in ['semiconductor', 'chip', 'processor']):
-                info["sector"] = "Semiconductors"
-            elif any(word in content for word in ['saas', 'software', 'platform', 'api']):
-                info["sector"] = "SaaS"
-            
-            return info
-            
-    except Exception as e:
-        print(f"Website scraping error for {domain}: {e}")
-        return None
+# NOTE: scrape_website_info moved to services/company_service.py for async-safe operation
 
 
-def classify_company_sector(name: str, domain: str = None) -> str:
-    """
-    Classify company sector based on name and domain analysis
-    """
-    name_lower = name.lower()
-    domain_lower = domain.lower() if domain else ""
-    
-    # Crypto/Blockchain indicators
-    crypto_keywords = ['crypto', 'blockchain', 'defi', 'web3', 'dao', 'nft', 'token', 'coin']
-    if any(keyword in name_lower or keyword in domain_lower for keyword in crypto_keywords):
-        return "Blockchain/Crypto"
-    
-    # AI/ML indicators  
-    ai_keywords = ['ai', 'artificial', 'intelligence', 'machine', 'learning', 'neural', 'deep']
-    if any(keyword in name_lower for keyword in ai_keywords):
-        return "AI/ML"
-    
-    # FinTech indicators
-    fintech_keywords = ['fin', 'financial', 'bank', 'payment', 'invest', 'trading', 'credit']
-    if any(keyword in name_lower for keyword in fintech_keywords):
-        return "FinTech"
-    
-    # SaaS indicators
-    saas_keywords = ['tech', 'soft', 'platform', 'solution', 'system', 'service']
-    if any(keyword in name_lower for keyword in saas_keywords):
-        return "SaaS"
-    
-    # Healthcare indicators
-    health_keywords = ['health', 'medical', 'bio', 'pharma', 'care', 'medicine']
-    if any(keyword in name_lower for keyword in health_keywords):
-        return "HealthTech"
-    
-    return "Technology"
+# NOTE: classify_company_sector moved to services/company_service.py
 
 
 def estimate_company_metrics(sector: str, has_crypto_data: bool = False, employee_count: int = None) -> Dict[str, Any]:
@@ -725,7 +667,7 @@ async def test_crypto_detection(
             
             # Test CoinGecko detection
             try:
-                token_data = coingecko_service.search_token_by_company(company_name, company_domain)
+                token_data = await market_data_service.search_token_by_company(company_name, company_domain)
                 if token_data:
                     result["coingecko_result"] = {
                         "symbol": token_data.get("symbol"),
@@ -748,7 +690,7 @@ async def test_crypto_detection(
                 
                 for symbol in potential_symbols:
                     try:
-                        price_data = openbb_service.get_crypto_price(symbol)
+                        price_data = await market_data_service.get_crypto_price(symbol)
                         if price_data:
                             result["openbb_result"] = {
                                 "symbol": symbol,

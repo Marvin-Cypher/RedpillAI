@@ -3,33 +3,34 @@ from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Query, Depends
 from datetime import datetime, timedelta
 
-from ..services.openbb_service import openbb_service, MarketData, CryptoPrice, EquityPrice, FundamentalData
+from ..services.market_data_service import market_data_service
+from ..services.openbb_service import MarketData, CryptoPrice, EquityPrice, FundamentalData
 from ..core.auth import get_current_active_user
 from ..models.users import User
 
 router = APIRouter()
 
 
-@router.get("/test")
-async def market_test():
-    """Simple test endpoint for market data system"""
-    return {
-        "status": "success",
-        "message": "OpenBB Platform connection ready",
-        "timestamp": datetime.now().isoformat(),
-        "available_features": [
-            "crypto_prices",
-            "historical_data",
-            "technical_analysis",
-            "portfolio_analysis"
-        ]
-    }
+# @router.get("/test")
+# async def market_test():
+#     """Simple test endpoint for market data system - REMOVED"""
+#     return {
+#         "status": "success",
+#         "message": "OpenBB Platform connection ready",
+#         "timestamp": datetime.now().isoformat(),
+#         "available_features": [
+#             "crypto_prices",
+#             "historical_data",
+#             "technical_analysis",
+#             "portfolio_analysis"
+#         ]
+#     }
 
 @router.get("/health")
 async def market_health():
     """Check OpenBB market data service health"""
     try:
-        return openbb_service.test_connection()
+        return await market_data_service.test_connection()
     except Exception as e:
         return {
             "status": "error",
@@ -42,7 +43,7 @@ async def market_health():
 async def get_market_overview():
     """Get overall crypto market overview using OpenBB"""
     try:
-        market_data = openbb_service.get_market_overview()
+        market_data = await market_data_service.get_market_overview()
         return market_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch market data: {str(e)}")
@@ -55,7 +56,7 @@ async def get_crypto_price(
 ):
     """Get current price for a cryptocurrency"""
     try:
-        price_data = openbb_service.get_crypto_price(symbol, provider)
+        price_data = await market_data_service.get_crypto_price(symbol, provider)
         
         if not price_data:
             # Fallback to mock data for demo
@@ -113,7 +114,7 @@ async def get_crypto_historical(
 ):
     """Get historical price data for a cryptocurrency"""
     try:
-        historical_data = openbb_service.get_crypto_historical(symbol, days, provider)
+        historical_data = await market_data_service.get_crypto_historical(symbol, days, provider)
         
         if not historical_data:
             raise HTTPException(
@@ -155,7 +156,7 @@ async def get_crypto_analysis(
 ):
     """Get technical analysis for a cryptocurrency"""
     try:
-        analysis = openbb_service.get_technical_indicators(symbol, indicator)
+        analysis = await market_data_service.get_technical_indicators(symbol, indicator)
         
         if "error" in analysis:
             raise HTTPException(status_code=404, detail=analysis["error"])
@@ -177,7 +178,7 @@ async def get_crypto_news(
 ):
     """Get crypto-related news"""
     try:
-        news_data = openbb_service.search_crypto_news(symbol, limit)
+        news_data = await market_data_service.search_crypto_news(symbol, limit)
         
         return {
             "news": news_data,
@@ -196,7 +197,7 @@ async def get_defi_protocols(
 ):
     """Get DeFi protocol information"""
     try:
-        protocols = openbb_service.get_defi_protocols()
+        protocols = await market_data_service.get_defi_protocols()
         
         return {
             "protocols": protocols,
@@ -225,7 +226,7 @@ async def analyze_portfolio(
                 detail="Symbols and weights arrays must have the same length"
             )
         
-        analysis = openbb_service.analyze_portfolio_risk(symbols, weights)
+        analysis = await market_data_service.analyze_portfolio_risk(symbols, weights)
         
         return {
             **analysis,
@@ -242,7 +243,7 @@ async def get_available_providers(
 ):
     """Get list of available OpenBB data providers"""
     try:
-        providers = openbb_service.get_available_providers()
+        providers = await market_data_service.get_available_providers()
         
         return {
             "providers": providers,
@@ -267,7 +268,7 @@ async def get_trending_cryptos(
         
         for symbol in major_cryptos[:limit]:
             try:
-                price_data = openbb_service.get_crypto_price(symbol)
+                price_data = await market_data_service.get_crypto_price(symbol)
                 if price_data:
                     trending_data.append({
                         "symbol": price_data.symbol,
@@ -311,7 +312,7 @@ async def search_assets(
             
             for symbol in matched_symbols[:5]:
                 try:
-                    price_data = openbb_service.get_crypto_price(symbol)
+                    price_data = await market_data_service.get_crypto_price(symbol)
                     if price_data:
                         results.append({
                             "symbol": symbol,
@@ -347,7 +348,7 @@ async def get_equity_price(
 ):
     """Get current price for an equity/stock"""
     try:
-        price_data = openbb_service.get_equity_price(ticker, provider)
+        price_data = await market_data_service.get_equity_price(ticker, provider)
         
         if not price_data:
             # Fallback to mock data for demo
@@ -405,7 +406,7 @@ async def get_equity_historical(
 ):
     """Get historical price data for an equity/stock"""
     try:
-        historical_data = openbb_service.get_equity_historical(ticker, days, provider)
+        historical_data = await market_data_service.get_equity_historical(ticker, days, provider)
         
         if not historical_data:
             raise HTTPException(
@@ -447,7 +448,7 @@ async def get_equity_fundamentals(
 ):
     """Get fundamental financial data for an equity/stock"""
     try:
-        fundamentals = openbb_service.get_equity_fundamentals(ticker, provider)
+        fundamentals = await market_data_service.get_equity_fundamentals(ticker, provider)
         
         if not fundamentals:
             # Fallback to mock data for demo
@@ -522,7 +523,7 @@ async def compare_equities(
                 detail="Too many tickers requested. Maximum 10 allowed."
             )
         
-        comparison_data = openbb_service.compare_equities(ticker_list, provider)
+        comparison_data = await market_data_service.compare_equities(ticker_list, provider)
         
         if "error" in comparison_data:
             raise HTTPException(status_code=500, detail=comparison_data["error"])
@@ -545,7 +546,7 @@ async def get_equity_news(
 ):
     """Get news for a specific equity/stock"""
     try:
-        news_data = openbb_service.search_equity_news(ticker, limit)
+        news_data = await market_data_service.search_equity_news(ticker, limit)
         
         return {
             "news": news_data,
@@ -566,7 +567,7 @@ async def get_sector_data(
 ):
     """Get sector/industry data and analysis"""
     try:
-        sector_data = openbb_service.get_sector_data(sector, provider)
+        sector_data = await market_data_service.get_sector_data(sector, provider)
         
         if "error" in sector_data:
             raise HTTPException(status_code=500, detail=sector_data["error"])

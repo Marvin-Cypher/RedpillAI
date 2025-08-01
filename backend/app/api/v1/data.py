@@ -6,7 +6,7 @@ import logging
 
 from ...services.cost_optimized_data_service import CostOptimizedDataService
 from ...services.smart_cache_service import SmartCacheService
-from ...services.tavily_service import TavilyService
+# from ...services.tavily_service import TavilyService  # Disabled - removed fallback integration
 from ...models.cache import CacheResponse, BatchResponse
 from ...core.auth import get_current_user
 from ...models.users import User
@@ -66,7 +66,7 @@ async def get_company_profile_simple(
     - **Fallback**: Uses expired cache if API fails or budget exceeded
     """
     try:
-        # Generate realistic company data based on known companies or Tavily API
+        # Generate realistic company data based on known companies or cache
         company_data = await generate_realistic_company_data(company_name, website)
         
         return {
@@ -78,6 +78,9 @@ async def get_company_profile_simple(
             "confidence_score": 0.85
         }
         
+    except HTTPException:
+        # Re-raise HTTPExceptions (like 404s) without converting to 500
+        raise
     except Exception as e:
         logger.error(f"Error fetching company profile for {company_name}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch company profile: {str(e)}")
@@ -146,343 +149,23 @@ async def generate_realistic_company_data(company_name: str, website: Optional[s
     except Exception as e:
         logger.warning(f"Could not access seeded database for {company_name}: {e}")
     
-    # Fallback to hardcoded data for specific known companies
-    companies_db = {
-        "layerzero": {
-            "name": "LayerZero Labs",
-            "description": "LayerZero is an omnichain interoperability protocol designed to facilitate the creation of applications that can operate across multiple blockchains.",
-            "founded_year": 2021,
-            "headquarters": "Vancouver, Canada",
-            "employee_count": "50-100",
-            "total_funding": 293000000,
-            "industry": "Blockchain Infrastructure",
-            "key_metrics": {
-                "revenue": 12000000,
-                "revenue_growth": 450.0,
-                "burn_rate": 2500000,
-                "runway": 24,
-                "customers": 180,
-                "arr": 15000000,
-                "gross_margin": 85.0,
-                "valuation": 3000000000
-            }
-        },
-        "amazon": {
-            "name": "Amazon",
-            "description": "Amazon is a multinational technology company focusing on e-commerce, cloud computing, digital streaming, and artificial intelligence.",
-            "founded_year": 1994,
-            "headquarters": "Seattle, USA",
-            "employee_count": "1,500,000",
-            "total_funding": 0,
-            "industry": "E-commerce/Cloud",
-            "key_metrics": {
-                "revenue": 574780000000,
-                "revenue_growth": 9.4,
-                "burn_rate": 0,
-                "runway": 999,
-                "employees": 1500000,
-                "customers": 300000000,
-                "arr": 574780000000,
-                "gross_margin": 47.1,
-                "valuation": 1800000000000
-            },
-            "stock_data": {
-                "symbol": "AMZN",
-                "current_price": 155.50,
-                "market_cap": 1800000000000,
-                "pe_ratio": 58.2,
-                "price_to_book": 8.4,
-                "debt_ratio": 0.23,
-                "dividend_yield": 0.0,
-                "price_change_24h": 2.15,
-                "price_change_percentage_24h": 1.4,
-                "volume_24h": 45000000,
-                "shares_outstanding": 11576000000
-            }
-        },
-        "nvidia": {
-            "name": "NVIDIA",
-            "description": "NVIDIA is the world leader in GPU computing, AI acceleration, and data center technologies. The company pioneered GPU computing and is at the forefront of AI infrastructure.",
-            "founded_year": 1993,
-            "headquarters": "Santa Clara, California",
-            "employee_count": "26,000",
-            "total_funding": 0,
-            "industry": "Semiconductors/AI Hardware",
-            "key_metrics": {
-                "revenue": 60922000000,
-                "revenue_growth": 122.0,
-                "burn_rate": 0,
-                "runway": 999,
-                "employees": 26000,
-                "customers": 40000,
-                "arr": 60922000000,
-                "gross_margin": 73.0,
-                "valuation": 1200000000000
-            },
-            "stock_data": {
-                "symbol": "NVDA",
-                "current_price": 875.50,
-                "market_cap": 1200000000000,
-                "pe_ratio": 75.8,
-                "price_to_book": 13.2,
-                "debt_ratio": 0.09,
-                "dividend_yield": 0.003,
-                "price_change_24h": 12.50,
-                "price_change_percentage_24h": 1.4,
-                "volume_24h": 28000000,
-                "shares_outstanding": 2465000000
-            }
-        },
-        "chainlink": {
-            "name": "Chainlink",
-            "description": "Chainlink is a decentralized oracle network that provides real-world data to smart contracts on the blockchain. It's the industry standard for connecting smart contracts to external data sources.",
-            "founded_year": 2014,
-            "headquarters": "Grand Cayman, Cayman Islands",
-            "employee_count": "150",
-            "total_funding": 32000000,
-            "industry": "Blockchain/Oracle Networks",
-            "key_metrics": {
-                "revenue": 45000000,
-                "revenue_growth": 85.0,
-                "burn_rate": 2500000,
-                "runway": 24,
-                "employees": 150,
-                "customers": 1500,
-                "arr": 54000000,
-                "gross_margin": 88.0,
-                "valuation": 5000000000
-            },
-            "crypto_data": {
-                "symbol": "LINK",
-                "current_price": 14.50,
-                "market_cap": 8500000000,
-                "market_cap_rank": 15,
-                "volume_24h": 450000000,
-                "circulating_supply": 556849970,
-                "total_supply": 1000000000,
-                "price_change_24h": 0.45,
-                "price_change_percentage_24h": 3.21
-            }
-        },
-        "phala": {
-            "name": "Phala Network",
-            "description": "Phala Network is a decentralized cloud computing platform that offers confidential computing and privacy-preserving smart contracts for Web3 applications.",
-            "founded_year": 2019,
-            "headquarters": "Singapore",
-            "employee_count": "75",
-            "total_funding": 15000000,
-            "industry": "Blockchain/Privacy Infrastructure",
-            "key_metrics": {
-                "revenue": 2400000,
-                "revenue_growth": 180.0,
-                "burn_rate": 350000,
-                "runway": 18,
-                "employees": 75,
-                "customers": 75,
-                "arr": 2880000,
-                "gross_margin": 82.0,
-                "valuation": 150000000
-            },
-            "crypto_data": {
-                "symbol": "PHA",
-                "current_price": 0.12,
-                "market_cap": 120000000,
-                "market_cap_rank": 235,
-                "volume_24h": 8500000,
-                "circulating_supply": 1000000000,
-                "total_supply": 1000000000,
-                "price_change_24h": 0.008,
-                "price_change_percentage_24h": 7.2
-            }
-        },
-        "near": {
-            "name": "NEAR Protocol",
-            "description": "NEAR Protocol is a Layer 1 blockchain designed as a community-run cloud computing platform that is fast, secure, and scalable. It uses sharding technology for better performance.",
-            "founded_year": 2018,
-            "headquarters": "San Francisco, USA",
-            "employee_count": "100",
-            "total_funding": 550000000,
-            "industry": "Blockchain/Layer 1",
-            "key_metrics": {
-                "revenue": 18000000,
-                "revenue_growth": 210.0,
-                "burn_rate": 4500000,
-                "runway": 36,
-                "employees": 100,
-                "customers": 800,
-                "arr": 21600000,
-                "gross_margin": 91.0,
-                "valuation": 3500000000
-            },
-            "crypto_data": {
-                "symbol": "NEAR",
-                "current_price": 3.45,
-                "market_cap": 3450000000,
-                "market_cap_rank": 25,
-                "volume_24h": 185000000,
-                "circulating_supply": 1000000000,
-                "total_supply": 1000000000,
-                "price_change_24h": 0.18,
-                "price_change_percentage_24h": 5.5
-            }
-        },
-        "quantumaisolutions": {
-            "name": "Quantum AI Solutions",
-            "description": "Quantum AI Solutions is building the next generation of quantum-enhanced machine learning algorithms for enterprise applications.",
-            "founded_year": 2022,
-            "headquarters": "San Francisco, USA",
-            "employee_count": "18",
-            "total_funding": 2000000,
-            "industry": "AI/ML",
-            "key_metrics": {
-                "revenue": 180000,
-                "revenue_growth": 23.5,
-                "burn_rate": 180000,
-                "runway": 14,
-                "employees": 18,
-                "customers": 12,
-                "arr": 2160000,
-                "gross_margin": 82.5,
-                "valuation": 20000000
-            }
-        },
-        "greentechsolutions": {
-            "name": "GreenTech Solutions",
-            "description": "GreenTech Solutions develops innovative solar panel technology for residential and commercial applications.",
-            "founded_year": 2023,
-            "headquarters": "Berlin, Germany",
-            "employee_count": "8",
-            "total_funding": 500000,
-            "industry": "CleanTech",
-            "key_metrics": {
-                "revenue": 45000,
-                "revenue_growth": 15.2,
-                "burn_rate": 85000,
-                "runway": 18,
-                "employees": 8,
-                "customers": 25,
-                "arr": 540000,
-                "gross_margin": 65.0,
-                "valuation": 5000000
-            }
-        },
-        "fintechpro": {
-            "name": "FinTech Pro",
-            "description": "FinTech Pro provides B2B payment solutions for enterprise clients with advanced fraud detection and compliance features.",
-            "founded_year": 2021,
-            "headquarters": "New York, USA",
-            "employee_count": "45",
-            "total_funding": 10000000,
-            "industry": "FinTech",
-            "key_metrics": {
-                "revenue": 450000,
-                "revenue_growth": 35.8,
-                "burn_rate": 320000,
-                "runway": 22,
-                "employees": 45,
-                "customers": 120,
-                "arr": 5400000,
-                "gross_margin": 88.5,
-                "valuation": 80000000
-            }
-        },
-        "healthtechanalytics": {
-            "name": "HealthTech Analytics",
-            "description": "HealthTech Analytics provides data analytics platform for healthcare providers to improve patient outcomes and operational efficiency.",  
-            "founded_year": 2022,
-            "headquarters": "Boston, USA",
-            "employee_count": "15",
-            "total_funding": 3000000,
-            "industry": "HealthTech",
-            "key_metrics": {
-                "revenue": 95000,
-                "revenue_growth": 18.3,
-                "burn_rate": 150000,
-                "runway": 16,
-                "employees": 15,
-                "customers": 8,
-                "arr": 1140000,
-                "gross_margin": 72.0,
-                "valuation": 25000000
-            }
-        }
-    }
-
-    # Normalize company name for lookup
-    normalized_name = company_name.lower().replace(" ", "").replace("-", "")
+    # Hardcoded fallback data removed - rely only on database and cache
     
-    if normalized_name in companies_db:
-        # Enrich with stock data for public companies
-        enriched_data = enrich_with_stock_data(companies_db[normalized_name], company_name)
-        return enriched_data
+    # Tavily API fallback disabled - rely only on authoritative database/cache data
+    # try:
+    #     tavily_service = TavilyService()
+    #     logger.info(f"Fetching real data for {company_name} from Tavily API")
+    #     tavily_data = await tavily_service.fetch_company_profile(company_name, website)
+    #     # ... (rest of Tavily logic removed)
+    # except Exception as e:
+    #     logger.error(f"Error fetching data from Tavily API for {company_name}: {e}")
     
-    # For unknown companies, try to fetch real data from Tavily API
-    try:
-        tavily_service = TavilyService()
-        logger.info(f"Fetching real data for {company_name} from Tavily API")
-        
-        # Check if API key is available
-        if not tavily_service.api_key:
-            logger.error("Tavily API key not configured")
-            raise ValueError("Tavily API key not configured")
-        
-        logger.info(f"Using Tavily API key: {tavily_service.api_key[:10]}...")
-        
-        # Fetch company profile from Tavily
-        tavily_data = await tavily_service.fetch_company_profile(company_name, website)
-        
-        logger.info(f"Tavily API response for {company_name}: {tavily_data}")
-        
-        if tavily_data and tavily_data.get('company_name') and not tavily_data.get('error'):
-            logger.info(f"Successfully got real data from Tavily for {company_name}")
-            # Transform Tavily data to our format
-            return {
-                "name": tavily_data.get('company_name', company_name),
-                "description": tavily_data.get('description', f"{company_name} company profile from Tavily."),
-                "founded_year": tavily_data.get('founded_year'),
-                "headquarters": tavily_data.get('headquarters', 'Location not available'),
-                "employee_count": tavily_data.get('employee_count', 'Unknown'),
-                "total_funding": tavily_data.get('total_funding', 0),
-                "industry": tavily_data.get('industry', 'Technology'),
-                "key_metrics": {
-                    "revenue": tavily_data.get('revenue', 0),
-                    "revenue_growth": tavily_data.get('revenue_growth', 0),
-                    "burn_rate": tavily_data.get('burn_rate', 0),
-                    "runway": tavily_data.get('runway_months', 0),
-                    "customers": tavily_data.get('customers', 0),
-                    "arr": tavily_data.get('arr', 0),
-                    "gross_margin": tavily_data.get('gross_margin', 0),
-                    "valuation": tavily_data.get('valuation', 0)
-                }
-            }
-        else:
-            error_msg = tavily_data.get('error', 'No valid data returned') if tavily_data else 'Empty response'
-            logger.warning(f"No valid data returned from Tavily API for {company_name}: {error_msg}")
-            
-    except Exception as e:
-        logger.error(f"Error fetching data from Tavily API for {company_name}: {e}")
-        # Fall through to default fallback
-    
-    # Default fallback for unknown companies when API fails
-    return {
-        "name": company_name,
-        "description": f"{company_name} is an innovative technology company. (API data unavailable)",
-        "founded_year": 2020,
-        "headquarters": "Location not available",
-        "employee_count": "Unknown",
-        "total_funding": 0,
-        "industry": "Technology",
-        "key_metrics": {
-            "revenue": 0,
-            "revenue_growth": 0,
-            "burn_rate": 0,
-            "runway": 0,
-            "customers": 0,
-            "arr": 0,
-            "gross_margin": 0,
-            "valuation": 0
-        }
-    }
+    # No data found in database or cache - return 404 instead of fake data
+    logger.warning(f"No data found for company '{company_name}' in database or cache")
+    raise HTTPException(
+        status_code=404, 
+        detail=f"Company '{company_name}' not found in our database. Please ensure the company name is correct or contact support to add it to our portfolio."
+    )
 
 
 def enrich_with_stock_data(company_data: Dict[str, Any], company_name: str) -> Dict[str, Any]:

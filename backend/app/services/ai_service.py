@@ -17,6 +17,8 @@ class AIService:
         
         if self.use_redpill:
             # Use OpenAI client with Redpill baseURL (more reliable)
+            self.api_key = settings.redpill_api_key
+            self.base_url = settings.redpill_api_url
             self.client = OpenAI(
                 base_url="https://api.redpill.ai/v1",
                 api_key=settings.redpill_api_key
@@ -28,8 +30,10 @@ class AIService:
             if not settings.openai_api_key or settings.openai_api_key == "sk-9JABKD0bYW6s8VN6PoIG0LUOj1uo44TrXm0MNJWXe7GWP1wR":
                 # Use mock mode if no valid API key
                 self.client = None
+                self.api_key = None
                 self.use_redpill = False
             else:
+                self.api_key = settings.openai_api_key
                 self.client = OpenAI(api_key=settings.openai_api_key)
                 self.default_model = "gpt-4"
         

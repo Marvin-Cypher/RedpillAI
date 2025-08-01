@@ -8,8 +8,7 @@ import time
 
 from .smart_cache_service import SmartCacheService
 from .tavily_service import TavilyService
-from .openbb_service import OpenBBService
-from .coingecko_service import CoinGeckoService
+from .market_data_service import market_data_service
 from ..models.cache import CacheResponse, BatchResponse
 
 
@@ -25,9 +24,15 @@ class CostOptimizedDataService:
     def __init__(self):
         self.cache_service = SmartCacheService()
         self.tavily_service = TavilyService()
-        self.openbb_service = OpenBBService()
-        self.coingecko_service = CoinGeckoService()
+        self.market_data_service = market_data_service
         self.logger = logging.getLogger(__name__)
+    
+    async def __aenter__(self):
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        # Clean up any resources if needed
+        pass
     
     async def get_company_profile(
         self, 
@@ -245,11 +250,11 @@ class CostOptimizedDataService:
         cache_key = f"price_{symbol.lower()}"
         
         # Check short-term cache
-        from ..database import get_session
-        from sqlmodel import select
+        from ..database import engine
+        from sqlmodel import Session, select
         from ..models.cache import RealtimeDataCache
         
-        with get_session() as session:
+        with Session(engine) as session:
             cached_price = session.exec(
                 select(RealtimeDataCache).where(
                     RealtimeDataCache.data_key == cache_key,
@@ -477,16 +482,45 @@ class CostOptimizedDataService:
     async def _fetch_crypto_price(self, symbol: str) -> Dict[str, Any]:
         """Fetch crypto price using CoinGecko service."""
         try:
-            # Use existing CoinGecko service
-            price_data = await self.coingecko_service.get_token_price(symbol)
-            return price_data
+            # Use async CoinGecko service via market data service
+            price_data = await self.market_data_service.get_token_price_coingecko(symbol)
+            if price_data:
+                return price_data
         except Exception as e:
-            # Fallback to OpenBB crypto
-            return await self.openbb_service.get_crypto_price(symbol)
+            self.logger.warning(f"CoinGecko failed for {symbol}: {e}")
+        
+        try:
+            # Fallback to OpenBB crypto via market data service
+            crypto_price = await self.market_data_service.get_crypto_price(symbol)
+            if crypto_price:
+                return {
+                    'symbol': crypto_price.symbol,
+                    'current_price': crypto_price.close,
+                    'price_change_24h': crypto_price.change_percent,
+                    'volume_24h': crypto_price.volume,
+                    'last_updated': crypto_price.date.isoformat()
+                }
+        except Exception as e:
+            self.logger.error(f"Both CoinGecko and OpenBB failed for {symbol}: {e}")
+        
+        return None
     
     async def _fetch_stock_price(self, symbol: str) -> Dict[str, Any]:
         """Fetch stock price using OpenBB service."""
-        return await self.openbb_service.get_stock_price(symbol)
+        try:
+            equity_price = await self.market_data_service.get_equity_price(symbol)
+            if equity_price:
+                return {
+                    'symbol': equity_price.symbol,
+                    'current_price': equity_price.close,
+                    'price_change_24h': equity_price.change_percent,
+                    'volume_24h': equity_price.volume,
+                    'last_updated': equity_price.date.isoformat()
+                }
+        except Exception as e:
+            self.logger.error(f"Failed to get stock price for {symbol}: {e}")
+        
+        return None
     
     def _calculate_expires_in(self, cached_data: Dict[str, Any]) -> int:
         """Calculate seconds until cache expiration."""

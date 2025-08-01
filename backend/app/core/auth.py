@@ -126,7 +126,40 @@ async def get_current_active_user(
     return current_user
 
 
-# Removed optional auth for now - causing import errors
+async def get_current_user_optional(
+    db: Session = Depends(get_db),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(lambda: None)
+) -> Optional[User]:
+    """Get the current user if authenticated, otherwise return None."""
+    # In debug mode, always return mock user
+    if settings.debug:
+        from ..models.users import User
+        import uuid
+        
+        mock_user = User(
+            id=str(uuid.uuid4()),
+            email="demo@redpill.vc",
+            full_name="Demo User",
+            role="partner",
+            is_active=True,
+            hashed_password="mock-password"
+        )
+        return mock_user
+    
+    # If no credentials provided, return None
+    if not credentials:
+        return None
+    
+    try:
+        token_data = verify_token(credentials.credentials)
+        statement = select(User).where(User.id == token_data.user_id)
+        user = db.exec(statement).first()
+        
+        if user and user.is_active:
+            return user
+        return None
+    except HTTPException:
+        return None
 
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:

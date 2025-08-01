@@ -8,27 +8,28 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from datetime import datetime
 
-from ..services.openproject_service import openproject_service, ProjectStatus, DealStage, PortfolioProject
+from ..services.openproject_service import ProjectStatus, DealStage
+from ..services.portfolio_service import portfolio_service
 from ..core.auth import get_current_user
 
 router = APIRouter()
 
-# Simple test endpoint
-@router.get("/test")
-async def portfolio_test():
-    """Simple test endpoint for portfolio system"""
-    return {
-        "status": "success",
-        "message": "Portfolio management system ready",
-        "timestamp": datetime.now().isoformat(),
-        "backend": "OpenProject integration",
-        "available_features": [
-            "project_management",
-            "document_collaboration",
-            "deal_pipeline",
-            "investment_tracking"
-        ]
-    }
+# Simple test endpoint - REMOVED
+# @router.get("/test")
+# async def portfolio_test():
+#     """Simple test endpoint for portfolio system - REMOVED"""
+#     return {
+#         "status": "success",
+#         "message": "Portfolio management system ready",
+#         "timestamp": datetime.now().isoformat(),
+#         "backend": "OpenProject integration",
+#         "available_features": [
+#             "project_management",
+#             "document_collaboration",
+#             "deal_pipeline",
+#             "investment_tracking"
+#         ]
+#     }
 
 # Pydantic Models
 class CreateProjectRequest(BaseModel):
@@ -79,7 +80,7 @@ class ProjectResponse(BaseModel):
 @router.get("/health")
 async def portfolio_health():
     """Check portfolio management system health"""
-    is_healthy = await openproject_service.health_check()
+    is_healthy = await portfolio_service.health_check()
     return {
         "status": "healthy" if is_healthy else "unhealthy",
         "service": "OpenProject",
@@ -105,7 +106,7 @@ async def create_portfolio_project(
             "deal_stage": request.deal_stage
         }
         
-        project = await openproject_service.create_portfolio_project(project_data)
+        project = await portfolio_service.create_portfolio_project(project_data)
         
         if not project:
             raise HTTPException(status_code=500, detail="Failed to create project")
@@ -144,7 +145,7 @@ async def get_portfolio_projects(
         if sector:
             filters['sector'] = sector
         
-        projects = await openproject_service.get_portfolio_projects(filters)
+        projects = await portfolio_service.get_portfolio_projects(filters)
         
         return [
             ProjectResponse(
@@ -176,7 +177,7 @@ async def get_project_details(
 ):
     """Get detailed information about a specific project"""
     try:
-        projects = await openproject_service.get_portfolio_projects()
+        projects = await portfolio_service.get_portfolio_projects()
         project = next((p for p in projects if p.id == project_id), None)
         
         if not project:
@@ -218,7 +219,7 @@ async def update_project(
         if request.status or request.deal_stage:
             status = ProjectStatus(request.status) if request.status else None
             deal_stage = DealStage(request.deal_stage) if request.deal_stage else None
-            success = await openproject_service.update_project_status(project_id, status, deal_stage)
+            success = await portfolio_service.update_project_status(project_id, status, deal_stage)
         
         if not success:
             raise HTTPException(status_code=500, detail="Failed to update project")
@@ -244,7 +245,7 @@ async def create_project_document(
             "created_by": current_user.get("email", "unknown")
         }
         
-        document = await openproject_service.create_project_document(project_id, doc_data)
+        document = await portfolio_service.create_project_document(project_id, doc_data)
         
         if not document:
             raise HTTPException(status_code=500, detail="Failed to create document")
@@ -268,7 +269,7 @@ async def get_project_documents(
 ):
     """Get all documents for a project"""
     try:
-        documents = await openproject_service.get_project_documents(project_id)
+        documents = await portfolio_service.get_project_documents(project_id)
         
         return [
             {
@@ -295,13 +296,15 @@ async def add_project_memo(
 ):
     """Add an investment memo or analysis to a project"""
     try:
-        success = await openproject_service.add_project_memo(
-            project_id, 
-            request.content, 
-            request.memo_type
-        )
+        doc_data = {
+            "title": f"{request.memo_type.title()} Memo",
+            "content": request.content,
+            "document_type": request.memo_type,
+            "created_by": current_user.get("email", "unknown")
+        }
+        document = await portfolio_service.create_project_document(project_id, doc_data)
         
-        if not success:
+        if not document:
             raise HTTPException(status_code=500, detail="Failed to add memo")
         
         return {
@@ -320,7 +323,7 @@ async def get_portfolio_analytics(
 ):
     """Get portfolio-wide analytics and metrics"""
     try:
-        analytics = await openproject_service.get_portfolio_analytics()
+        analytics = await portfolio_service.get_portfolio_analytics()
         return analytics
         
     except Exception as e:
@@ -333,7 +336,7 @@ async def get_deal_pipeline(
 ):
     """Get deal pipeline view with stages"""
     try:
-        projects = await openproject_service.get_portfolio_projects()
+        projects = await portfolio_service.get_portfolio_projects()
         
         pipeline = {
             "sourcing": [],
@@ -373,7 +376,7 @@ async def search_portfolio(
 ):
     """Search across portfolio projects and documents"""
     try:
-        projects = await openproject_service.get_portfolio_projects()
+        projects = await portfolio_service.get_portfolio_projects()
         
         # Simple text search across project names and descriptions
         results = []

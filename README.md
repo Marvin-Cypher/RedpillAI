@@ -17,10 +17,12 @@ Redpill VC is a secure, investor-focused AI platform engineered to elevate decis
 - **Research Automation**: Automated due diligence, competitive analysis, and market research
 - **Reasoning Models**: Advanced reasoning capabilities with step-by-step analysis
 
-### 📊 **Real-Time Market Intelligence**
-- **CoinGecko Integration**: Live crypto market data, prices, and metrics
+### 📊 **Async Market Intelligence**
+- **MarketDataService**: Non-blocking access to 350+ financial data providers via OpenBB
+- **AsyncCoinGeckoClient**: Real-time crypto market data with proper error handling
 - **Portfolio Tracking**: Real-time portfolio performance and analytics
 - **Market Analysis**: Automated market position and competitive landscape analysis
+- **Fallback Strategies**: Graceful degradation when external APIs are unavailable
 
 ### 💼 **Investment Memo System**
 - **AI-Generated Memos**: Automatically generate comprehensive investment analysis
@@ -28,11 +30,13 @@ Redpill VC is a secure, investor-focused AI platform engineered to elevate decis
 - **Template Library**: Pre-built memo templates for different investment stages
 - **One-Click Export**: Export memos to PDF or share with stakeholders
 
-### 💬 **Intelligent Chat Interface**
-- **Project-Specific Conversations**: Dedicated chat threads for each investment opportunity
+### 💬 **Consolidated AI Chat System** 
+- **Unified Interface**: Single consolidated chat service with comprehensive debugging
+- **Project-Specific Conversations**: Dedicated chat threads for each investment opportunity  
 - **Context-Aware**: AI remembers previous conversations and project details
+- **Chat ID Debugging**: Unique chat IDs for easy troubleshooting with debug endpoints
+- **Deal-Specific Features**: Quick analysis, investment memos, and AI insights
 - **Research Integration**: Seamlessly integrate research findings into conversations
-- **Memo Creation**: One-click conversion of chat insights to investment memos
 
 ### 📁 **Knowledge Management**
 - **Document Upload**: Centralized document storage for each project
@@ -48,15 +52,19 @@ Redpill VC is a secure, investor-focused AI platform engineered to elevate decis
 - **Shadcn/UI** - Modern component library
 - **Lucide Icons** - Beautiful icon set
 
-### Backend
-- **FastAPI** - Modern Python web framework
+### Backend (Service-First Architecture)
+- **FastAPI** - Modern Python web framework with async-safe service layer
 - **SQLModel** - Type-safe database operations
 - **PostgreSQL** - Production database
 - **Pydantic** - Data validation and serialization
+- **AsyncIO** - Non-blocking I/O with ThreadPoolExecutor for legacy APIs
+- **httpx** - Async HTTP client replacing requests for external APIs
 
-### AI & Integrations
+### AI & Integrations (Async-Safe)
 - **CopilotKit AI** - Modern AI interface with unified system integration
-- **OpenBB Platform** - Professional financial data with 350+ providers
+- **MarketDataService** - Async wrappers for OpenBB Platform (350+ providers)
+- **AsyncCoinGeckoClient** - Non-blocking crypto market data
+- **Consolidated Chat System** - Single AI chat service with debugging
 - **OpenProject API** - Portfolio and document management
 - **Three-Pillar Bridge** - Event-driven integration layer
 

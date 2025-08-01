@@ -4,15 +4,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Work Memories
 
+### Step 2 "Service-First, Async-Safe" Refactoring Complete (2025-08-01)
+- **MarketDataService Created**: Comprehensive async-safe service replacing blocking OpenBB/CoinGecko calls
+  - AsyncCoinGeckoClient using httpx.AsyncClient for non-blocking HTTP
+  - OpenBB wrappers using ThreadPoolExecutor with asyncio.run_in_executor()
+  - All 19 unit tests passing with error handling and fallbacks
+- **Chat Consolidation**: Successfully merged chat.py and ai_chat.py into single ai_chat.py
+  - Preserved all functionality including deal-specific features and debugging
+  - Added get_current_user_optional() auth function
+  - Updated main router to use consolidated service
+- **Router Updates**: All consuming services now use async MarketDataService
+  - market.py: All endpoints use await market_data_service calls
+  - companies.py: CoinGecko/OpenBB calls now async with proper error handling
+  - cost_optimized_data_service.py: Updated with async context managers
+
 ### Critical Data Flow Issues Fixed (2025-01-31)
 - **Polkadot Widget 404 Error**: Fixed by correcting API_BASE URL from `/api/market` to `/api/v1/market` in `frontend/src/lib/widgets/data.ts`
 - **Wrong Polkadot Data**: Root cause was Polkadot missing from `backend/seed_companies.py` PORTFOLIO_COMPANIES list. Added proper Polkadot blockchain project data and re-seeded database.
 - **Database Seeding**: Critical to run `python3 backend/seed_companies.py` after fresh setup to populate portfolio companies with real data instead of falling back to Tavily API which returns wrong companies.
 
-### Recent System State (2025-01-31)
+### Recent System State (2025-08-01)
+- **Service Architecture**: All blocking I/O operations now async-safe with proper error handling
+- **MarketDataService**: Operational with OpenBB connection + async crypto prices via executors
+- **AI Chat Service**: Consolidated and operational with unified debugging (chat_id system)
+- **API Routing**: All endpoints accessible with proper async patterns
 - Database contains 12 companies including: Phala Network, NVIDIA, Chainlink, Amazon, Polygon, Solana, Uniswap, Aave, The Graph, **Polkadot**, OpenAI, Coinbase
 - All companies have proper enriched_data and key_metrics for widgets
-- CoinGecko integration working for crypto companies (DOT $3.68, market cap $5.6B)
+- CoinGecko integration working for crypto companies (async via MarketDataService)
 
 ## Architecture Overview
 
@@ -70,12 +88,11 @@ python3 seed_companies.py
 **Solution**: Ensure API_BASE in `frontend/src/lib/widgets/data.ts` matches backend routes (use `/api/v1/market` not `/api/market`)
 
 ### Database Schema Errors  
-**Issue**: `sqlite3.OperationalError: no such column: companies.company_type`
-**Solution**: Reset database with current schema
+**Issue**: Database schema errors or missing columns
+**Solution**: Reset database with current schema using Alembic migrations
 ```bash
 cd backend
-rm -f redpill.db
-python -c "from app.database import engine; from app.models import *; import sqlmodel; sqlmodel.SQLModel.metadata.create_all(engine)"
+alembic upgrade head
 python3 seed_companies.py  # Always re-seed after reset
 ```
 
@@ -92,7 +109,7 @@ npm run dev
 ### Server Startup Issues
 **Backend won't start**: Check if using correct Python environment and port 8000 is free
 **Frontend compilation fails**: Usually module resolution - restart with clean cache
-**Database connection fails**: Ensure using SQLite config in development (`sqlite:///./redpill.db`)
+**Database connection fails**: Ensure PostgreSQL is running and DATABASE_URL is correctly configured
 
 ## Key Architecture Patterns
 
@@ -104,21 +121,31 @@ npm run dev
 - Foreign key relationships: Companies → Deals → Conversations/Documents
 
 ### API Structure (`backend/app/api/`)
-- RESTful with FastAPI dependency injection
-- `/api/v1/auth` - JWT authentication
-- `/api/v1/companies` - Company CRUD
+- RESTful with FastAPI dependency injection and async-safe service layer
+- `/api/v1/auth` - JWT authentication with optional auth support
+- `/api/v1/companies` - Company CRUD with async market data enrichment
 - `/api/v1/deals` - Deal pipeline management
-- `/api/v1/chat` - AI conversation system with logging
-- `/api/v1/market` - Market data integration (OpenBB Platform)
+- `/api/v1/chat` - Consolidated AI conversation system (merged from chat.py + ai_chat.py)
+- `/api/v1/market` - Market data integration via async MarketDataService
 - `/api/v1/data` - Cost-optimized data service with intelligent caching
 
+### Service-First Architecture (Step 2 Complete)
+**Core Services (all async-safe):**
+1. **MarketDataService** (`backend/app/services/market_data_service.py`) - Async wrappers for external APIs
+   - AsyncCoinGeckoClient with httpx for non-blocking HTTP
+   - OpenBB wrappers using ThreadPoolExecutor + asyncio.run_in_executor()
+   - Comprehensive error handling and fallback strategies
+2. **AI Service** (`backend/app/services/ai_service.py`) - Multi-provider AI with conversation context
+3. **CompanyService** (`backend/app/services/company_service.py`) - Async company operations
+4. **CostOptimizedDataService** - Intelligent caching with budget management
+
 ### Data Flow Architecture
-**Primary Data Sources (in priority order):**
+**Primary Data Sources (async-safe, in priority order):**
 1. **Companies Database** (`backend/app/models/companies.py`) - Enriched portfolio company data
 2. **CompanyDataCache** (`backend/app/models/cache.py`) - Cached profile data from seeding
-3. **Tavily API** - External company research (fallback, can return wrong data)
-4. **CoinGecko API** - Crypto token data for blockchain companies
-5. **OpenBB Platform** - Market data and financial information
+3. **MarketDataService** - Async access to CoinGecko + OpenBB via service layer
+4. **Tavily API** - External company research (fallback, can return wrong data)
+5. **External APIs** - All accessed via async service wrappers with proper error handling
 
 ### AI Integration Patterns
 - **Multi-Provider**: Redpill AI primary, OpenAI fallback, mock development mode
@@ -137,16 +164,18 @@ components/
 ```
 
 ### Widget System Architecture
-**Widget Data Flow:**
+**Widget Data Flow (Async-Safe):**
 1. Widget calls `fetchWidgetData()` in `frontend/src/lib/widgets/data.ts`
 2. Data fetcher calls appropriate API endpoint (e.g., `/api/v1/data/companies/{name}/profile`)
-3. Backend checks Companies database → CompanyDataCache → External APIs (Tavily/CoinGecko)
-4. Widget receives structured data and renders with BaseWidget wrapper
+3. Backend routes through service layer: Companies database → CompanyDataCache → MarketDataService (async)
+4. MarketDataService handles external API calls via async wrappers (CoinGecko/OpenBB)
+5. Widget receives structured data and renders with BaseWidget wrapper
 
 **Common Widget Issues:**
 - **Wrong Data**: Check if company exists in database (run seed script if missing)
 - **404 Errors**: Verify API_BASE URL matches backend route mounting  
 - **Missing Crypto Data**: Ensure crypto companies have `crypto_data` in cache entries
+- **Timeout Issues**: MarketDataService handles async timeouts and fallbacks automatically
 
 ## Configuration Patterns
 
@@ -169,10 +198,20 @@ components/
 - Alembic for migrations: `alembic upgrade head`
 - Foreign key relationships properly configured with Relationship()
 
-### AI Chat Debugging
+### Service-First Development Patterns
+- **Async-Safe Services**: All external API calls wrapped in async services (MarketDataService, etc.)
+- **ThreadPoolExecutor**: Used for synchronous library calls (OpenBB) within async context
+- **httpx.AsyncClient**: Replaces requests.Session() for non-blocking HTTP calls
+- **Context Managers**: Proper resource cleanup with async context managers (`async with`)
+- **Error Handling**: Graceful fallbacks when external services are unavailable
+
+### AI Chat Debugging (Consolidated System)
+- **Consolidated Chat**: Single `ai_chat.py` file replacing separate chat.py + ai_chat.py
 - All conversations logged with unique chat_ids (format: `chat_xxxxxxxx`)
-- Debug endpoint: `GET /api/v1/chat/debug/{chat_id}`
+- Debug endpoint: `GET /api/v1/chat/debug/{chat_id}` for troubleshooting
 - Chat IDs displayed in UI for easy debugging
+- **Deal-specific features**: Quick analysis, investment memos, insights all preserved
+- **WebSocket endpoint**: Available but returns no-op (use REST endpoints instead)
 
 ### Type Safety
 - Backend: SQLModel for database, Pydantic for API validation

@@ -79,13 +79,13 @@ async def root():
 
 
 # Import and include routers
-from .api import auth, companies, deals, chat, market, portfolio, workflows
+from .api import auth, companies, deals, ai_chat, market, portfolio, workflows
 from .api.v1 import data
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(companies.router, prefix="/api/v1/companies", tags=["companies"])
 app.include_router(deals.router, prefix="/api/v1/deals", tags=["deals"])
-app.include_router(chat.router, prefix="/api/v1/chat", tags=["ai-chat"])
+app.include_router(ai_chat.router, prefix="/api/v1/chat", tags=["ai-chat"])
 app.include_router(market.router, prefix="/api/v1/market", tags=["market-data"])
 app.include_router(portfolio.router, prefix="/api/v1/portfolio", tags=["portfolio"])
 app.include_router(workflows.router, prefix="/api/v1/workflows", tags=["workflows"])

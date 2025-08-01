@@ -1,17 +1,13 @@
 from sqlmodel import SQLModel, create_engine, Session
-from sqlalchemy.pool import StaticPool
 import redis.asyncio as redis
 from typing import AsyncGenerator
 from .config import settings
 
 
-# Database engine
+# Database engine (PostgreSQL only)
 engine = create_engine(
     settings.database_url,
     echo=settings.database_echo,
-    # For SQLite compatibility (remove for PostgreSQL production)
-    poolclass=StaticPool if "sqlite" in settings.database_url else None,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.database_url else {},
 )
 
 # Redis connection

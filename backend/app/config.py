@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     version: str = "1.0.0"
     debug: bool = True
     
-    # Database
-    database_url: str = "sqlite:///./redpill.db"
+    # Database (PostgreSQL only)
+    database_url: str = "postgresql://marvin@localhost:5432/redpill_db"
     database_echo: bool = False
     
     # Redis
