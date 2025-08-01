@@ -250,10 +250,85 @@ const DEFAULT_COMPANIES: Company[] = [
   }
 ]
 
-// Get all companies
-export const getAllCompanies = (): Company[] => {
+// Get all companies from backend API with localStorage fallback
+export const getAllCompanies = async (): Promise<Company[]> => {
   if (typeof window === 'undefined') return DEFAULT_COMPANIES
   
+  // TEMPORARY: Check localStorage first to recover original companies
+  try {
+    const stored = localStorage.getItem(COMPANIES_STORAGE_KEY)
+    if (stored) {
+      const localCompanies = JSON.parse(stored)
+      console.log('🔍 Found companies in localStorage:', localCompanies.length, localCompanies.map(c => c.name))
+      return localCompanies
+    }
+  } catch (error) {
+    console.error('Error loading from localStorage:', error)
+  }
+  
+  try {
+    // Try to fetch from backend API first
+    const response = await fetch('http://localhost:8000/api/v1/companies/', {
+      headers: {
+        'Authorization': 'Bearer fake-token', // TODO: Replace with real auth
+      }
+    })
+    
+    if (response.ok) {
+      const backendCompanies = await response.json()
+      console.log('✅ Fetched companies from backend:', backendCompanies.length)
+      
+      // Transform backend format to frontend format if needed
+      const transformedCompanies = backendCompanies.map((company: any) => ({
+        id: company.id,
+        name: company.name,
+        domain: company.website?.replace(/^https?:\/\//, ''),
+        website: company.website,
+        ticker: company.token_symbol,
+        company_type: company.company_type,
+        sector: company.sector,
+        stage: 'Series A', // Default stage
+        founded_year: company.founded_year || 2020,
+        headquarters: {
+          city: company.headquarters?.split(', ')[0] || 'Unknown',
+          country: company.headquarters?.split(', ')[1] || 'Unknown'
+        },
+        description: company.description || `${company.name} is an innovative company.`,
+        logo: company.logo_url,
+        employee_count: parseInt(company.employee_count?.replace(/[^0-9]/g, '') || '50'),
+        investment: {
+          round_type: 'Series A',
+          investment_amount: 5000000,
+          valuation: 50000000,
+          ownership_percentage: 10.0,
+          investment_date: '2024-01-15',
+          lead_partner: 'John Smith'
+        },
+        metrics: {
+          revenue_current: 500000,
+          revenue_growth: 15.0,
+          burn_rate: 150000,
+          runway_months: 18,
+          employees: parseInt(company.employee_count?.replace(/[^0-9]/g, '') || '50'),
+          customers: 100,
+          arr: 6000000,
+          gross_margin: 75.0
+        },
+        deal_status: 'invested',
+        priority: 'high',
+        created_at: company.created_at || new Date().toISOString(),
+        updated_at: company.updated_at || new Date().toISOString()
+      }))
+      
+      // Cache in localStorage as backup
+      localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(transformedCompanies))
+      return transformedCompanies
+    }
+  } catch (error) {
+    console.warn('⚠️ Backend API unavailable, using localStorage fallback:', error)
+  }
+  
+  // Fallback to localStorage
   try {
     const stored = localStorage.getItem(COMPANIES_STORAGE_KEY)
     if (stored) {
@@ -322,21 +397,21 @@ export const getCompanyById = async (id: string): Promise<Company | null> => {
     }
     
     // Fallback to localStorage if API fails
-    const companies = getAllCompanies()
+    const companies = await getAllCompanies()
     return companies.find(company => company.id === id) || null
     
   } catch (error) {
     console.error(`Error fetching company ${id}:`, error)
     
     // Fallback to localStorage on error
-    const companies = getAllCompanies()
+    const companies = await getAllCompanies()
     return companies.find(company => company.id === id) || null
   }
 }
 
 // Add new company
-export const addCompany = (company: Omit<Company, 'id' | 'created_at' | 'updated_at'>): Company => {
-  const companies = getAllCompanies()
+export const addCompany = async (company: Omit<Company, 'id' | 'created_at' | 'updated_at'>): Promise<Company> => {
+  const companies = await getAllCompanies()
   const newCompany: Company = {
     ...company,
     id: company.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
@@ -354,8 +429,8 @@ export const addCompany = (company: Omit<Company, 'id' | 'created_at' | 'updated
 }
 
 // Update company
-export const updateCompany = (id: string, updates: Partial<Company>): Company | null => {
-  const companies = getAllCompanies()
+export const updateCompany = async (id: string, updates: Partial<Company>): Promise<Company | null> => {
+  const companies = await getAllCompanies()
   const index = companies.findIndex(company => company.id === id)
   
   if (index === -1) return null
@@ -374,8 +449,8 @@ export const updateCompany = (id: string, updates: Partial<Company>): Company | 
 }
 
 // Delete company
-export const deleteCompany = (id: string): boolean => {
-  const companies = getAllCompanies()
+export const deleteCompany = async (id: string): Promise<boolean> => {
+  const companies = await getAllCompanies()
   const index = companies.findIndex(company => company.id === id)
   
   if (index === -1) return false
@@ -390,8 +465,8 @@ export const deleteCompany = (id: string): boolean => {
 }
 
 // Get portfolio statistics
-export const getPortfolioStats = () => {
-  const companies = getAllCompanies()
+export const getPortfolioStats = async () => {
+  const companies = await getAllCompanies()
   
   return {
     total_companies: companies.length,
@@ -410,8 +485,8 @@ export const getPortfolioStats = () => {
 }
 
 // Search companies
-export const searchCompanies = (query: string): Company[] => {
-  const companies = getAllCompanies()
+export const searchCompanies = async (query: string): Promise<Company[]> => {
+  const companies = await getAllCompanies()
   const lowerQuery = query.toLowerCase()
   
   return companies.filter(company => 

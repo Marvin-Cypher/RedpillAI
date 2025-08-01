@@ -32,6 +32,40 @@ import {
 } from 'lucide-react';
 import { WidgetProps } from '@/lib/widgets/types';
 
+// Helper function to detect company type from data
+function detectCompanyType(data: any): 'public' | 'crypto' | 'private' {
+  if (!data) return 'private';
+  
+  // Check if it has crypto data (token info)
+  if (data.crypto_data || data.symbol || data.current_price || data.market_cap_rank) {
+    return 'crypto';
+  }
+  
+  // Check industry/sector for crypto indicators
+  const industry = (data.industry || '').toLowerCase();
+  const name = (data.name || '').toLowerCase();
+  if (industry.includes('blockchain') || industry.includes('crypto') || 
+      name.includes('protocol') || name.includes('network') || name.includes('chain')) {
+    return 'crypto';
+  }
+  
+  // Check for well-known public companies
+  const publicCompanies = ['amazon', 'nvidia', 'apple', 'microsoft', 'google', 'meta', 'tesla'];
+  if (publicCompanies.some(company => name.includes(company))) {
+    return 'public';
+  }
+  
+  // Check if it has public company indicators (large market cap, public company metrics)
+  if (data.pe_ratio || data.dividend_yield || 
+      (data.key_metrics?.valuation && data.key_metrics.valuation > 100000000000) ||
+      data.total_funding === 0) { // Public companies typically don't have "funding"
+    return 'public';
+  }
+  
+  // Default to private
+  return 'private';
+}
+
 const FundamentalsWidget: React.FC<WidgetProps> = ({
   widget,
   data,
@@ -41,70 +75,171 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
   onUpdate,
   onRemove
 }) => {
+  // Determine company type from widget config or data
+  const companyType = widget.config.companyType || detectCompanyType(data);
+  
+  // Select default metrics based on company type
+  const getDefaultMetrics = () => {
+    switch (companyType) {
+      case 'public':
+        return ['market_cap', 'pe_ratio', 'revenue_ttm', 'gross_margin'];
+      case 'crypto':
+        return ['token_market_cap', 'token_price', 'circulating_supply', 'volume_24h'];
+      case 'private':
+        return ['valuation', 'revenue_ttm', 'gross_margin', 'burn_rate'];
+      default:
+        return ['valuation', 'revenue_ttm', 'gross_margin', 'runway'];
+    }
+  };
+  
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>(
-    widget.config.metrics || ['market_cap', 'pe_ratio', 'revenue_ttm', 'gross_margin']
+    widget.config.metrics || getDefaultMetrics()
   );
   const [displayFormat, setDisplayFormat] = useState(
     widget.config.display_format || 'cards'
   );
 
-  // Available metrics with descriptions
+  // Available metrics with descriptions - includes both traditional and crypto metrics
   const metricDefinitions = {
+    // Public company metrics
     market_cap: {
-      label: 'Market Cap',
+      label: 'Stock Market Cap',
       icon: Building,
       description: 'Total market value of outstanding shares',
       format: 'currency_billions',
-      color: 'text-blue-600'
+      color: 'text-blue-600',
+      category: 'public'
     },
     pe_ratio: {
       label: 'P/E Ratio',
       icon: BarChart3,
       description: 'Price-to-earnings ratio',
       format: 'ratio',
-      color: 'text-green-600'
-    },
-    revenue_ttm: {
-      label: 'Revenue (TTM)',
-      icon: DollarSign,
-      description: 'Trailing twelve months revenue',
-      format: 'currency_billions',
-      color: 'text-purple-600'
-    },
-    gross_margin: {
-      label: 'Gross Margin',
-      icon: TrendingUp,
-      description: 'Gross profit as percentage of revenue',
-      format: 'percentage',
-      color: 'text-orange-600'
-    },
-    profit_margin: {
-      label: 'Profit Margin',
-      icon: Percent,
-      description: 'Net income as percentage of revenue',
-      format: 'percentage',
-      color: 'text-green-600'
-    },
-    debt_ratio: {
-      label: 'Debt Ratio',
-      icon: TrendingDown,
-      description: 'Total debt divided by total assets',
-      format: 'percentage',
-      color: 'text-red-600'
+      color: 'text-green-600',
+      category: 'public'
     },
     price_to_book: {
       label: 'P/B Ratio',
       icon: BarChart3,
       description: 'Price-to-book value ratio',
       format: 'ratio',
-      color: 'text-indigo-600'
+      color: 'text-indigo-600',
+      category: 'public'
+    },
+    debt_ratio: {
+      label: 'Debt Ratio',
+      icon: TrendingDown,
+      description: 'Total debt divided by total assets',
+      format: 'percentage',
+      color: 'text-red-600',
+      category: 'public'
     },
     dividend_yield: {
       label: 'Dividend Yield',
       icon: Percent,
-      description: 'Annual dividend as percentage of stock price',
+      description: 'Annual dividends per share divided by stock price',
       format: 'percentage',
-      color: 'text-blue-600'
+      color: 'text-green-600',
+      category: 'public'
+    },
+    // Crypto metrics
+    token_market_cap: {
+      label: 'Token Market Cap',
+      icon: Building,
+      description: 'Total market value of circulating tokens',
+      format: 'currency_billions',
+      color: 'text-blue-600',
+      category: 'crypto'
+    },
+    token_price: {
+      label: 'Token Price',
+      icon: DollarSign,
+      description: 'Current token price in USD',
+      format: 'currency',
+      color: 'text-green-600',
+      category: 'crypto'
+    },
+    circulating_supply: {
+      label: 'Circulating Supply',
+      icon: BarChart3,
+      description: 'Number of tokens in circulation',
+      format: 'number',
+      color: 'text-purple-600',
+      category: 'crypto'
+    },
+    volume_24h: {
+      label: '24h Volume',
+      icon: TrendingUp,
+      description: 'Trading volume in last 24 hours',
+      format: 'currency_millions',
+      color: 'text-orange-600',
+      category: 'crypto'
+    },
+    market_cap_rank: {
+      label: 'Market Cap Rank',
+      icon: TrendingUp,
+      description: 'Ranking by market capitalization',
+      format: 'rank',
+      color: 'text-indigo-600',
+      category: 'crypto'
+    },
+    // Private company metrics
+    valuation: {
+      label: 'Last Valuation',
+      icon: Building,
+      description: 'Most recent funding round valuation',
+      format: 'currency_billions',
+      color: 'text-blue-600',
+      category: 'private'
+    },
+    burn_rate: {
+      label: 'Burn Rate',
+      icon: TrendingDown,
+      description: 'Monthly cash burn rate',
+      format: 'currency',
+      color: 'text-red-600',
+      category: 'private'
+    },
+    runway: {
+      label: 'Runway',
+      icon: BarChart3,
+      description: 'Months of runway remaining',
+      format: 'months',
+      color: 'text-orange-600',
+      category: 'private'
+    },
+    total_funding: {
+      label: 'Total Funding',
+      icon: DollarSign,
+      description: 'Total funding raised to date',
+      format: 'currency_millions',
+      color: 'text-purple-600',
+      category: 'private'
+    },
+    // Shared metrics
+    revenue_ttm: {
+      label: 'Revenue (TTM)',
+      icon: DollarSign,
+      description: 'Trailing twelve months revenue',
+      format: 'currency_billions',
+      color: 'text-purple-600',
+      category: 'all'
+    },
+    gross_margin: {
+      label: 'Gross Margin',
+      icon: TrendingUp,
+      description: 'Gross profit as percentage of revenue',
+      format: 'percentage',
+      color: 'text-orange-600',
+      category: 'all'
+    },
+    profit_margin: {
+      label: 'Profit Margin',
+      icon: Percent,
+      description: 'Net income as percentage of revenue',
+      format: 'percentage',
+      color: 'text-green-600',
+      category: 'all'
     }
   };
 
@@ -117,12 +252,78 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
         return `$${(value / 1e9).toFixed(1)}B`;
       case 'currency_millions':
         return `$${(value / 1e6).toFixed(1)}M`;
+      case 'currency':
+        if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
+        if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
+        if (value >= 1e3) return `$${(value / 1e3).toFixed(1)}K`;
+        return `$${value.toFixed(2)}`;
       case 'percentage':
         return `${(value * 100).toFixed(1)}%`;
       case 'ratio':
         return `${value.toFixed(1)}x`;
+      case 'number':
+        if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
+        if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
+        if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
+        return value.toLocaleString();
+      case 'months':
+        return `${value.toFixed(0)} months`;
+      case 'rank':
+        return `#${value}`;
       default:
         return value.toLocaleString();
+    }
+  };
+
+  // Map data sources to metric values based on company type
+  const getMetricValue = (metric: string): any => {
+    if (!data) return null;
+
+    switch (metric) {
+      // Public company metrics (from stock data)
+      case 'market_cap':
+        return data.stock_data?.market_cap || data.market_cap || data.key_metrics?.valuation || null;
+      case 'pe_ratio':
+        return data.stock_data?.pe_ratio || data.pe_ratio || null;
+      case 'price_to_book':
+        return data.stock_data?.price_to_book || data.price_to_book || null;
+      case 'debt_ratio':
+        return data.stock_data?.debt_ratio || data.debt_ratio || null;
+      case 'dividend_yield':
+        return data.stock_data?.dividend_yield || data.dividend_yield || null;
+
+      // Crypto metrics (from token data)
+      case 'token_market_cap':
+        return data.market_cap || data.crypto_data?.market_cap || null;
+      case 'token_price':
+        return data.current_price || data.crypto_data?.current_price || null;
+      case 'circulating_supply':
+        return data.circulating_supply || data.crypto_data?.circulating_supply || null;
+      case 'volume_24h':
+        return data.volume_24h || data.crypto_data?.volume_24h || null;
+      case 'market_cap_rank':
+        return data.market_cap_rank || data.crypto_data?.market_cap_rank || null;
+
+      // Private company metrics (from company data)
+      case 'valuation':
+        return data.valuation || data.key_metrics?.valuation || data.investment?.valuation || null;
+      case 'burn_rate':
+        return data.burn_rate || data.key_metrics?.burn_rate || null;
+      case 'runway':
+        return data.runway_months || data.key_metrics?.runway || null;
+      case 'total_funding':
+        return data.total_funding || data.funding_total || null;
+
+      // Shared metrics
+      case 'revenue_ttm':
+        return data.revenue_current || data.key_metrics?.revenue || data.revenue_ttm || null;
+      case 'gross_margin':
+        return data.gross_margin || data.key_metrics?.gross_margin || null;
+      case 'profit_margin':
+        return data.profit_margin || data.key_metrics?.profit_margin || null;
+
+      default:
+        return data[metric] || null;
     }
   };
 
@@ -143,10 +344,11 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
   };
 
   // Render metric card
-  const renderMetricCard = (metric: string, value: any) => {
+  const renderMetricCard = (metric: string) => {
     const definition = metricDefinitions[metric as keyof typeof metricDefinitions];
     if (!definition) return null;
 
+    const value = getMetricValue(metric);
     const IconComponent = definition.icon;
     const formattedValue = formatValue(value, definition.format);
 
@@ -175,10 +377,11 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
   };
 
   // Render table row
-  const renderTableRow = (metric: string, value: any) => {
+  const renderTableRow = (metric: string) => {
     const definition = metricDefinitions[metric as keyof typeof metricDefinitions];
     if (!definition) return null;
 
+    const value = getMetricValue(metric);
     const IconComponent = definition.icon;
     const formattedValue = formatValue(value, definition.format);
 
@@ -246,11 +449,20 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
       <div className="h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <h4 className="text-sm font-medium text-gray-900">
-              {widget.dataSource.ticker} Fundamentals
-            </h4>
-            <p className="text-xs text-gray-600">Key financial metrics</p>
+          <div className="flex items-center space-x-2">
+            <div>
+              <h4 className="text-sm font-medium text-gray-900">
+                {widget.config.companyName || widget.dataSource.ticker} Fundamentals
+              </h4>
+              <p className="text-xs text-gray-600">
+                {companyType === 'public' ? 'Public company metrics' :
+                 companyType === 'crypto' ? 'Token & crypto metrics' :
+                 'Private company metrics'}
+              </p>
+            </div>
+            <Badge variant="outline" className="text-xs capitalize">
+              {companyType}
+            </Badge>
           </div>
 
           {/* Controls */}
@@ -291,7 +503,7 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
             // Cards Layout
             <div className="grid grid-cols-2 gap-3">
               {selectedMetrics.map(metric => 
-                renderMetricCard(metric, data[metric as keyof typeof data])
+                renderMetricCard(metric)
               )}
             </div>
           ) : (
@@ -306,7 +518,7 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
                 </thead>
                 <tbody>
                   {selectedMetrics.map(metric =>
-                    renderTableRow(metric, data[metric as keyof typeof data])
+                    renderTableRow(metric)
                   )}
                 </tbody>
               </table>

@@ -23,7 +23,7 @@
 RedPill VC CRM is an AI-powered venture capital platform designed for modern VC firms specializing in blockchain, DeFi, and Web3 investments.
 
 ### Three-Pillar Architecture
-1. **AG-UI Protocol** - Standardized AI agent communication
+1. **CopilotKit AI** - Modern AI interface with unified system integration
 2. **OpenBB Platform** - Professional financial data access  
 3. **OpenProject** - Portfolio management and document workflow
 

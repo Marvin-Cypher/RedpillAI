@@ -8,7 +8,7 @@
 
 | Pillar | Technology | Status | Purpose |
 |--------|------------|---------|---------|
-| **🤖 AI Agents** | AG-UI Protocol | ✅ Active | Standardized agent communication |
+| **🤖 AI System** | CopilotKit AI | ✅ Active | Modern AI interface with unified system |
 | **📊 Financial Data** | OpenBB Platform | ✅ Active | Professional financial data access |
 | **🏢 Portfolio Management** | OpenProject | ✅ Active | Portfolio and document management |
 
@@ -102,7 +102,7 @@ cd frontend && npm run dev
 ```
 
 ### ✅ Three-Pillar Access
-- **AG-UI Agents**: http://localhost:3000/agents
+- **CopilotKit AI**: http://localhost:3000 (sidebar interface)
 - **OpenBB Data**: http://localhost:8000/api/v1/market
 - **Portfolio**: http://localhost:8000/api/v1/portfolio
 
@@ -120,7 +120,7 @@ cd frontend && npm run dev
 
 ### 2. **Feature Development** (Ready to start)
 - Build on existing three-pillar foundation
-- Use AG-UI protocol for new AI agents
+- Use CopilotKit for AI interface development
 - Leverage OpenBB for financial analytics
 - Extend OpenProject integration for VC workflows
 
@@ -131,8 +131,8 @@ cd frontend && npm run dev
 
 ## 📈 Architecture Benefits
 
-### ✅ **Standardized Communication**
-- AG-UI Protocol ensures consistent agent interfaces
+### ✅ **Modern AI Integration**
+- CopilotKit provides professional AI interface
 - Event-driven bridge connects all three pillars
 - Modular architecture allows independent development
 
@@ -181,5 +181,5 @@ cd frontend && npm run dev
 ---
 
 *Last Updated*: 2025-07-25  
-*Architecture*: Three-Pillar System (AG-UI + OpenBB + OpenProject)  
+*Architecture*: Three-Pillar System (CopilotKit AI + OpenBB + OpenProject)  
 *Status*: Production Ready 🚀

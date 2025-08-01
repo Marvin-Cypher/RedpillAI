@@ -1,5 +1,5 @@
-from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional, List
+from sqlmodel import SQLModel, Field, Relationship, Column, JSON
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
 import uuid
@@ -62,6 +62,16 @@ class Company(CompanyBase, table=True):
     )
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Enriched data fields
+    enriched_data: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
+    market_data: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
+    key_metrics: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
+    
+    # Data freshness tracking
+    data_last_refreshed: Optional[datetime] = Field(default=None)
+    tavily_last_updated: Optional[datetime] = Field(default=None)
+    market_data_last_updated: Optional[datetime] = Field(default=None)
     
     # Relationships
     deals: List["Deal"] = Relationship(back_populates="company")

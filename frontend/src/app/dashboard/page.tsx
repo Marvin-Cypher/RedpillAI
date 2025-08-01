@@ -83,10 +83,10 @@ export default function ModernDashboard() {
   }
 
   useEffect(() => {
-    const loadDashboardData = () => {
+    const loadDashboardData = async () => {
       try {
-        const allCompanies = getAllCompanies()
-        const stats = getPortfolioStats()
+        const allCompanies = await getAllCompanies()
+        const stats = await getPortfolioStats()
         
         setCompanies(allCompanies)
         setPortfolioStats(stats)

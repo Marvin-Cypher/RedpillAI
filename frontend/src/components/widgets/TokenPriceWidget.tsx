@@ -19,19 +19,19 @@ import {
 import { WidgetProps } from '@/lib/widgets/types';
 
 interface TokenPriceData {
-  symbol: string;
-  name: string;
-  current_price: number;
-  price_change_24h: number;
-  price_change_percentage_24h: number;
-  market_cap: number;
-  market_cap_rank: number;
-  volume_24h: number;
-  circulating_supply: number;
-  total_supply: number;
-  high_24h: number;
-  low_24h: number;
-  last_updated: string;
+  symbol?: string;
+  name?: string;
+  current_price?: number;
+  price_change_24h?: number;
+  price_change_percentage_24h?: number;
+  market_cap?: number;
+  market_cap_rank?: number;
+  volume_24h?: number;
+  circulating_supply?: number;
+  total_supply?: number;
+  high_24h?: number;
+  low_24h?: number;
+  last_updated?: string;
 }
 
 const TokenPriceWidget: React.FC<WidgetProps> = ({
@@ -43,7 +43,10 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
   onUpdate,
   onRemove
 }) => {
-  const formatCurrency = (amount: number, decimals: number = 2) => {
+  const formatCurrency = (amount: number | null | undefined, decimals: number = 2) => {
+    if (amount === null || amount === undefined || isNaN(amount)) {
+      return 'N/A';
+    }
     if (amount >= 1e9) {
       return `$${(amount / 1e9).toFixed(1)}B`;
     } else if (amount >= 1e6) {
@@ -59,20 +62,32 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
     }).format(amount);
   };
 
-  const formatPercentage = (value: number) => {
+  const formatPercentage = (value: number | null | undefined) => {
+    if (value === null || value === undefined || isNaN(value)) {
+      return 'N/A';
+    }
     const sign = value >= 0 ? '+' : '';
     return `${sign}${value.toFixed(2)}%`;
   };
 
-  const formatNumber = (num: number) => {
+  const formatNumber = (num: number | null | undefined) => {
+    if (num === null || num === undefined || isNaN(num)) {
+      return 'N/A';
+    }
     return new Intl.NumberFormat('en-US').format(num);
   };
 
-  const getPriceChangeColor = (change: number) => {
+  const getPriceChangeColor = (change: number | null | undefined) => {
+    if (change === null || change === undefined || isNaN(change)) {
+      return 'text-gray-500';
+    }
     return change >= 0 ? 'text-green-600' : 'text-red-600';
   };
 
-  const getPriceChangeIcon = (change: number) => {
+  const getPriceChangeIcon = (change: number | null | undefined) => {
+    if (change === null || change === undefined || isNaN(change)) {
+      return <Activity className="w-4 h-4 text-gray-500" />;
+    }
     return change >= 0 ? (
       <TrendingUp className="w-4 h-4 text-green-600" />
     ) : (
@@ -127,7 +142,7 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center space-x-2">
           <CardTitle className="text-lg font-semibold">
-            {tokenData.name} ({tokenData.symbol.toUpperCase()})
+            {tokenData.name || 'Unknown Token'} ({(tokenData.symbol || 'N/A').toUpperCase()})
           </CardTitle>
           {tokenData.market_cap_rank && (
             <Badge variant="outline" className="text-xs">
@@ -166,11 +181,11 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="text-2xl font-bold text-gray-900">
-              {formatCurrency(tokenData.current_price, tokenData.current_price < 1 ? 4 : 2)}
+              {formatCurrency(tokenData.current_price, (tokenData.current_price && tokenData.current_price < 1) ? 4 : 2)}
             </div>
             <div className={`flex items-center space-x-1 text-sm font-medium ${getPriceChangeColor(tokenData.price_change_percentage_24h)}`}>
               {getPriceChangeIcon(tokenData.price_change_percentage_24h)}
-              <span>{formatCurrency(Math.abs(tokenData.price_change_24h), 2)}</span>
+              <span>{formatCurrency(tokenData.price_change_24h ? Math.abs(tokenData.price_change_24h) : undefined, 2)}</span>
               <span>({formatPercentage(tokenData.price_change_percentage_24h)})</span>
             </div>
           </div>
@@ -215,7 +230,7 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
               {formatNumber(tokenData.circulating_supply)}
             </div>
             <div className="text-xs text-gray-500">
-              {tokenData.symbol.toUpperCase()}
+              {(tokenData.symbol || 'N/A').toUpperCase()}
             </div>
           </div>
 
@@ -228,7 +243,7 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
               {formatNumber(tokenData.total_supply)}
             </div>
             <div className="text-xs text-gray-500">
-              {tokenData.symbol.toUpperCase()}
+              {(tokenData.symbol || 'N/A').toUpperCase()}
             </div>
           </div>
         </div>
@@ -237,7 +252,7 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
         <div className="mt-3 pt-2 border-t border-gray-100">
           <div className="flex items-center justify-center space-x-1 text-xs text-gray-500">
             <Clock className="w-3 h-3" />
-            <span>Updated: {new Date(tokenData.last_updated).toLocaleTimeString()}</span>
+            <span>Updated: {tokenData.last_updated ? new Date(tokenData.last_updated).toLocaleTimeString() : 'Unknown'}</span>
           </div>
         </div>
       </CardContent>

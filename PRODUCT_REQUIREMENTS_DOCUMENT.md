@@ -1,13 +1,13 @@
 # RedPill VC Platform - Product Requirements Document (PRD)
 
 **Version:** 2.0  
-**Date:** January 29, 2025  
+**Date:** July 29, 2025  
 **Owner:** Product Team  
 **Status:** Active  
 
 ## Executive Summary
 
-RedPill VC is an AI-native venture capital platform that combines traditional VC workflows with cutting-edge artificial intelligence capabilities. Built on a three-pillar architecture (AG-UI Protocol, OpenBB Platform, OpenProject), it serves fund managers and investors with intelligent deal sourcing, portfolio management, and investment analysis.
+RedPill VC is an AI-native venture capital platform that combines traditional VC workflows with cutting-edge artificial intelligence capabilities. Built on a three-pillar architecture (CopilotKit AI, OpenBB Platform, OpenProject), it serves fund managers and investors with intelligent deal sourcing, portfolio management, and investment analysis.
 
 ### Vision Statement
 *"Transform venture capital operations through AI-native experiences that augment investor decision-making and automate routine tasks, enabling VCs to focus on what matters most - finding and supporting exceptional companies."*
@@ -50,7 +50,7 @@ RedPill VC is an AI-native venture capital platform that combines traditional VC
 | Feature | RedPill VC | Edda | Carta | Visible.vc |
 |---------|------------|------|-------|------------|
 | AI-Native Design | ✅ Core feature | Limited AI | No AI | Basic AI |
-| Real-time Streaming | ✅ AG-UI Protocol | ❌ | ❌ | ❌ |
+| Real-time AI Interface | ✅ CopilotKit | ❌ | ❌ | ❌ |
 | Open Data Platform | ✅ OpenBB | Proprietary | Proprietary | Limited |
 | Contextual AI Chat | ✅ Per company | Global only | N/A | N/A |
 | Modern Architecture | ✅ Three-pillar | Monolithic | Traditional | Traditional |
@@ -244,15 +244,15 @@ RedPill VC is an AI-native venture capital platform that combines traditional VC
 ├─────────────────────────────────────────────────────────────┤
 │  Frontend (Next.js 14)          │  Backend (FastAPI)       │
 │  - React Components             │  - API Endpoints         │
-│  - AG-UI Integration            │  - Authentication        │
+│  - CopilotKit Integration       │  - Authentication        │
 │  - Real-time Updates            │  - Data Processing       │
 ├─────────────────────────────────────────────────────────────┤
 │              Three-Pillar Integration Layer                 │
 ├─────────────────────────────────────────────────────────────┤
-│  AG-UI Protocol    │  OpenBB Platform    │  OpenProject    │
-│  - AI Agents       │  - Market Data      │  - Portfolio    │
-│  - Chat Interface  │  - Financial APIs   │  - Project Mgmt │
-│  - Real-time       │  - Data Sources     │  - Workflows    │
+│  CopilotKit AI     │  OpenBB Platform    │  OpenProject    │
+│  - AI Interface    │  - Market Data      │  - Portfolio    │
+│  - Unified System  │  - Financial APIs   │  - Project Mgmt │
+│  - Context-Aware   │  - Data Sources     │  - Workflows    │
 ├─────────────────────────────────────────────────────────────┤
 │              Data Layer (PostgreSQL + Redis)               │
 └─────────────────────────────────────────────────────────────┘
@@ -408,10 +408,10 @@ RedPill VC is an AI-native venture capital platform that combines traditional VC
 - [x] Responsive UI framework
 
 ### Phase 2: AI Enhancement (Q4 2025)
-- [ ] Advanced AI chat interface implementation
-- [ ] Company-specific AI assistants
-- [ ] Document analysis and Q&A capabilities
-- [ ] Automated deal enrichment
+- [x] CopilotKit AI interface implementation
+- [x] Unified AI system with context awareness
+- [ ] Advanced document analysis and Q&A capabilities
+- [ ] Enhanced automated deal enrichment
 
 ### Phase 3: Advanced Features (Q1 2026)
 - [ ] Kanban dealflow interface
@@ -463,7 +463,7 @@ RedPill VC is an AI-native venture capital platform that combines traditional VC
 
 ### 9.1 Glossary
 
-**AG-UI Protocol:** Agent-User Interaction protocol for real-time AI communication  
+**CopilotKit:** Modern AI interface framework for React applications  
 **DPI:** Distributions to Paid-in Capital ratio  
 **GP:** General Partner (fund manager)  
 **IRR:** Internal Rate of Return  
@@ -472,7 +472,7 @@ RedPill VC is an AI-native venture capital platform that combines traditional VC
 
 ### 9.2 References
 
-- AG-UI Protocol Specification v0.0.35
+- CopilotKit Documentation
 - OpenBB Platform Documentation
 - Industry benchmarks from Edda, Carta, Visible.vc analysis
 - VC workflow best practices research

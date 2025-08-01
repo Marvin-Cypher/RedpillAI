@@ -86,11 +86,14 @@ export default function DealPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState<any>({})
 
+  // Get AI context from UnifiedAISystem (must be at top level)
+  const aiContext = useAI()
+
   useEffect(() => {
     // Load company data and convert to deal format
-    const loadDeal = () => {
+    const loadDeal = async () => {
       try {
-        const companyData = getCompanyById(params.companyId as string)
+        const companyData = await getCompanyById(params.companyId as string)
         if (companyData) {
           const dealData: DealData = {
             id: `${companyData.id}-deal`,
@@ -246,7 +249,7 @@ export default function DealPage() {
 
     try {
       // Update the company with new investment data
-      const updatedCompany = updateCompany(params.companyId as string, {
+      const updatedCompany = await updateCompany(params.companyId as string, {
         investment: {
           investment_amount: editForm.target_amount,
           valuation: editForm.target_valuation,
@@ -344,9 +347,6 @@ export default function DealPage() {
       </div>
     )
   }
-
-  // Get AI context from UnifiedAISystem
-  const aiContext = useAI()
 
   return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">

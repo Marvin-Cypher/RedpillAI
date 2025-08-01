@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Architecture Overview
 
 **RedPill VC CRM** - AI-powered venture capital platform with three-pillar architecture:
-1. **AG-UI Protocol** - Standardized AI agent communication
+1. **CopilotKit AI** - Modern AI interface with unified system integration
 2. **OpenBB Platform** - Professional financial data access
 3. **OpenProject** - Portfolio management and document workflow
 
@@ -123,13 +123,13 @@ npm run dev
 ### AI Integration Patterns
 - **Multi-Provider**: Redpill AI primary, OpenAI fallback, mock development mode
 - **Conversation System**: Project-specific contexts (deal/company/open) with unique chat_ids
-- **Research Agents**: VCAssistant orchestrates specialized research agents
-- **Real-time**: WebSocket support for streaming AI responses
+- **Unified AI System**: CopilotKit-powered context-aware AI interface
+- **Real-time**: Streaming AI responses via backend proxy
 
 ### Frontend Component Architecture
 ```
 components/
-├── ai/              # AI interface (EnhancedAIChat, AgenticChatInterface)
+├── ai/              # CopilotKit AI interface (UnifiedAISystem, CopilotSidebar, OpenResearchCanvas)
 ├── deals/           # Deal management (DealPipeline, StatusSelector)
 ├── project/         # Project details (ProjectDetail, DocumentUpload)
 ├── widgets/         # Dashboard widgets (TokenPriceWidget, KeyMetricsWidget, etc.)

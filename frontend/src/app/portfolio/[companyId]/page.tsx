@@ -12,8 +12,9 @@ import { ChatWithAIButton, ChatHistoryButton } from '@/components/ai'
 import { getDealStatusForCompany, subscribeToDealStatusChanges } from '@/lib/dealStatusSync'
 import { getCompanyById, updateCompany, getCompanyTicker, getCompanyAssetType } from '@/lib/companyDatabase'
 import { CustomizableDashboard } from '@/components/dashboard/CustomizableDashboard'
+import { WidgetManager } from '@/components/widgets/WidgetManager'
 import '@/components/widgets' // Auto-register widgets
-import { WidgetType } from '@/lib/widgets/types'
+import { WidgetType, Widget } from '@/lib/widgets/types'
 import { 
   ArrowLeft,
   TrendingUp,
@@ -35,7 +36,8 @@ import {
   Plus,
   Edit3,
   Save,
-  X
+  X,
+  Settings
 } from 'lucide-react'
 
 interface CompanyData {
@@ -108,6 +110,8 @@ export default function CompanyDetailPage() {
   const [currentDealStatus, setCurrentDealStatus] = useState<string>('due_diligence')
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState<Partial<CompanyData>>({})
+  const [dashboardWidgets, setDashboardWidgets] = useState<Widget[]>([])
+  const [showWidgetManager, setShowWidgetManager] = useState(false)
 
   useEffect(() => {
     // Load company from database
@@ -166,6 +170,45 @@ export default function CompanyDetailPage() {
             ]
           }
           setCompany(companyData)
+          
+          // Initialize default widgets
+          const assetType = getCompanyAssetType(companyData as any);
+          const defaultWidgets: Widget[] = [
+            {
+              id: 'key-metrics-default',
+              type: WidgetType.KEY_METRICS,
+              title: 'Key Performance Metrics',
+              config: {
+                companyName: companyData.name,
+                website: companyData.website,
+                show_trends: true,
+                metric_period: 'monthly'
+              },
+              position: { x: 0, y: 0, w: 6, h: 4 },
+              dataSource: {
+                asset_type: assetType,
+                ticker: getCompanyTicker(companyData as any) || companyData.name
+              },
+              isVisible: true
+            },
+            {
+              id: 'investment-summary-default',
+              type: WidgetType.INVESTMENT_SUMMARY,
+              title: 'Investment Summary',
+              config: {
+                companyName: companyData.name,
+                show_details: true,
+                currency_format: 'USD'
+              },
+              position: { x: 6, y: 0, w: 6, h: 3 },
+              dataSource: {
+                asset_type: assetType,
+                ticker: getCompanyTicker(companyData as any) || companyData.name
+              },
+              isVisible: true
+            }
+          ];
+          setDashboardWidgets(defaultWidgets);
         } else {
           // Company not found, redirect to dashboard
           console.error('Company not found:', params.companyId)
@@ -324,7 +367,7 @@ export default function CompanyDetailPage() {
     )
   }
 
-  if (!company) {
+  if (!company || !company.name) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
         <div className="max-w-7xl mx-auto text-center">
@@ -397,7 +440,7 @@ export default function CompanyDetailPage() {
           {/* Company Header */}
           <div className="flex items-start space-x-6">
             <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-2xl">
-              {company.name.charAt(0)}
+              {company.name?.charAt(0) || '?'}
             </div>
             <div className="flex-1">
               <div className="flex items-center space-x-4 mb-2">
@@ -409,7 +452,7 @@ export default function CompanyDetailPage() {
                     style={{ fontSize: '1.875rem', lineHeight: '2.25rem' }}
                   />
                 ) : (
-                  <h1 className="text-3xl font-bold text-gray-900">{company.name}</h1>
+                  <h1 className="text-3xl font-bold text-gray-900">{company.name || 'Company Name'}</h1>
                 )}
                 {isEditing ? (
                   <Input
@@ -501,6 +544,32 @@ export default function CompanyDetailPage() {
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
+        {/* Widget Management */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">Company Dashboard</h2>
+            <Button
+              variant="outline"
+              onClick={() => setShowWidgetManager(!showWidgetManager)}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              {showWidgetManager ? 'Hide' : 'Manage'} Widgets
+            </Button>
+          </div>
+
+          {showWidgetManager && (
+            <div className="mb-6">
+              <WidgetManager
+                widgets={dashboardWidgets}
+                onAddWidget={(widget) => setDashboardWidgets([...dashboardWidgets, widget])}
+                onRemoveWidget={(widgetId) => setDashboardWidgets(dashboardWidgets.filter(w => w.id !== widgetId))}
+                companyId={company.id}
+                companyName={company.name}
+              />
+            </div>
+          )}
+        </div>
+
         {/* Customizable Dashboard */}
         <div className="mb-8">
           <CustomizableDashboard
@@ -512,7 +581,7 @@ export default function CompanyDetailPage() {
               sector: company.sector,
               ticker: getCompanyTicker(company) || undefined
             }}
-            initialWidgets={(() => {
+            initialWidgets={dashboardWidgets.length > 0 ? dashboardWidgets : (() => {
               const assetType = getCompanyAssetType(company as any);
               const baseWidgets = [
                 {

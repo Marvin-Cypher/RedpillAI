@@ -192,41 +192,112 @@ export default function NewCompanyPage() {
 
     setIsLoading(true)
     try {
-      const newCompany = addCompany({
+      // First try to save to backend API (only fields that backend accepts)
+      const companyData = {
         name: formData.name,
-        domain: formData.domain,
         website: `https://${formData.domain}`,
         company_type: formData.company_type,
         sector: formData.sector || 'Technology',
-        stage: formData.stage || 'Unknown',
         founded_year: formData.founded_year,
-        headquarters: formData.headquarters,
-        description: formData.description || `${formData.name} is a company in the ${formData.sector} sector.`,
-        employee_count: enrichedData?.employee_count || 10,
-        funding_total: enrichedData?.funding_total || 0,
-        investment: enrichedData?.investment || {
-          round_type: formData.stage || 'Unknown',
-          investment_amount: 0,
-          valuation: 0,
-          ownership_percentage: 0,
-          investment_date: new Date().toISOString().split('T')[0],
-          lead_partner: 'TBD'
+        headquarters: `${formData.headquarters.city}, ${formData.headquarters.country}`,
+        description: formData.description || `${formData.name} is a company in the ${formData.sector || 'Technology'} sector.`,
+        employee_count: String(enrichedData?.employee_count || 10), // Convert to string
+        // Optional fields that backend accepts
+        token_symbol: enrichedData?.crypto_data?.symbol || null,
+        twitter_handle: null,
+        github_repo: null,
+        whitepaper_url: null,
+        logo_url: null
+      }
+
+      const response = await fetch('http://localhost:8000/api/v1/companies/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || 'demo_token'}`
         },
-        metrics: enrichedData?.metrics || {
-          revenue_current: 0,
-          revenue_growth: 0,
-          burn_rate: 0,
-          runway_months: 0,
-          employees: 0,
-          customers: 0,
-          arr: 0,
-          gross_margin: 0
-        },
-        deal_status: formData.deal_status,
-        priority: formData.priority
+        body: JSON.stringify(companyData)
       })
 
-      router.push(`/portfolio/${newCompany.id}`)
+      if (response.ok) {
+        const newCompany = await response.json()
+        console.log('✅ Company saved to backend:', newCompany)
+        
+        // Also save to localStorage as fallback
+        const localCompany = await addCompany({
+          name: formData.name,
+          domain: formData.domain,
+          website: `https://${formData.domain}`,
+          company_type: formData.company_type,
+          sector: formData.sector || 'Technology',
+          stage: formData.stage || 'Unknown',
+          founded_year: formData.founded_year,
+          headquarters: formData.headquarters,
+          description: formData.description || `${formData.name} is a company in the ${formData.sector} sector.`,
+          employee_count: enrichedData?.employee_count || 10,
+          funding_total: enrichedData?.funding_total || 0,
+          investment: enrichedData?.investment || {
+            round_type: formData.stage || 'Unknown',
+            investment_amount: 0,
+            valuation: 0,
+            ownership_percentage: 0,
+            investment_date: new Date().toISOString().split('T')[0],
+            lead_partner: 'TBD'
+          },
+          metrics: enrichedData?.metrics || {
+            revenue_current: 0,
+            revenue_growth: 0,
+            burn_rate: 0,
+            runway_months: 0,
+            employees: 0,
+            customers: 0,
+            arr: 0,
+            gross_margin: 0
+          },
+          deal_status: formData.deal_status,
+          priority: formData.priority
+        })
+
+        router.push(`/portfolio/${newCompany.id || localCompany.id}`)
+      } else {
+        // Fallback to localStorage only
+        console.warn('⚠️ Backend save failed, using localStorage only')
+        const newCompany = await addCompany({
+          name: formData.name,
+          domain: formData.domain,
+          website: `https://${formData.domain}`,
+          company_type: formData.company_type,
+          sector: formData.sector || 'Technology',
+          stage: formData.stage || 'Unknown',
+          founded_year: formData.founded_year,
+          headquarters: formData.headquarters,
+          description: formData.description || `${formData.name} is a company in the ${formData.sector} sector.`,
+          employee_count: enrichedData?.employee_count || 10,
+          funding_total: enrichedData?.funding_total || 0,
+          investment: enrichedData?.investment || {
+            round_type: formData.stage || 'Unknown',
+            investment_amount: 0,
+            valuation: 0,
+            ownership_percentage: 0,
+            investment_date: new Date().toISOString().split('T')[0],
+            lead_partner: 'TBD'
+          },
+          metrics: enrichedData?.metrics || {
+            revenue_current: 0,
+            revenue_growth: 0,
+            burn_rate: 0,
+            runway_months: 0,
+            employees: 0,
+            customers: 0,
+            arr: 0,
+            gross_margin: 0
+          },
+          deal_status: formData.deal_status,
+          priority: formData.priority
+        })
+
+        router.push(`/portfolio/${newCompany.id}`)
+      }
     } catch (error) {
       console.error('Error creating company:', error)
       alert('Failed to create company. Please try again.')

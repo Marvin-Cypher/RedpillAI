@@ -4,7 +4,7 @@
 
 **RedpillAI** is now a **complete AI-powered VC platform** built on three integrated pillars:
 
-- **🤖 Pillar 1: AG-UI Protocol** - Standardized AI agent management and workflows
+- **🤖 Pillar 1: CopilotKit AI** - Modern AI interface with unified system integration
 - **📊 Pillar 2: OpenBB Platform** - Professional financial data and market intelligence  
 - **🏢 Pillar 3: OpenProject** - Portfolio management and document collaboration
 
@@ -22,14 +22,14 @@ graph TB
         UI --> CTRL
     end
     
-    subgraph "Pillar 1: AG-UI Protocol 🤖"
-        AGUI[AG-UI Interface]
-        RA[Research Agent]
-        MA[Market Agent] 
-        RiA[Risk Agent]
-        AGUI --> RA
-        AGUI --> MA
-        AGUI --> RiA
+    subgraph "Pillar 1: CopilotKit AI 🤖"
+        CK[CopilotKit Interface]
+        UA[Unified AI System]
+        RC[Research Canvas] 
+        AS[AI Sidebar]
+        CK --> UA
+        UA --> RC
+        UA --> AS
     end
     
     subgraph "Pillar 2: OpenBB Platform 📊"
@@ -60,13 +60,13 @@ graph TB
         Bridge --> TPB
     end
     
-    CTRL --> AGUI
+    CTRL --> CK
     CTRL --> OBB
     CTRL --> OP
     
-    RA --> Bridge
-    MA --> Bridge
-    RiA --> Bridge
+    UA --> Bridge
+    RC --> Bridge
+    AS --> Bridge
     Bridge --> MD
     Bridge --> PM
     Bridge --> DM
@@ -76,40 +76,37 @@ graph TB
 
 ## 🔧 System Components Breakdown
 
-### 🤖 **Pillar 1: AG-UI Protocol** 
-*Standardized AI Agent Management*
+### 🤖 **Pillar 1: CopilotKit AI** 
+*Modern AI Interface with Unified System*
 
 #### **Components:**
-- **AG-UI Client** (`ag-ui-client.ts`): Event-driven agent communication
-- **Agent Interface** (`ag-ui-interface.tsx`): Slide-out agent management panel
-- **Agent-OpenBB Bridge** (`agent-openbb-bridge.ts`): Data integration layer
+- **CopilotKit Integration** (`CopilotSidebar.tsx`): Professional AI sidebar interface
+- **Unified AI System** (`UnifiedAISystem.tsx`): Global AI context provider
+- **Research Canvas** (`OpenResearchCanvas.tsx`): Advanced research workflow
+- **CopilotKit Proxy** (`/api/copilotkit/route.ts`): Backend AI integration
 
-#### **Available Agents:**
+#### **Current Implementation:**
 ```typescript
-const AGENTS = [
-  {
-    id: 'research-agent',
-    capabilities: ['due_diligence', 'competitive_analysis', 'team_research'],
-    framework: 'langgraph'
-  },
-  {
-    id: 'market-agent',
-    capabilities: ['price_analysis', 'technical_indicators', 'sentiment_analysis'], 
-    framework: 'crewai'
-  },
-  {
-    id: 'risk-agent',
-    capabilities: ['portfolio_risk', 'var_calculation', 'stress_testing'],
-    framework: 'pydantic'
-  }
-]
+// CopilotKit Integration
+interface AIContextType {
+  currentSession: AISession | null
+  isOpen: boolean
+  openAI: (options?: {
+    projectId?: string
+    projectType?: 'company' | 'deal' | 'open'
+    projectName?: string
+  }) => void
+  sendMessage: (message: string) => Promise<void>
+  sessions: AISession[]
+}
 ```
 
 #### **Key Features:**
-- ✅ **Real-time agent communication** via AG-UI Protocol
-- ✅ **Multi-framework support** (LangGraph, CrewAI, Pydantic AI)
-- ✅ **Task automation** with progress tracking
-- ✅ **Event-driven workflows** for seamless integration
+- ✅ **Unified AI Interface** across all components
+- ✅ **Context-Aware Sessions** with project awareness
+- ✅ **Research Approval Workflow** with memo saving
+- ✅ **Real-time Communication** via backend proxy
+- ✅ **Professional UI Components** with CopilotKit React integration
 
 ---
 
@@ -224,7 +221,7 @@ class ThreePillarBridge {
 
 #### **1. Due Diligence Workflow**
 ```
-User clicks "DD" → Research Agent + Market Agent + Risk Agent → 
+User clicks "DD" → Unified AI System → Research Canvas → 
 Real-time market data → Portfolio documents → Final DD report
 ```
 
@@ -236,7 +233,7 @@ Risk assessment → AI-generated investment memo → Portfolio storage
 
 #### **3. Status-Triggered Automation**
 ```
-Project status change → Automatic agent activation → 
+Project status change → AI context awareness → 
 Relevant analysis → Document generation → Team notification
 ```
 
@@ -256,7 +253,7 @@ Relevant analysis → Document generation → Team notification
 │                 │ └─────────────────────────────────────────┘ │
 │                 │                                           │
 │                 │ Active Module Display:                    │
-│                 │ • AI Agent Interface (slide-out)         │
+│                 │ • CopilotKit AI Interface (slide-out)    │
 │                 │ • OpenBB Financial Dataroom              │
 │                 │ • Portfolio Management Dashboard         │
 │                 │                                           │
@@ -291,10 +288,10 @@ const workflowId = await threePillarBridge.startDueDiligenceWorkflow(
   "Berachain"
 )
 
-// 3. Agents automatically execute:
-// - Research Agent: Company background, team analysis
-// - Market Agent: DeFi sector analysis, competitor comparison  
-// - Risk Agent: Portfolio fit, risk assessment
+// 3. AI system automatically executes:
+// - Company research: Background, team analysis
+// - Market analysis: DeFi sector, competitor comparison  
+// - Risk assessment: Portfolio fit, risk evaluation
 
 // 4. Results automatically saved to project documents
 // 5. Final investment memo generated and stored
@@ -372,18 +369,20 @@ const memoWorkflow = await threePillarBridge.startInvestmentMemoWorkflow(
 // React/Next.js Frontend Structure  
 /frontend/src/
 ├── components/
-│   ├── agents/
-│   │   └── ag-ui-interface.tsx      # Agent management panel
+│   ├── ai/
+│   │   ├── UnifiedAISystem.tsx        # CopilotKit AI context provider
+│   │   ├── CopilotSidebar.tsx         # CopilotKit sidebar interface
+│   │   └── OpenResearchCanvas.tsx     # Research workflow interface
 │   ├── dataroom/
-│   │   └── openbb-dataroom.tsx      # Financial dashboard
+│   │   └── openbb-dataroom.tsx        # Financial dashboard
 │   └── portfolio/
-│       └── portfolio-manager.tsx    # Portfolio management
+│       └── portfolio-manager.tsx      # Portfolio management
 ├── lib/
 │   ├── agents/
-│   │   └── ag-ui-client.ts          # Agent communication
+│   │   └── ag-ui-client.ts            # Mock AG-UI (legacy)
 │   └── integrations/
-│       ├── agent-openbb-bridge.ts   # Agent-data bridge
-│       └── three-pillar-bridge.ts   # Complete integration
+│       ├── agent-openbb-bridge.ts     # Agent-data bridge
+│       └── three-pillar-bridge.ts     # Complete integration
 └── app/
     └── page.tsx                     # Main dashboard
 ```
@@ -400,7 +399,7 @@ GOOGLE_API_KEY=your_google_key
 # Frontend Environment  
 NEXT_PUBLIC_OPENBB_API_URL=http://localhost:8000/api/v1/market
 NEXT_PUBLIC_PORTFOLIO_API_URL=http://localhost:8000/api/v1/portfolio
-NEXT_PUBLIC_AGUI_WS_URL=ws://localhost:8001/ag-ui
+NEXT_PUBLIC_COPILOTKIT_API_URL=http://localhost:3000/api/copilotkit
 ```
 
 ---
@@ -409,7 +408,7 @@ NEXT_PUBLIC_AGUI_WS_URL=ws://localhost:8001/ag-ui
 
 ### **🔀 Unified Platform Benefits:**
 - **Single Source of Truth**: All deal data, market intelligence, and workflows in one platform
-- **Automated Workflows**: AI agents work across all three pillars automatically  
+- **Automated Workflows**: Unified AI system works across all three pillars automatically  
 - **Real-time Intelligence**: Live market data informs investment decisions instantly
 - **Collaborative Documentation**: Shared project spaces with version control
 - **Professional Analytics**: Bloomberg-quality data with VC-specific metrics
@@ -473,11 +472,11 @@ NEXT_PUBLIC_AGUI_WS_URL=ws://localhost:8001/ag-ui
 
 ### **✅ Completed Deliverables:**
 
-1. **🤖 AG-UI Protocol Integration**
-   - ✅ Agent management interface with 3 specialized agents
-   - ✅ Event-driven communication system
-   - ✅ Real-time task tracking and progress updates
-   - ✅ Multi-framework support (LangGraph, CrewAI, Pydantic)
+1. **🤖 CopilotKit AI Integration**
+   - ✅ Unified AI system with context-aware sessions
+   - ✅ Professional CopilotKit sidebar interface
+   - ✅ Research Canvas with approval workflow
+   - ✅ Real-time AI communication via backend proxy
 
 2. **📊 OpenBB Platform Integration**  
    - ✅ Professional financial data dashboard
@@ -510,7 +509,7 @@ NEXT_PUBLIC_AGUI_WS_URL=ws://localhost:8001/ag-ui
 **RedpillAI now represents a complete, production-ready AI-powered VC platform** built on three integrated pillars:
 
 ### **🎯 What We've Built:**
-- **🤖 Standardized AI Agents** for research, analysis, and risk assessment
+- **🤖 Unified AI System** for research, analysis, and risk assessment
 - **📊 Professional Financial Data** with real-time market intelligence
 - **🏢 Comprehensive Portfolio Management** with collaborative workflows
 - **🔗 Seamless Integration Layer** connecting all three systems
@@ -525,7 +524,7 @@ NEXT_PUBLIC_AGUI_WS_URL=ws://localhost:8001/ag-ui
 
 ### **🎯 Platform Status:**
 - ✅ **Architecture**: Complete three-pillar modular design
-- ✅ **AI Integration**: Standardized agent communication via AG-UI
+- ✅ **AI Integration**: Modern CopilotKit-powered unified AI system
 - ✅ **Financial Data**: Professional-grade via OpenBB Platform  
 - ✅ **Portfolio Management**: VC-optimized via OpenProject
 - ✅ **User Interface**: Modern, responsive, and intuitive
@@ -533,6 +532,6 @@ NEXT_PUBLIC_AGUI_WS_URL=ws://localhost:8001/ag-ui
 
 ---
 
-**RedpillAI = AG-UI Protocol + OpenBB Platform + OpenProject + Custom Integration** 
+**RedpillAI = CopilotKit AI + OpenBB Platform + OpenProject + Custom Integration** 
 
 **The complete AI-powered VC platform is now operational!** 🚀🎯📈

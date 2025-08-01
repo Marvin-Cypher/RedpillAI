@@ -178,9 +178,9 @@ export default function PortfolioPage() {
 
   // Load companies from centralized database
   useEffect(() => {
-    const loadCompanies = () => {
+    const loadCompanies = async () => {
       try {
-        const companiesFromDb = getAllCompanies()
+        const companiesFromDb = await getAllCompanies()
         const portfolioCompanies: PortfolioCompany[] = companiesFromDb.map((company) => ({
           id: company.id,
           name: company.name,

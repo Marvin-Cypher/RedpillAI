@@ -55,7 +55,7 @@ Redpill VC is a secure, investor-focused AI platform engineered to elevate decis
 - **Pydantic** - Data validation and serialization
 
 ### AI & Integrations
-- **AG-UI Protocol** - Standardized agent communication system
+- **CopilotKit AI** - Modern AI interface with unified system integration
 - **OpenBB Platform** - Professional financial data with 350+ providers
 - **OpenProject API** - Portfolio and document management
 - **Three-Pillar Bridge** - Event-driven integration layer
@@ -184,7 +184,7 @@ If you encounter issues (wrong company data, 404 errors, etc.), see [TROUBLESHOO
 
 ### Three-Pillar Configuration
 The platform integrates three core systems:
-- **AG-UI Protocol**: Standardized agent communication and workflows
+- **CopilotKit AI**: Modern AI interface with unified system integration
 - **OpenBB Platform**: Professional financial data with 350+ providers
 - **OpenProject**: Portfolio management and document collaboration
 
@@ -213,13 +213,13 @@ RedpillAI/
 ```
 
 ### Key Components
-- **AgentInterface**: AG-UI Protocol agent management
+- **UnifiedAISystem**: CopilotKit AI context provider
 - **OpenBBDataroom**: Financial data and analytics dashboard
 - **PortfolioManager**: OpenProject integration interface
 - **ThreePillarBridge**: Cross-system workflow coordination
 
 ### Three-Pillar Architecture
-- **AG-UI Client**: Standardized agent communication
+- **CopilotKit Integration**: Modern AI interface with context-aware sessions
 - **OpenBB Service**: Professional financial data access
 - **OpenProject Service**: Portfolio and document management
 - **Event-Driven Bridge**: Integrated workflow automation
@@ -241,7 +241,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- [AG-UI Protocol](https://github.com/ag-ui-protocol/ag-ui) for standardized agent communication
+- [CopilotKit](https://copilotkit.ai) for modern AI interface integration
 - [OpenBB Platform](https://openbb.co) for professional financial data access
 - [OpenProject](https://openproject.org) for open-source portfolio management
 - [Shadcn/UI](https://ui.shadcn.com) for beautiful UI components

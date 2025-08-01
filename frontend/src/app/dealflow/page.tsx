@@ -151,9 +151,9 @@ export default function DealflowPage() {
 
   // Load companies and convert to deals format
   useEffect(() => {
-    const loadDeals = () => {
+    const loadDeals = async () => {
       try {
-        const companies = getAllCompanies()
+        const companies = await getAllCompanies()
         const dealsFromCompanies: Deal[] = companies.map((company) => ({
           id: company.id,
           company: {

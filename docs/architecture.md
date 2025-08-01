@@ -1,567 +1,351 @@
-# Redpill System Architecture
+# RedPill VC Three-Pillar Architecture
 
-## High-Level Architecture
+## High-Level Three-Pillar System
 
 ```mermaid
 graph TB
-    subgraph "Frontend (Next.js 14)"
-        UI[React Components]
-        Store[Zustand State]
-        WS[WebSocket Client]
+    subgraph "Frontend Interface"
+        UI[Dashboard Interface]
+        CTRL[Control Panel]
+        UI --> CTRL
     end
     
-    subgraph "Backend (FastAPI)"
-        API[REST API]
-        Auth[Authentication]
-        DB[PostgreSQL]
-        Redis[Redis Cache]
-        WSS[WebSocket Server]
+    subgraph "Pillar 1: CopilotKit AI 🤖"
+        CK[CopilotKit Interface]
+        UA[Unified AI System]
+        RC[Research Canvas] 
+        AS[AI Sidebar]
+        CK --> UA
+        UA --> RC
+        UA --> AS
     end
     
-    subgraph "AI Services"
-        Agents[Multi-Agent System]
-        RAG[Document Analysis]
-        Vector[Vector Database]
-        LLM[OpenAI/Claude]
+    subgraph "Pillar 2: OpenBB Platform 📊"
+        OBB[OpenBB Dataroom]
+        MD[Market Data]
+        TA[Technical Analysis]
+        PA[Portfolio Analytics]
+        OBB --> MD
+        OBB --> TA
+        OBB --> PA
     end
     
-    subgraph "External APIs"
-        CoinGecko[CoinGecko API]
-        Messari[Messari API]
-        Social[Social APIs]
-        Blockchain[Blockchain APIs]
+    subgraph "Pillar 3: OpenProject 🏢"
+        OP[Portfolio Manager]
+        PM[Project Management]
+        DM[Document Management]
+        WF[Workflow Automation]
+        OP --> PM
+        OP --> DM
+        OP --> WF
     end
     
-    subgraph "TEE Environment (Future)"
-        Enclave[Phala TEE Enclave]
-        Private[Private AI Instance]
+    subgraph "Integration Layer 🔗"
+        Bridge[Three-Pillar Bridge]
+        AOB[Agent-OpenBB Bridge]
+        TPB[Three-Pillar Bridge]
+        Bridge --> AOB
+        Bridge --> TPB
     end
     
-    UI --> API
-    UI --> WS
-    WS --> WSS
-    API --> DB
-    API --> Redis
-    API --> Agents
-    Agents --> RAG
-    RAG --> Vector
-    Agents --> LLM
-    API --> CoinGecko
-    API --> Messari
-    API --> Social
-    API --> Blockchain
+    CTRL --> CK
+    CTRL --> OBB
+    CTRL --> OP
     
-    Private --> Enclave
-    Agents -.-> Private
+    UA --> Bridge
+    RC --> Bridge
+    AS --> Bridge
+    Bridge --> MD
+    Bridge --> PM
+    Bridge --> DM
 ```
 
-## Technology Stack
+## Three-Pillar Technology Stack
 
-### Backend Core
-- **Framework**: FastAPI (Python 3.11+)
-- **Database**: PostgreSQL 15+ with JSON support
-- **ORM**: SQLModel (type-safe, async)
-- **Cache**: Redis 7+ (sessions, real-time data)
-- **Authentication**: Supabase Auth or Auth0
-- **WebSocket**: FastAPI native WebSocket support
+### Pillar 1: CopilotKit AI System
+- **Framework**: CopilotKit React integration
+- **Components**: Unified AI System, Research Canvas, AI Sidebar
+- **Integration**: React context with backend AI proxy
+- **Location**: `frontend/src/components/ai/`, `frontend/src/app/api/copilotkit/`
 
-### AI & ML Stack
-- **Multi-Agent Framework**: CrewAI or AutoGen
-- **LLM Providers**: OpenAI GPT-4, Anthropic Claude
-- **Vector Database**: Pinecone (managed) or Qdrant (self-hosted)
-- **Document Processing**: Unstructured.io + LangChain
-- **Embeddings**: OpenAI text-embedding-3-large
+### Pillar 2: OpenBB Platform (Financial Data)
+- **Service**: OpenBB Platform wrapper
+- **Data Sources**: 350+ financial data providers
+- **API**: RESTful endpoints for market data
+- **Location**: `backend/app/services/openbb_service.py`, `backend/app/api/market.py`
 
-### Frontend Stack
-- **Framework**: Next.js 14 (App Router)
-- **UI Library**: shadcn/ui + TailwindCSS
-- **State Management**: Zustand
-- **Data Fetching**: React Query (TanStack Query)
-- **Real-time**: WebSocket + Server-Sent Events
-- **Charts**: Recharts or Observable Plot
-- **Tables**: TanStack Table
+### Pillar 3: OpenProject (Portfolio Management)
+- **Service**: OpenProject API integration
+- **Features**: Project management, document collaboration
+- **API**: Portfolio and project management endpoints
+- **Location**: `backend/app/services/openproject_service.py`, `backend/app/api/portfolio.py`
 
-### Infrastructure
-- **Containerization**: Docker + Docker Compose
-- **Orchestration**: Kubernetes (production)
-- **File Storage**: AWS S3 or MinIO
-- **Monitoring**: Prometheus + Grafana
-- **Logging**: Structured logging with Loguru
-- **CI/CD**: GitHub Actions
+### Core Technology Stack
+- **Backend**: FastAPI + SQLModel + PostgreSQL + Redis + MinIO
+- **Frontend**: Next.js 14 + TypeScript + Tailwind + Shadcn/UI
+- **AI**: Dual provider (Redpill AI + OpenAI fallback) with specialized VC prompts
+- **Database**: SQLModel with type-safe operations, Alembic migrations
+- **Integration**: Three-Pillar Bridge system for cross-pillar communication
 
-## Data Architecture
+## Three-Pillar Data Architecture
 
-### Core Database Schema
+### Current Implementation Status
+- **Database**: SQLModel with type-safe operations
+- **Primary Data Sources**: Companies Database → CompanyDataCache → External APIs
+- **Caching**: Smart caching service with intelligent data retrieval
+- **Integration**: Cross-pillar data flow via Three-Pillar Bridge
 
-```sql
--- Companies and Deals
-companies (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    website VARCHAR(255),
-    sector VARCHAR(100),
-    stage investment_stage,
-    token_symbol VARCHAR(10),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
+### Core Database Models
 
-deals (
-    id UUID PRIMARY KEY,
-    company_id UUID REFERENCES companies(id),
-    status deal_status DEFAULT 'planned',
-    valuation BIGINT,
-    round_size BIGINT,
-    our_investment BIGINT,
-    our_target BIGINT,
-    probability INTEGER CHECK (probability >= 0 AND probability <= 100),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- AI Research and Conversations
-conversations (
-    id UUID PRIMARY KEY,
-    deal_id UUID REFERENCES deals(id),
-    user_id UUID NOT NULL,
-    message TEXT NOT NULL,
-    response TEXT,
-    context JSONB,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-research_memos (
-    id UUID PRIMARY KEY,
-    deal_id UUID REFERENCES deals(id),
-    content TEXT NOT NULL,
-    summary TEXT,
-    confidence_score INTEGER,
-    generated_at TIMESTAMP DEFAULT NOW(),
-    version INTEGER DEFAULT 1
-);
-
--- Document Management
-documents (
-    id UUID PRIMARY KEY,
-    deal_id UUID REFERENCES deals(id),
-    filename VARCHAR(255) NOT NULL,
-    file_path VARCHAR(500) NOT NULL,
-    document_type doc_type,
-    analysis_summary TEXT,
-    uploaded_at TIMESTAMP DEFAULT NOW(),
-    processed_at TIMESTAMP
-);
-
--- Portfolio and Performance
-portfolio_companies (
-    id UUID PRIMARY KEY,
-    deal_id UUID REFERENCES deals(id),
-    entry_date DATE NOT NULL,
-    entry_valuation BIGINT,
-    current_valuation BIGINT,
-    shares_owned BIGINT,
-    ownership_percentage DECIMAL(5,4),
-    status portfolio_status DEFAULT 'active'
-);
-
-performance_metrics (
-    id UUID PRIMARY KEY,
-    portfolio_id UUID REFERENCES portfolio_companies(id),
-    metric_type metric_type,
-    value DECIMAL(15,2),
-    period_start DATE,
-    period_end DATE,
-    recorded_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-### Vector Database Schema (Pinecone/Qdrant)
-
+#### Companies & Portfolio Data
 ```python
-# Document embeddings structure
-{
-    "id": "doc_chunk_123",
-    "vector": [0.1, 0.2, ...],  # 1536-dim embedding
-    "metadata": {
-        "deal_id": "uuid",
-        "document_type": "pitch_deck",
-        "chunk_index": 0,
-        "source_page": 1,
-        "content": "text content",
-        "timestamp": "2024-01-01T00:00:00Z"
-    }
+# backend/app/models/companies.py
+class Company(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(max_length=255)
+    description: Optional[str] = None
+    website: Optional[str] = None
+    sector: Optional[str] = None
+    company_type: Optional[str] = None
+    token_symbol: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+```
+
+#### Deal Pipeline Management
+```python
+# backend/app/models/deals.py
+class Deal(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    company_id: int = Field(foreign_key="company.id")
+    status: DealStatus = Field(default=DealStatus.PLANNED)
+    valuation: Optional[int] = None
+    investment_amount: Optional[int] = None
+    probability: Optional[int] = Field(ge=0, le=100)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+```
+
+#### AI Conversations & Research
+```python
+# backend/app/models/conversations.py
+class Conversation(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    deal_id: Optional[int] = Field(foreign_key="deal.id")
+    company_id: Optional[int] = Field(foreign_key="company.id")
+    chat_id: str = Field(unique=True)
+    context_type: str  # "deal", "company", "open"
+    messages: List[Dict] = Field(default_factory=list, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+```
+
+## Three-Pillar Integration Architecture
+
+### Cross-Pillar Communication
+```typescript
+// frontend/src/lib/integrations/three-pillar-bridge.ts
+class ThreePillarBridge {
+  // Workflow orchestration
+  async startDueDiligenceWorkflow(projectId: string)
+  async startInvestmentMemoWorkflow(projectId: string)
+  
+  // Cross-pillar data flow
+  handleResearchComplete() // Agent → Portfolio document
+  handleMarketUpdate()     // OpenBB → Portfolio context
+  handleProjectStatusChange() // Portfolio → Agent triggers
+  
+  // Integrated analytics
+  async getPortfolioAnalytics() // Combined financial + project data
+  async getDealPipeline()      // Projects with market context
 }
 ```
 
-## AI Agent Architecture
-
-### Multi-Agent System Design
-
-```python
-from crewai import Agent, Task, Crew
-
-# Market Research Agent
-market_analyst = Agent(
-    role="Crypto Market Research Analyst",
-    goal="Analyze market size, competitive landscape, and growth trends",
-    backstory="Expert in crypto markets with 10+ years of experience",
-    tools=[
-        WebSearchTool(),
-        CoinGeckoTool(),
-        MessariTool(),
-        TwitterSentimentTool()
-    ],
-    memory=True,
-    verbose=True
-)
-
-# Technical Analysis Agent  
-tech_analyst = Agent(
-    role="Blockchain Technical Analyst",
-    goal="Evaluate technical architecture, security, and development activity",
-    backstory="Senior blockchain engineer with security expertise",
-    tools=[
-        GitHubAnalysisTool(),
-        SmartContractAuditor(),
-        TechnicalDocumentAnalyzer()
-    ],
-    memory=True,
-    verbose=True
-)
-
-# Financial Modeling Agent
-financial_analyst = Agent(
-    role="Venture Capital Financial Analyst", 
-    goal="Build financial models and valuation frameworks",
-    backstory="Former Goldman Sachs analyst specializing in VC investments",
-    tools=[
-        FinancialModelingTool(),
-        ComparablesAnalysis(),
-        PortfolioTracker()
-    ],
-    memory=True,
-    verbose=True
-)
-
-# Research Coordination
-research_crew = Crew(
-    agents=[market_analyst, tech_analyst, financial_analyst],
-    tasks=[
-        market_analysis_task,
-        technical_review_task, 
-        financial_modeling_task,
-        synthesis_task
-    ],
-    process=Process.sequential,
-    memory=True,
-    cache=True
-)
+### CopilotKit AI System
+```typescript
+// frontend/src/components/ai/UnifiedAISystem.tsx
+interface AIContextType {
+  currentSession: AISession | null
+  isOpen: boolean
+  openAI: (options?: {
+    projectId?: string
+    projectType?: 'company' | 'deal' | 'open'
+    projectName?: string
+    mode?: 'sidebar' | 'fullscreen'
+  }) => void
+  sendMessage: (message: string) => Promise<void>
+  sessions: AISession[]
+}
 ```
 
-### RAG System Architecture
+```typescript
+// frontend/src/app/api/copilotkit/route.ts  
+// CopilotKit proxy to backend AI endpoint
+export async function POST(req: NextRequest) {
+  const backendResponse = await fetch('http://localhost:8000/api/v1/chat/ai-chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message,
+      project_id: body.project_id,
+      project_type: body.project_type
+    })
+  })
+}
+```
+
+### Current AI Integration
+
+The system currently uses a unified AI system with dual provider support:
 
 ```python
-class DocumentAnalysisEngine:
+# backend/app/services/ai_service.py
+class AIService:
     def __init__(self):
-        self.embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
-        self.vectorstore = PineconeVectorStore(
-            index_name="redpill-documents",
-            embedding=self.embeddings
-        )
-        self.llm = ChatOpenAI(model="gpt-4-turbo-preview")
+        self.redpill_provider = RedpillProvider()
+        self.openai_provider = OpenAIProvider()
+        self.fallback_chain = [self.redpill_provider, self.openai_provider]
+    
+    async def process_conversation(self, messages: List[Dict], context: Dict):
+        """Process conversation with automatic provider fallback"""
+        for provider in self.fallback_chain:
+            try:
+                response = await provider.chat_completion(messages, context)
+                return response
+            except Exception as e:
+                continue
         
-    async def process_document(self, file_path: str, deal_id: str):
-        # Load and parse document
-        loader = UnstructuredFileLoader(file_path)
-        documents = await loader.aload()
-        
-        # Split into chunks with overlap
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
-            separators=["\n\n", "\n", ".", "!", "?", ",", " ", ""]
-        )
-        chunks = text_splitter.split_documents(documents)
-        
-        # Add metadata
-        for i, chunk in enumerate(chunks):
-            chunk.metadata.update({
-                "deal_id": deal_id,
-                "chunk_index": i,
-                "document_type": self._detect_document_type(file_path),
-                "timestamp": datetime.utcnow().isoformat()
-            })
-        
-        # Store embeddings
-        await self.vectorstore.aadd_documents(chunks)
-        
-        # Generate initial analysis
-        analysis = await self._generate_document_analysis(chunks, deal_id)
-        return analysis
-        
-    async def query_documents(self, query: str, deal_id: str, top_k: int = 5):
-        # Semantic search within deal context
-        results = await self.vectorstore.asimilarity_search(
-            query,
-            k=top_k,
-            filter={"deal_id": deal_id}
-        )
-        
-        # Generate contextual response
-        context = "\n".join([doc.page_content for doc in results])
-        response = await self.llm.ainvoke([
-            SystemMessage(content="You are a VC research assistant analyzing documents."),
-            HumanMessage(content=f"Based on this context: {context}\n\nAnswer: {query}")
-        ])
-        
-        return response.content, results
+        # Mock response if all providers fail (development)
+        return self._generate_mock_response(messages[-1])
 ```
 
-## API Design
+## Current API Structure
 
-### RESTful Endpoints
+### Three-Pillar API Endpoints
 
 ```python
-from fastapi import FastAPI, Depends, BackgroundTasks
-from sqlmodel import Session
-
-app = FastAPI(title="Redpill VC CRM API", version="1.0.0")
-
-# Deal Management
-@app.post("/api/v1/deals/", response_model=Deal)
-async def create_deal(deal: DealCreate, db: Session = Depends(get_db)):
-    """Create new investment opportunity"""
-    
-@app.get("/api/v1/deals/", response_model=List[Deal])
-async def list_deals(
-    status: Optional[DealStatus] = None,
-    sector: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    """List deals with filtering"""
-
-@app.put("/api/v1/deals/{deal_id}/status")
-async def update_deal_status(
-    deal_id: UUID, 
-    status: DealStatus,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
-):
-    """Update deal status and trigger AI workflows"""
-    # Update database
-    # Trigger background AI analysis
-    # Send real-time notifications
-
-# AI Research
-@app.post("/api/v1/deals/{deal_id}/chat")
-async def chat_with_ai(
-    deal_id: UUID,
-    message: ChatMessage,
-    db: Session = Depends(get_db)
-):
-    """Context-aware AI chat for specific deal"""
-    
-@app.post("/api/v1/deals/{deal_id}/documents")
-async def upload_document(
-    deal_id: UUID,
-    file: UploadFile,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
-):
-    """Upload and analyze documents"""
-    
-@app.get("/api/v1/deals/{deal_id}/research-memo")
-async def get_research_memo(deal_id: UUID, db: Session = Depends(get_db)):
-    """Get AI-generated research memo"""
-
-# Portfolio Management
-@app.get("/api/v1/portfolio/", response_model=List[PortfolioCompany])
-async def list_portfolio(db: Session = Depends(get_db)):
-    """Get portfolio companies with performance metrics"""
-    
-@app.get("/api/v1/portfolio/{company_id}/performance")
-async def get_performance_metrics(
-    company_id: UUID,
-    period: str = "6m",
-    db: Session = Depends(get_db)
-):
-    """Get detailed performance metrics"""
+# Current API structure (backend/app/main.py)
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(companies.router, prefix="/api/v1/companies", tags=["companies"])
+app.include_router(deals.router, prefix="/api/v1/deals", tags=["deals"])
+app.include_router(ai_chat.router, prefix="/api/v1/chat", tags=["ai"])
+app.include_router(market.router, prefix="/api/v1/market", tags=["market"])  # OpenBB Pillar
+app.include_router(portfolio.router, prefix="/api/v1/portfolio", tags=["portfolio"])  # OpenProject Pillar
+app.include_router(data_router, prefix="/api/v1/data", tags=["data"])  # Cost-optimized data service
+app.include_router(workflows.router, prefix="/api/v1/workflows", tags=["workflows"])
 ```
 
-### WebSocket Events
+### Key Endpoints by Pillar
 
-```python
-from fastapi import WebSocket
-import json
-
-@app.websocket("/ws/{deal_id}")
-async def websocket_endpoint(websocket: WebSocket, deal_id: UUID):
-    await websocket.accept()
-    
-    try:
-        while True:
-            # Listen for messages
-            data = await websocket.receive_text()
-            message = json.loads(data)
-            
-            if message["type"] == "chat_message":
-                # Process AI chat
-                response = await ai_research_service.process_message(
-                    message["content"], 
-                    deal_id
-                )
-                await websocket.send_json({
-                    "type": "ai_response",
-                    "content": response,
-                    "timestamp": datetime.utcnow().isoformat()
-                })
-                
-            elif message["type"] == "status_update":
-                # Broadcast status changes
-                await websocket.send_json({
-                    "type": "status_changed",
-                    "deal_id": str(deal_id),
-                    "new_status": message["status"]
-                })
-                
-    except WebSocketDisconnect:
-        # Handle disconnect
-        pass
+#### Pillar 1: CopilotKit AI System
+```bash
+POST /api/copilotkit/                 # CopilotKit proxy endpoint
+POST /api/v1/chat/                    # Backend AI chat endpoint
+GET  /api/v1/chat/debug/{chat_id}     # Debug chat sessions
+GET  /api/v1/chat/conversations       # List conversations
 ```
 
-## Security Architecture
-
-### Authentication & Authorization
-
-```python
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer
-import jwt
-
-security = HTTPBearer()
-
-async def get_current_user(token: str = Depends(security)):
-    try:
-        payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=["HS256"])
-        user_id = payload.get("sub")
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        return user_id
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-# Role-based access control
-def require_role(required_role: str):
-    def role_checker(current_user=Depends(get_current_user)):
-        if current_user.role != required_role:
-            raise HTTPException(status_code=403, detail="Insufficient permissions")
-        return current_user
-    return role_checker
+#### Pillar 2: OpenBB Platform (Financial Data)
+```bash
+GET  /api/v1/market/health            # System health check
+GET  /api/v1/market/crypto/{symbol}/price       # Live crypto prices
+GET  /api/v1/market/crypto/{symbol}/historical  # Historical data
+GET  /api/v1/market/news              # Financial news
 ```
 
-### Data Encryption
+#### Pillar 3: OpenProject (Portfolio Management)
+```bash
+GET  /api/v1/portfolio/projects       # List portfolio projects
+POST /api/v1/portfolio/projects       # Create new project
+GET  /api/v1/portfolio/pipeline       # Deal pipeline view
+GET  /api/v1/portfolio/analytics      # Portfolio analytics
+```
 
-```python
-from cryptography.fernet import Fernet
+#### Core Data Services
+```bash
+GET  /api/v1/data/companies/{name}/profile     # Company profile data
+GET  /api/v1/companies/                        # Company CRUD operations
+GET  /api/v1/deals/                           # Deal management
+GET  /api/v1/workflows/summary                # Workflow statistics
+```
 
-class EncryptionService:
-    def __init__(self, key: bytes):
-        self.cipher = Fernet(key)
-    
-    def encrypt_sensitive_data(self, data: str) -> str:
-        """Encrypt sensitive information like API keys"""
-        return self.cipher.encrypt(data.encode()).decode()
-    
-    def decrypt_sensitive_data(self, encrypted_data: str) -> str:
-        """Decrypt sensitive information"""
-        return self.cipher.decrypt(encrypted_data.encode()).decode()
+## Frontend Architecture
+
+### Three-Pillar Frontend Components
+
+#### CopilotKit Integration
+```typescript
+// frontend/src/components/ai/UnifiedAISystem.tsx
+// Core AI context provider with global state management
+// Unified system using CopilotKit for seamless AI integration
+
+// frontend/src/components/ai/CopilotSidebar.tsx
+// CopilotKit sidebar component with project context
+// Professional AI assistant interface
+
+// frontend/src/components/ai/OpenResearchCanvas.tsx  
+// Research interface with approval workflow
+// Advanced research capabilities with memo saving
+```
+
+#### Widget System
+```typescript
+// frontend/src/components/widgets/
+// Dashboard widgets with BaseWidget wrapper
+// Integrated with cost-optimized data service
+// Real-time updates and caching support
+```
+
+#### Deal Pipeline
+```typescript
+// frontend/src/components/deals/DealPipeline.tsx
+// Kanban-style deal tracking
+// Status management with real-time sync
 ```
 
 ## Deployment Architecture
 
-### Development Environment
+### Current Development Setup
+```bash
+# Backend (FastAPI)
+cd backend
+uvicorn app.main:app --reload --port 8000
 
+# Frontend (Next.js)  
+cd frontend
+npm run dev  # Port 3000
+
+# Database: SQLite (development)
+# Cache: Local storage and in-memory
+```
+
+### Production Configuration
 ```yaml
-# docker-compose.yml
+# docker-compose.yml (available)
 version: '3.8'
 services:
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: redpill
-      POSTGRES_USER: redpill
-      POSTGRES_PASSWORD: dev_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-  backend:
-    build: ./backend
-    ports:
-      - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql://redpill:dev_password@postgres:5432/redpill
-      REDIS_URL: redis://redis:6379
-    depends_on:
-      - postgres
-      - redis
-    volumes:
-      - ./backend:/app
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
-    volumes:
-      - ./frontend:/app
-
-volumes:
-  postgres_data:
+  postgres:     # PostgreSQL database
+  redis:        # Cache and sessions  
+  backend:      # FastAPI application
+  frontend:     # Next.js application
 ```
 
-### Production Kubernetes
+## Data Flow Summary
 
-```yaml
-# k8s/deployment.yml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: redpill-backend
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: redpill-backend
-  template:
-    metadata:
-      labels:
-        app: redpill-backend
-    spec:
-      containers:
-      - name: backend
-        image: redpill/backend:latest
-        ports:
-        - containerPort: 8000
-        env:
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: redpill-secrets
-              key: database-url
-        - name: OPENAI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: redpill-secrets
-              key: openai-api-key
-```
+### Three-Pillar Data Flow
+1. **Widget/UI Request** → Frontend calls API
+2. **Backend Processing** → Three-pillar service coordination
+3. **Data Sources** → Companies DB → Cache → External APIs  
+4. **Response** → Structured data returned to frontend
+5. **Real-time Updates** → WebSocket and polling for live data
 
-This architecture provides a solid foundation for building Redpill as a scalable, maintainable, and secure VC CRM platform with advanced AI capabilities.
+### Key Integration Points
+- **CopilotKit Bridge**: Connects frontend AI to backend services
+- **Three-Pillar Bridge**: Orchestrates cross-pillar workflows
+- **Smart Caching**: Intelligent data retrieval and caching
+- **Unified AI System**: Single CopilotKit-powered interface across all components
+
+---
+
+**Architecture Status**: Updated to reflect current three-pillar implementation  
+**Last Updated**: 2025-08-01  
+**Version**: Three-Pillar Architecture v1.0

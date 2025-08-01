@@ -1,14 +1,14 @@
 # 🤖 AI Chat System Architecture
-**Technical Deep-Dive: Unified AI Chat Implementation**
+**Technical Deep-Dive: CopilotKit-Powered Unified AI System**
 
 ## 🎯 System Overview
 
-The unified AI chat system replaces multiple fragmented AI interfaces with a single, consistent architecture that provides:
-- **Unified User Experience**: Same interface across all pages
-- **Context Awareness**: Project-specific AI assistance
-- **Real-time Communication**: Instant AI responses with typing indicators
-- **Persistent Sessions**: Chat history and memo saving
-- **Debugging Support**: Comprehensive logging for troubleshooting
+The CopilotKit-powered unified AI system provides a modern, React-native AI interface that delivers:
+- **CopilotKit Integration**: Professional AI sidebar and components
+- **Context Awareness**: Project-specific AI assistance with memory
+- **Real-time Communication**: Streaming AI responses via backend proxy
+- **Persistent Sessions**: Chat history and research memo saving
+- **Research Canvas**: Advanced research workflow with approval system
 
 ## 🏗️ Architecture Diagram
 
@@ -207,8 +207,9 @@ export function AIResearchButton({ topic, ...props }) {
 
 ### API Endpoint Architecture
 
-**File**: `backend/app/api/ai_chat.py`
-**Endpoint**: `POST /api/v1/chat/ai-chat`
+**Files**: 
+- `frontend/src/app/api/copilotkit/route.ts` - CopilotKit proxy endpoint
+- `backend/app/api/ai_chat.py` - Backend AI chat endpoint
 
 ```python
 @router.post("/chat")
@@ -507,6 +508,6 @@ interface StreamingAIResponse {
 
 ---
 
-**Document Status**: Complete technical architecture documentation
-**Last Updated**: January 2025  
-**Validation**: All code examples tested and functional
+**Document Status**: Updated for CopilotKit architecture
+**Last Updated**: August 2025  
+**Validation**: All code examples reflect current CopilotKit implementation

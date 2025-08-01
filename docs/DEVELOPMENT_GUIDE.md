@@ -6,8 +6,8 @@ RedpillAI is built on a **Three-Pillar Architecture** that combines three specia
 
 ```
 ┌─────────────────┬─────────────────┬─────────────────┐
-│   🤖 AG-UI      │   📊 OpenBB     │   🏢 OpenProject │
-│   Protocol      │   Platform      │   Portfolio     │
+│   🤖 CopilotKit  │   📊 OpenBB     │   🏢 OpenProject │
+│   AI Interface   │   Platform      │   Portfolio     │
 │                 │                 │   Manager       │
 └─────────────────┴─────────────────┴─────────────────┘
          │                │                 │
@@ -56,20 +56,21 @@ npm run dev
 
 ## 🏗️ Three-Pillar Development
 
-### 🤖 Pillar 1: AG-UI Protocol (AI Agents)
+### 🤖 Pillar 1: CopilotKit AI (AI Interface)
 
-**Location**: `frontend/src/lib/agents/`
+**Location**: `frontend/src/components/ai/`
 
 **Key Files**:
-- `ag-ui-client.ts` - Agent communication client
-- `three-pillar-bridge.ts` - Cross-pillar integration
-- `frontend/src/components/agents/` - Agent interface components
+- `UnifiedAISystem.tsx` - AI context provider
+- `CopilotSidebar.tsx` - CopilotKit interface
+- `OpenResearchCanvas.tsx` - Research workflow
+- `frontend/src/app/api/copilotkit/route.ts` - Backend proxy
 
 **Development**:
 ```bash
-# Test agent communication
-curl -X POST http://localhost:3000/api/agents/research \
-  -d '{"query": "Research Company X", "context": {"project_id": "123"}}'
+# Test AI chat endpoint
+curl -X POST http://localhost:8000/api/v1/chat/ai-chat \
+  -d '{"message": "Research Company X", "project_id": "123"}'
 ```
 
 ### 📊 Pillar 2: OpenBB Platform (Financial Data)
@@ -144,9 +145,9 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ### Test All Pillars
 ```bash
-# 1. Test AG-UI Agents
-curl -X POST http://localhost:3000/api/agents/research \
-  -d '{"query": "Research LayerZero protocol", "context": {"project_id": "test"}}'
+# 1. Test CopilotKit AI
+curl -X POST http://localhost:8000/api/v1/chat/ai-chat \
+  -d '{"message": "Research LayerZero protocol", "project_id": "test"}'
 
 # 2. Test OpenBB Financial Data
 curl http://localhost:8000/api/v1/market/crypto/BTC/price
@@ -169,11 +170,11 @@ redpill-project/
 ├── frontend/                    # Next.js frontend
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── agents/         # AG-UI agent interface
+│   │   │   ├── ai/             # CopilotKit AI interface
 │   │   │   ├── openbb/         # Financial data components  
 │   │   │   └── portfolio/      # Portfolio management UI
 │   │   └── lib/
-│   │       ├── agents/         # AG-UI client
+│   │       ├── agents/         # Mock AG-UI (legacy)
 │   │       └── integrations/   # Three-pillar bridge
 ├── backend/                     # FastAPI backend
 │   ├── app/
@@ -189,16 +190,16 @@ redpill-project/
 
 ## 🔄 Common Development Tasks
 
-### Add New Agent Type
+### Add New AI Feature
 ```bash
-# 1. Define agent in frontend
-touch frontend/src/lib/agents/new-agent.ts
+# 1. Extend AI context
+# Edit: frontend/src/components/ai/UnifiedAISystem.tsx
 
-# 2. Add agent interface component
-touch frontend/src/components/agents/new-agent-interface.tsx
+# 2. Add AI interface component
+touch frontend/src/components/ai/new-ai-feature.tsx
 
-# 3. Register in AG-UI client
-# Edit: frontend/src/lib/agents/ag-ui-client.ts
+# 3. Update backend chat endpoint
+# Edit: backend/app/api/ai_chat.py
 ```
 
 ### Add New Financial Data Provider
@@ -275,7 +276,7 @@ docker-compose up -d
 
 - **Architecture**: `THREE_PILLAR_ARCHITECTURE_COMPLETE.md`
 - **API Documentation**: http://localhost:8000/docs
-- **AG-UI Protocol**: https://github.com/ag-ui-protocol/ag-ui
+- **CopilotKit**: https://copilotkit.ai
 - **OpenBB Platform**: https://docs.openbb.co
 - **OpenProject**: https://docs.openproject.org
 
