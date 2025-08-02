@@ -5,14 +5,48 @@
 
 import { Widget, PriceData, FundamentalData, NewsItem, ComparisonData } from './types';
 import { apiClient as centralApiClient } from '@/lib/api';
+import { getCompanyCategory } from '@/lib/companyDatabase';
 
-const API_BASE = '/api/v1/market';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ? 
+  `${process.env.NEXT_PUBLIC_API_URL}/api/v1/market` : 
+  'http://localhost:8000/api/v1/market';
 
-// Widget-specific API client using the centralized apiClient
+// Generate realistic news URLs based on source
+const generateNewsUrl = (company: string, title: string, source: string): string => {
+  // Create search terms from company name and key words from title
+  const companyTerm = company.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '+');
+  const titleTerms = title.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(' ')
+    .filter(word => word.length > 3) // Filter out small words
+    .slice(0, 3) // Take first 3 meaningful words
+    .join('+');
+  
+  const searchQuery = `${companyTerm}+${titleTerms}`;
+  
+  const sourceUrls: Record<string, string> = {
+    'Reuters': `https://www.reuters.com/search/news?query=${searchQuery}`,
+    'Bloomberg': `https://www.bloomberg.com/search?query=${searchQuery}`,
+    'CoinDesk': `https://www.coindesk.com/search?query=${searchQuery}`,
+    'The Block': `https://www.theblock.co/search?query=${searchQuery}`,
+    'CoinTelegraph': `https://cointelegraph.com/search?query=${searchQuery}`,
+    'TechCrunch': `https://search.techcrunch.com/search;?query=${searchQuery}`,
+    'WSJ': `https://www.wsj.com/search?query=${searchQuery}`,
+    'CNBC': `https://www.cnbc.com/search/?query=${searchQuery}`
+  };
+  
+  return sourceUrls[source] || `https://news.google.com/search?q=${searchQuery}`;
+};
+
+// Widget-specific API client for market data (no auth required)
 class WidgetApiClient {
   private async request<T>(endpoint: string): Promise<T> {
     try {
-      return await centralApiClient.get<T>(`${API_BASE}${endpoint}`);
+      const response = await fetch(`${API_BASE}${endpoint}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return await response.json();
     } catch (error) {
       console.warn(`Failed to fetch from ${endpoint}:`, error);
       throw error;
@@ -120,72 +154,180 @@ export const widgetDataFetchers = {
 
   fundamentals: async (widget: Widget, companyId: string) => {
     const companyName = widget.config.companyName;
+    const ticker = widget.dataSource.ticker;
     const website = widget.config.website;
     
-    console.log('🏢 Fundamentals widget data fetch:', { companyName, companyId });
+    console.log('🏢 Fundamentals widget data fetch:', { companyName, companyId, ticker });
     
     if (!companyName) {
       console.error('No company name provided to fundamentals widget');
       throw new Error('Company name is required for fundamentals widget');
     }
     
-    // Fetch from centralized company database
     try {
-      console.log('📡 Fetching company fundamentals from backend...');
-      const response = await fetch(`http://localhost:8000/api/v1/data/companies/${encodeURIComponent(companyName)}/profile?${website ? `website=${encodeURIComponent(website)}` : ''}`);
+      // First, get company information from database to determine type
+      console.log('📡 Fetching company info to determine type...');
+      const response = await fetch(`http://localhost:8000/api/v1/data/companies/${encodeURIComponent(companyId)}/profile?${website ? `website=${encodeURIComponent(website)}` : ''}`);
       
-      if (response.ok) {
-        const result = await response.json();
-        const companyData = result.data;
-        
-        console.log(`✅ Fundamentals data fetched for ${companyName}:`, companyData);
-        
-        // Return the full company data so FundamentalsWidget can access everything
-        return {
-          ...companyData,
-          // Ensure we include the source info for debugging
-          data_source: result.source,
-          cached: result.cached,
-          cost: result.cost
-        };
-      } else {
+      if (!response.ok) {
         console.error(`❌ API request failed for ${companyName}: ${response.status} ${response.statusText}`);
         throw new Error(`API Error: ${response.status} ${response.statusText}`);
       }
+      
+      const result = await response.json();
+      const companyData = result.data;
+      
+      // Determine company type from backend data or widget config
+      let companyType: 'public' | 'crypto' | 'private' = 'private'; // default
+      
+      // Check if backend returned company_type
+      if (companyData.company_type) {
+        companyType = companyData.company_type.toLowerCase() as 'public' | 'crypto' | 'private';
+      } else {
+        // Fallback to categorization logic
+        const mockCompany = {
+          name: companyData.name,
+          company_type: companyData.company_type,
+          sector: companyData.industry || '',
+          employee_count: parseInt(companyData.employee_count?.replace(/[^0-9]/g, '') || '0'),
+          metrics: companyData.key_metrics
+        };
+        companyType = getCompanyCategory(mockCompany as any);
+      }
+      
+      console.log(`🏷️ Determined company type: ${companyType} for ${companyName}`);
+      
+      // Route data fetching based on company type
+      if (companyType === 'public' && ticker) {
+        console.log('📊 Fetching PUBLIC company fundamentals from market API...');
+        try {
+          const fundamentalsData = await widgetApiClient.getEquityFundamentals(ticker);
+          console.log(`✅ Market fundamentals data fetched for ${ticker}:`, fundamentalsData);
+          return {
+            ...fundamentalsData,
+            company_category: 'public',
+            data_source: 'market_api'
+          };
+        } catch (marketError) {
+          console.warn(`⚠️ Market API failed for ${ticker}, falling back to company database:`, marketError);
+        }
+      }
+      
+      if (companyType === 'crypto') {
+        console.log('🪙 Using CRYPTO company fundamentals from database...');
+        // For crypto companies, transform crypto_data if available
+        const cryptoData = companyData.crypto_data;
+        if (cryptoData) {
+          return {
+            symbol: cryptoData.symbol || ticker || companyName,
+            name: companyData.name,
+            market_cap: cryptoData.market_cap || 0,
+            pe_ratio: null, // Not applicable for crypto
+            revenue_ttm: null, // Not applicable for crypto
+            gross_margin: null,
+            profit_margin: null,
+            debt_ratio: null,
+            price_to_book: null,
+            dividend_yield: null,
+            current_price: cryptoData.current_price,
+            price_change_24h: cryptoData.price_change_percentage_24h,
+            volume_24h: cryptoData.volume_24h,
+            circulating_supply: cryptoData.circulating_supply,
+            employee_count: companyData.employee_count,
+            founded_year: companyData.founded_year,
+            industry: companyData.industry,
+            company_category: 'crypto',
+            data_source: result.source
+          };
+        }
+      }
+      
+      // For private companies or fallback, use company database
+      console.log('🏢 Using PRIVATE company fundamentals from database...');
+      return {
+        symbol: ticker || companyName,
+        name: companyData.name,
+        market_cap: companyData.key_metrics?.valuation || 0,
+        pe_ratio: null, // Not available for private companies
+        revenue_ttm: companyData.key_metrics?.revenue || 0,
+        gross_margin: (companyData.key_metrics?.gross_margin || 0) / 100,
+        profit_margin: null, // Calculate if needed
+        debt_ratio: null, // Not available for private companies
+        price_to_book: null, // Not available for private companies
+        dividend_yield: null, // Not available for private companies
+        employee_count: companyData.employee_count,
+        founded_year: companyData.founded_year,
+        industry: companyData.industry,
+        funding_total: companyData.total_funding,
+        burn_rate: companyData.key_metrics?.burn_rate,
+        runway_months: companyData.key_metrics?.runway,
+        company_category: companyType,
+        data_source: result.source,
+        cached: result.cached,
+        cost: result.cost
+      };
+      
     } catch (error) {
       console.warn(`⚠️ Failed to fetch fundamentals for ${companyName}, using fallback:`, error);
       
       // Enhanced fallback with realistic data
       return {
-        symbol: companyName,
-        market_cap: 500000000,
-        pe_ratio: 25.0,
-        revenue_ttm: 100000000,
+        symbol: ticker || companyName,
+        name: companyName,
+        market_cap: 50000000, // Default private company scale
+        pe_ratio: null,
+        revenue_ttm: 10000000,
         gross_margin: 0.65,
-        profit_margin: 0.15,
-        debt_ratio: 0.3,
-        price_to_book: 3.2,
-        dividend_yield: 0.02
+        profit_margin: null,
+        debt_ratio: null,
+        price_to_book: null,
+        dividend_yield: null,
+        company_category: 'private',
+        data_source: 'fallback'
       };
     }
   },
 
   news_feed: async (widget: Widget, companyId: string) => {
-    const { ticker, asset_type } = widget.dataSource;
-    const companyName = widget.config.companyName || ticker;
+    const companyName = widget.config.companyName;
+    const ticker = widget.dataSource.ticker;
     const limit = widget.config.max_items || 5;
 
-    console.log('📰 News feed widget data fetch:', { ticker, companyName, asset_type });
+    console.log('📰 News feed widget data fetch:', { companyName, companyId, ticker });
+
+    if (!companyName) {
+      console.error('No company name provided to news feed widget');
+      throw new Error('Company name is required for news feed widget');  
+    }
 
     try {
-      // Try real APIs first
-      if (asset_type === 'crypto') {
+      // First, get company information from database to determine type
+      const response = await fetch(`http://localhost:8000/api/v1/data/companies/${encodeURIComponent(companyId)}/profile`);
+      
+      let companyType: 'public' | 'crypto' | 'private' = 'private'; // default
+      
+      if (response.ok) {
+        const result = await response.json();
+        const companyData = result.data;
+        
+        if (companyData.company_type) {
+          companyType = companyData.company_type.toLowerCase() as 'public' | 'crypto' | 'private';
+        }
+      }
+      
+      console.log(`🏷️ Determined company type: ${companyType} for news feed`);
+
+      // Route news fetching based on company type
+      if (companyType === 'crypto' && ticker) {
+        console.log('🪙 Fetching CRYPTO news...');
         return await widgetApiClient.getCryptoNews(ticker, limit);
-      } else if (asset_type === 'equity') {
-        if (!ticker) throw new Error('No ticker specified for news');
+      } else if (companyType === 'public' && ticker) {
+        console.log('📊 Fetching PUBLIC company news...');
         return await widgetApiClient.getEquityNews(ticker, limit);
       } else {
-        throw new Error('News not available for this asset type');
+        console.log('🏢 PRIVATE company - trying generic news API...');
+        // Try generic news for private companies
+        return await widgetApiClient.getCryptoNews(undefined, limit);
       }
     } catch (error) {
       console.warn(`🔄 Using enhanced mock data for news (${ticker || companyName}):`, error);
@@ -256,7 +398,7 @@ export const widgetDataFetchers = {
         summary: `Latest developments and market analysis for ${companyName || ticker}. ${newsTopics[i] ? 'Recent activity shows strong momentum in key business areas.' : 'This is a mock news item for development purposes.'}`,
         source: newsSource,
         published_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-        url: `https://example.com/news/${companyName?.toLowerCase().replace(/\s+/g, '-') || ticker?.toLowerCase()}/${i + 1}`,
+        url: generateNewsUrl(companyName || ticker || '', newsTopics[i] || '', newsSource),
         ticker: ticker || companyName
       }));
       
@@ -520,6 +662,7 @@ export const widgetDataFetchers = {
       console.warn(`⚠️ Failed to fetch token price for ${companyName}, using mock fallback:`, error);
       
       // Enhanced fallback for specific crypto companies
+      const companyNameLower = companyName.toLowerCase();
       if (companyNameLower.includes('near')) {
         return {
           symbol: 'NEAR',

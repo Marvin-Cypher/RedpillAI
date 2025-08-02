@@ -13,6 +13,14 @@ interface AppLayoutProps {
 
 // Auth guard component
 function AuthGuard({ children }: { children: React.ReactNode }) {
+  // DEMO MODE: Bypass authentication for testing
+  const DEMO_MODE = true // Set to false to re-enable authentication
+  
+  if (DEMO_MODE) {
+    console.log('🔓 Demo mode active - authentication bypassed')
+    return <>{children}</>
+  }
+
   const router = useRouter()
   const pathname = usePathname()
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore()
@@ -20,8 +28,18 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   // Check authentication status on mount and route changes
   useEffect(() => {
     // Skip auth check for public routes
-    const publicRoutes = ['/login']
+    const publicRoutes = ['/login', '/simple-login', '/direct-login']
     if (publicRoutes.includes(pathname)) {
+      return
+    }
+
+    // Demo mode bypass - check for demo token
+    const demoToken = localStorage.getItem('access_token')
+    if (demoToken) {
+      // Set demo user and skip auth check
+      const demoUser = { id: 'demo-user', email: 'user@redpill.vc', name: 'Demo User' }
+      const { setUser } = useAuthStore.getState()
+      setUser(demoUser)
       return
     }
 
@@ -31,7 +49,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Skip auth check for public routes
-    const publicRoutes = ['/login']
+    const publicRoutes = ['/login', '/simple-login', '/direct-login']
     if (publicRoutes.includes(pathname)) {
       return
     }

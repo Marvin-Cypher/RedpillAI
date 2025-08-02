@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import { ChatWithAIButton, ChatHistoryButton } from '@/components/ai'
 import { SimplifiedDealCard } from '@/components/deals/SimplifiedDealCard'
-import { updateDealStatus, getDealStatusUpdates, initializeDealStatuses } from '@/lib/dealStatusSync'
+import { updateDealStatus, getDealStatusUpdates, initializeDealStatuses, getDealStatusForCompany, subscribeToDealStatusChanges } from '@/lib/dealStatusSync'
 import { getAllCompanies, Company } from '@/lib/companyDatabase'
 
 interface Deal {
@@ -154,28 +154,34 @@ export default function DealflowPage() {
     const loadDeals = async () => {
       try {
         const companies = await getAllCompanies()
-        const dealsFromCompanies: Deal[] = companies.map((company) => ({
-          id: company.id,
-          company: {
-            name: company.name,
-            logo: company.logo,
-            sector: company.sector,
-            stage: company.stage,
-            website: company.website,
-            founded_year: company.founded_year
-          },
-          stage: company.deal_status,
-          priority: company.priority,
-          target_investment: company.investment.investment_amount,
-          target_valuation: company.investment.valuation,
-          deal_score: Math.floor(Math.random() * 4) + 6, // Random score 6-9
-          partner_owner: company.investment.lead_partner,
-          next_milestone: getNextMilestone(company.deal_status),
-          created_at: company.created_at.split('T')[0],
-          updated_at: company.updated_at.split('T')[0],
-          ai_summary: `${company.name} in ${company.sector}. ${company.description.substring(0, 100)}...`,
-          tags: [company.sector, company.stage, company.priority === 'high' ? 'Hot deal' : 'Standard']
-        }))
+        const dealsFromCompanies: Deal[] = companies.map((company) => {
+          // Check for localStorage deal status override
+          const savedStatus = getDealStatusForCompany(company.id) || getDealStatusForCompany(company.name)
+          const effectiveStatus = savedStatus || company.deal_status
+          
+          return {
+            id: company.id,
+            company: {
+              name: company.name,
+              logo: company.logo,
+              sector: company.sector,
+              stage: company.stage,
+              website: company.website,
+              founded_year: company.founded_year
+            },
+            stage: effectiveStatus,
+            priority: company.priority,
+            target_investment: company.investment.investment_amount,
+            target_valuation: company.investment.valuation,
+            deal_score: Math.floor(Math.random() * 4) + 6, // Random score 6-9
+            partner_owner: company.investment.lead_partner,
+            next_milestone: getNextMilestone(effectiveStatus),
+            created_at: company.created_at.split('T')[0],
+            updated_at: company.updated_at.split('T')[0],
+            ai_summary: `${company.name} in ${company.sector}. ${company.description.substring(0, 100)}...`,
+            tags: [company.sector, company.stage, company.priority === 'high' ? 'Hot deal' : 'Standard']
+          }
+        })
         
         setDeals(dealsFromCompanies)
       } catch (error) {
@@ -185,6 +191,15 @@ export default function DealflowPage() {
 
     initializeDealStatuses()
     loadDeals()
+    
+    // Subscribe to deal status changes for real-time updates
+    const unsubscribe = subscribeToDealStatusChanges((update) => {
+      console.log('Deal status changed:', update)
+      // Reload deals to reflect the change
+      loadDeals()
+    })
+    
+    return unsubscribe
   }, [])
 
   const getNextMilestone = (status: string): string => {
@@ -363,9 +378,8 @@ export default function DealflowPage() {
                       deal={deal}
                       onDragStart={handleDragStart}
                       onViewDetails={() => {
-                        // Navigate to company deal page
-                        const companySlug = deal.company.name.toLowerCase().replace(/\s+/g, '-')
-                        window.location.href = `/portfolio/${companySlug}/deal`
+                        // Navigate to company deal page using the actual company ID
+                        window.location.href = `/portfolio/${deal.id}/deal`
                       }}
                       onStartChat={() => {
                         // Will be handled by ChatWithAIButton in the card

@@ -11,17 +11,21 @@ export default function SimpleLoginPage() {
     alert(`Login attempt: ${email}`)
     
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('http://localhost:8000/api/v1/auth/login/json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       })
       
       if (response.ok) {
+        const data = await response.json()
+        // Store the token
+        localStorage.setItem('access_token', data.access_token)
         alert('Login successful!')
         window.location.href = '/dashboard'
       } else {
-        alert('Login failed')
+        const errorData = await response.json()
+        alert('Login failed: ' + (errorData.detail || 'Unknown error'))
       }
     } catch (error) {
       alert('Login error: ' + error)

@@ -60,8 +60,9 @@ class CostOptimizedDataService:
                 company_identifier, 'profile', user_id
             )
             
-            if cached_data and not cached_data.get('_cache_meta', {}).get('is_expired', False):
+            if cached_data and not cached_data.get('_cache_meta', {}).get('is_stale', False):
                 execution_time = int((time.time() - start_time) * 1000)
+                cache_meta = cached_data.get('_cache_meta', {})
                 
                 return CacheResponse(
                     data=cached_data,
@@ -69,7 +70,12 @@ class CostOptimizedDataService:
                     cached=True,
                     cost=0.0,
                     expires_in=self._calculate_expires_in(cached_data),
-                    confidence_score=cached_data.get('confidence_score', 0.8)
+                    confidence_score=cached_data.get('confidence_score', 0.8),
+                    # New TTL metadata
+                    static_cached=True,
+                    static_last_fetched=cache_meta.get('last_fetched'),
+                    live_cached=False,  # Profile data is static
+                    stale=cache_meta.get('is_stale', False)
                 )
         
         # Step 2: Check API budget before making expensive calls

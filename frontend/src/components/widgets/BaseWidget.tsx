@@ -31,14 +31,15 @@ interface BaseWidgetState {
   lastUpdated: Date | null;
 }
 
-export const BaseWidget: React.FC<BaseWidgetProps & { children: React.ReactNode }> = ({
+export const BaseWidget: React.FC<BaseWidgetProps & { children: React.ReactNode; onRefresh?: () => Promise<void> }> = ({
   widget,
   onUpdate,
   onRemove,
   onResize,
   isEditing = false,
   companyId,
-  children
+  children,
+  onRefresh
 }) => {
   const [state, setState] = useState<BaseWidgetState>({
     loading: false,
@@ -61,12 +62,19 @@ export const BaseWidget: React.FC<BaseWidgetProps & { children: React.ReactNode 
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    // Trigger data refresh - this would be handled by parent component
-    // For now, just simulate a refresh
-    setTimeout(() => {
+    try {
+      if (onRefresh) {
+        await onRefresh();
+      }
+      setState(prev => ({ ...prev, lastUpdated: new Date(), error: null }));
+    } catch (error) {
+      setState(prev => ({ 
+        ...prev, 
+        error: error instanceof Error ? error.message : 'Refresh failed' 
+      }));
+    } finally {
       setIsRefreshing(false);
-      setState(prev => ({ ...prev, lastUpdated: new Date() }));
-    }, 1000);
+    }
   };
 
   const handleConfigure = () => {

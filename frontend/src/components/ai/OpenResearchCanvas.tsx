@@ -98,7 +98,7 @@ export function OpenResearchCanvas({
   onSaveMemo
 }: OpenResearchCanvasProps) {
   console.log('🎨 OpenResearchCanvas render:', { isOpen, projectName, projectType })
-  const { currentSession, sendMessage, addMessage, isTyping, isResearching } = useAI()
+  const { currentSession, sendMessage, addMessage, isTyping, isResearching, saveMemo } = useAI()
   const [isExpanded, setIsExpanded] = useState(isResearching)
   const [inputValue, setInputValue] = useState('')
   const [researchSections, setResearchSections] = useState<ResearchSection[]>([])
@@ -257,33 +257,24 @@ export function OpenResearchCanvas({
   }
 
   const handleSaveMemo = (content: string) => {
-    if (!currentChatId) return
-
-    const memo = {
-      id: `memo-${Date.now()}`,
-      title: `Research Memo - ${projectName}`,
-      content: content,
-      chatId: currentChatId,
-      date: new Date().toISOString(),
-      author: 'AI Research Assistant',
-      sections: researchSections,
-      projectType: projectType,
-      projectName: projectName
-    }
-
-    // Generate storage key that matches deal page expectations
-    const storageKey = projectId ? `memos-${projectId}` : `memos-${projectType}-general`
+    console.log('💾 Saving memo with content:', content.substring(0, 100))
     
-    // Save to localStorage
-    const existingMemos = JSON.parse(localStorage.getItem(storageKey) || '[]')
-    existingMemos.push(memo)
-    localStorage.setItem(storageKey, JSON.stringify(existingMemos))
-
-    // Trigger memo update event
-    window.dispatchEvent(new Event('memoUpdated'))
-
-    // Call parent callback if provided
-    onSaveMemo?.(memo)
+    // Use the AI context saveMemo function
+    const memo = saveMemo(content, `Research Memo - ${projectName}`)
+    
+    if (memo) {
+      console.log('✅ Memo saved successfully:', memo.id)
+      
+      // Call parent callback if provided
+      onSaveMemo?.({
+        title: memo.title,
+        content: memo.content,
+        chatId: memo.chatId,
+        sections: researchSections
+      })
+    } else {
+      console.error('❌ Failed to save memo')
+    }
   }
 
   const handleApproveResearchPlan = async () => {

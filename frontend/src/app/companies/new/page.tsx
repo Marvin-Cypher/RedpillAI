@@ -22,7 +22,7 @@ import {
 interface CompanyFormData {
   name: string
   domain: string
-  company_type: 'crypto' | 'traditional' | 'fintech' | 'ai' | 'saas'
+  company_type: 'public' | 'crypto' | 'private'
   sector: string
   stage: string
   description: string
@@ -40,7 +40,7 @@ export default function NewCompanyPage() {
   const [formData, setFormData] = useState<CompanyFormData>({
     name: '',
     domain: '',
-    company_type: 'traditional',
+    company_type: 'private',
     sector: '',
     stage: '',
     description: '',
@@ -196,7 +196,7 @@ export default function NewCompanyPage() {
       const companyData = {
         name: formData.name,
         website: `https://${formData.domain}`,
-        company_type: formData.company_type,
+        company_type: formData.company_type.toUpperCase() as 'PUBLIC' | 'CRYPTO' | 'PRIVATE', // Backend expects uppercase
         sector: formData.sector || 'Technology',
         founded_year: formData.founded_year,
         headquarters: `${formData.headquarters.city}, ${formData.headquarters.country}`,
@@ -384,16 +384,16 @@ export default function NewCompanyPage() {
                   onChange={(e) => handleInputChange('company_type', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="traditional">Traditional Tech - Stock/financial data</option>
-                  <option value="crypto">Crypto/Blockchain - Token data from CoinGecko</option>
-                  <option value="fintech">FinTech - Financial technology</option>
-                  <option value="ai">AI/ML - Artificial intelligence</option>
-                  <option value="saas">SaaS - Software as a Service</option>
+                  <option value="public">📈 Public Company - Uses stock market data, shows equity metrics</option>
+                  <option value="crypto">🪙 Crypto/Blockchain - Uses token data from CoinGecko, shows crypto metrics</option>
+                  <option value="private">🏢 Private Company - Uses company database, shows private metrics</option>
                 </select>
                 <p className="text-sm text-gray-500 mt-1">
-                  {formData.company_type === 'crypto' 
-                    ? '🪙 Will search for token data and crypto metrics'
-                    : '📊 Will search for traditional business metrics'
+                  {formData.company_type === 'public' 
+                    ? '📊 Widgets will display stock price, P/E ratio, market cap, financial statements'
+                    : formData.company_type === 'crypto'
+                    ? '🪙 Widgets will display token price, market cap, trading volume, DeFi metrics' 
+                    : '📋 Widgets will display company profile, funding history, key metrics from database'
                   }
                 </p>
               </div>

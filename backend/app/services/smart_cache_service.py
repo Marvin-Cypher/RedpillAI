@@ -111,15 +111,17 @@ class SmartCacheService:
                     self.logger.debug(f"Cache HIT (user-specific): {company_identifier}/{data_type}")
                     return user_data.private_data
             
-            # Check shared cache
+            # Check shared cache with TTL-aware logic
             cache_query = select(CompanyDataCache).where(
                 CompanyDataCache.company_identifier == company_identifier,
                 CompanyDataCache.data_type == data_type
             )
             
             if not include_expired:
+                # Use last_fetched + TTL for staleness check instead of just expires_at
+                ttl_cutoff = datetime.utcnow() - self.cache_ttl.get(data_type, timedelta(days=30))
                 cache_query = cache_query.where(
-                    CompanyDataCache.expires_at > datetime.utcnow()
+                    CompanyDataCache.last_fetched > ttl_cutoff
                 )
             
             cache_entry = session.exec(cache_query).first()
@@ -143,17 +145,22 @@ class SmartCacheService:
                     session.rollback()
                     self.logger.error(f"Failed to update cache analytics: {e}")
                 
-                cache_status = "FRESH" if cache_entry.expires_at > datetime.utcnow() else "EXPIRED"
+                # Calculate staleness based on last_fetched + TTL
+                ttl_cutoff = datetime.utcnow() - self.cache_ttl.get(data_type, timedelta(days=30))
+                is_stale = cache_entry.last_fetched <= ttl_cutoff
+                cache_status = "FRESH" if not is_stale else "STALE"
                 self.logger.debug(f"Cache HIT ({cache_status}): {company_identifier}/{data_type}")
                 
-                # Add cache metadata to response
+                # Add cache metadata to response with TTL info
                 response_data = dict(cache_entry.cached_data)
                 response_data['_cache_meta'] = {
                     'hit': True,
+                    'last_fetched': cache_entry.last_fetched.isoformat(),
                     'expires_at': cache_entry.expires_at.isoformat(),
                     'confidence_score': cache_entry.confidence_score,
                     'hit_count': cache_entry.cache_hit_count,
-                    'is_expired': cache_entry.expires_at <= datetime.utcnow()
+                    'is_stale': is_stale,
+                    'ttl_seconds': int(self.cache_ttl.get(data_type, timedelta(days=30)).total_seconds())
                 }
                 
                 return response_data
@@ -208,17 +215,39 @@ class SmartCacheService:
                 # Store shared data for public information
                 elif data_type in ['profile', 'team', 'funding', 'metrics']:
                     expires_at = datetime.utcnow() + self.cache_ttl.get(data_type, timedelta(days=1))
+                    now = datetime.utcnow()
                     
-                    cache_entry = CompanyDataCache(
-                        company_identifier=company_identifier,
-                        data_type=data_type,
-                        cached_data=clean_data,
-                        source=source,
-                        confidence_score=min(max(confidence_score, 0.0), 1.0),  # Clamp 0-1
-                        expires_at=expires_at
-                    )
-                    session.merge(cache_entry)  # Insert or update
-                    self.logger.debug(f"Cached shared data: {company_identifier}/{data_type} (expires: {expires_at})")
+                    # Check if entry exists to update last_fetched
+                    existing_entry = session.exec(
+                        select(CompanyDataCache).where(
+                            CompanyDataCache.company_identifier == company_identifier,
+                            CompanyDataCache.data_type == data_type
+                        )
+                    ).first()
+                    
+                    if existing_entry:
+                        # Update existing entry with fresh data and last_fetched
+                        existing_entry.cached_data = clean_data
+                        existing_entry.source = source
+                        existing_entry.confidence_score = min(max(confidence_score, 0.0), 1.0)
+                        existing_entry.expires_at = expires_at
+                        existing_entry.last_fetched = now  # Critical: update last_fetched
+                        existing_entry.updated_at = now
+                        session.add(existing_entry)
+                    else:
+                        # Create new entry
+                        cache_entry = CompanyDataCache(
+                            company_identifier=company_identifier,
+                            data_type=data_type,
+                            cached_data=clean_data,
+                            source=source,
+                            confidence_score=min(max(confidence_score, 0.0), 1.0),
+                            expires_at=expires_at,
+                            last_fetched=now
+                        )
+                        session.add(cache_entry)
+                    
+                    self.logger.debug(f"Cached shared data: {company_identifier}/{data_type} (expires: {expires_at}, last_fetched: {now})")
                 
                 # Store real-time data with short TTL
                 elif data_type in ['price', 'news', 'intelligence']:

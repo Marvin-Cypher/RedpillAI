@@ -92,6 +92,7 @@ class Message(MessageBase, table=True):
     )
     conversation_id: str = Field(foreign_key="conversations.id", index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    archived_at: Optional[datetime] = Field(default=None)  # For message archival
     
     # Relationships
     conversation: Conversation = Relationship(back_populates="messages")

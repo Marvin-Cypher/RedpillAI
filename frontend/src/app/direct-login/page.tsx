@@ -14,7 +14,7 @@ export default function DirectLoginPage() {
     setMessage('Logging in...')
     
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('http://localhost:8000/api/v1/auth/login/json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -23,7 +23,9 @@ export default function DirectLoginPage() {
       
       if (response.ok) {
         const data = await response.json()
-        setMessage(`✅ Login successful! User: ${data.user.email}`)
+        // Store the token
+        localStorage.setItem('access_token', data.access_token)
+        setMessage(`✅ Login successful! Token stored.`)
         
         // Redirect after 1 second
         setTimeout(() => {

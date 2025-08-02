@@ -6,12 +6,10 @@ import uuid
 
 
 class CompanyType(str, Enum):
-    """Company type for determining data enrichment strategy."""
-    CRYPTO = "crypto"        # Blockchain/crypto companies - use CoinGecko
-    TRADITIONAL = "traditional"  # Traditional tech companies - use other APIs
-    FINTECH = "fintech"      # Financial technology companies
-    AI = "ai"                # AI/ML companies
-    SAAS = "saas"           # SaaS companies
+    """Company type for determining data enrichment strategy and widget display."""
+    PUBLIC = "PUBLIC"        # Public companies - use stock APIs, show stock data
+    CRYPTO = "CRYPTO"        # Blockchain/crypto companies - use CoinGecko, show token data
+    PRIVATE = "PRIVATE"      # Private companies - use company database, show private metrics
 
 
 class CompanySector(str, Enum):
@@ -39,7 +37,7 @@ class CompanyBase(SQLModel):
     name: str = Field(max_length=255, index=True)
     description: Optional[str] = None
     website: Optional[str] = Field(default=None, max_length=255)
-    company_type: CompanyType = Field(default=CompanyType.TRADITIONAL)
+    company_type: CompanyType = Field(default=CompanyType.PRIVATE)
     sector: str = Field(default="other")
     token_symbol: Optional[str] = Field(default=None, max_length=10)
     twitter_handle: Optional[str] = Field(default=None, max_length=50)

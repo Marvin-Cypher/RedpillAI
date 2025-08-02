@@ -160,6 +160,16 @@ PORTFOLIO_COMPANIES = [
         "headquarters": "San Francisco, USA",
         "employee_count": "500+",
         "logo_url": "https://openai.com/favicon.ico"
+    },
+    {
+        "name": "GreenTech Solutions",
+        "description": "GreenTech Solutions develops innovative solar panel technology for residential and commercial applications.",
+        "website": "https://greentech-solutions.com",
+        "company_type": CompanyType.TRADITIONAL,
+        "sector": "cleantech",
+        "founded_year": 2023,
+        "headquarters": "Berlin, Germany",
+        "employee_count": "8"
     }
 ]
 
@@ -238,6 +248,17 @@ def generate_company_metrics(company_data: Dict[str, Any]) -> Dict[str, Any]:
                 "arr": 18000000,
                 "gross_margin": 90.0,
                 "valuation": 3500000000  # $3.5B (based on market cap)
+            }
+        elif "greentech" in company_data["name"].lower():
+            return {
+                "revenue": 45000,  # $45k annual
+                "revenue_growth": 15.2,
+                "burn_rate": 85000,  # $85k monthly
+                "runway": 18,
+                "customers": 25,
+                "arr": 540000,
+                "gross_margin": 65.0,
+                "valuation": 5000000  # $5M
             }
         else:
             # Generic crypto company

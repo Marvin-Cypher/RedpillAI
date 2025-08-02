@@ -33,6 +33,28 @@ class CompanyDataCache(SQLModel, table=True):
         sa_column=Column('updated_at', TIMESTAMP, server_default=text('now()'))
     )
     expires_at: datetime = Field(sa_column=Column('expires_at', TIMESTAMP))
+    last_fetched: datetime = Field(
+        default_factory=datetime.utcnow,
+        sa_column=Column('last_fetched', TIMESTAMP, server_default=text('now()'))
+    )
+    
+    # New parallel processing columns
+    last_fetched_static: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column('last_fetched_static', TIMESTAMP)
+    )
+    last_fetched_live: Optional[datetime] = Field(
+        default=None, 
+        sa_column=Column('last_fetched_live', TIMESTAMP)
+    )
+    data_category: Optional[str] = Field(
+        default=None,
+        max_length=20  # 'static', 'live', 'mixed'
+    )
+    parallel_fetch_lock: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column('parallel_fetch_lock', TIMESTAMP)
+    )
     
     # Relationships
     analytics: list["CacheAnalytics"] = Relationship(back_populates="cache_entry")
@@ -140,6 +162,12 @@ class CacheResponse(SQLModel):
     cost: float = 0.0
     expires_in: Optional[int] = None  # seconds until expiration
     confidence_score: Optional[float] = None
+    
+    # New TTL-aware cache metadata
+    static_cached: Optional[bool] = None  # Whether static data is cached
+    static_last_fetched: Optional[str] = None  # ISO timestamp of last fetch
+    live_cached: Optional[bool] = None  # Whether live data is cached
+    stale: Optional[bool] = None  # Whether cached data is stale (past TTL)
 
 
 class BatchResponse(SQLModel):

@@ -17,6 +17,7 @@ import {
   Clock
 } from 'lucide-react';
 import { WidgetProps } from '@/lib/widgets/types';
+import { BaseWidget } from './BaseWidget';
 
 interface TokenPriceData {
   symbol?: string;
@@ -41,7 +42,9 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
   error,
   isEditing,
   onUpdate,
-  onRemove
+  onRemove,
+  companyId,
+  onRefresh
 }) => {
   const formatCurrency = (amount: number | null | undefined, decimals: number = 2) => {
     if (amount === null || amount === undefined || isNaN(amount)) {
@@ -138,45 +141,27 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
   }
 
   return (
-    <Card className="h-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div className="flex items-center space-x-2">
-          <CardTitle className="text-lg font-semibold">
+    <BaseWidget
+      widget={widget}
+      onUpdate={onUpdate}
+      onRemove={onRemove}
+      isEditing={isEditing}
+      companyId={companyId}
+      onRefresh={onRefresh}
+    >
+      <div className="space-y-4">
+        {/* Token Title */}
+        <div className="flex items-center space-x-2 mb-4">
+          <h3 className="text-lg font-semibold">
             {tokenData.name || 'Unknown Token'} ({(tokenData.symbol || 'N/A').toUpperCase()})
-          </CardTitle>
+          </h3>
           {tokenData.market_cap_rank && (
             <Badge variant="outline" className="text-xs">
               #{tokenData.market_cap_rank}
             </Badge>
           )}
         </div>
-        {isEditing && (
-          <div className="flex space-x-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onUpdate?.({ ...widget.config })}
-              className="h-6 w-6 p-0 hover:bg-gray-100"
-            >
-              <Activity className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onRemove?.();
-              }}
-              className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
-              title="Delete widget"
-            >
-              ×
-            </Button>
-          </div>
-        )}
-      </CardHeader>
-      <CardContent className="pt-2">
+
         {/* Main Price Display */}
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -255,8 +240,8 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
             <span>Updated: {tokenData.last_updated ? new Date(tokenData.last_updated).toLocaleTimeString() : 'Unknown'}</span>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </BaseWidget>
   );
 };
 

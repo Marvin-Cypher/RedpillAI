@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 from .config import settings
 from .database import create_db_and_tables
+from .middleware.metrics import MetricsMiddleware, set_metrics_middleware
 
 
 @asynccontextmanager
@@ -46,6 +47,11 @@ app.add_middleware(
     allowed_hosts=["localhost", "127.0.0.1", "*.redpill.vc"] if not settings.debug else ["*"]
 )
 
+# Add metrics middleware
+metrics_middleware_instance = MetricsMiddleware(app)
+app.add_middleware(MetricsMiddleware)
+set_metrics_middleware(metrics_middleware_instance)
+
 
 # Health check endpoint
 @app.get("/health")
@@ -79,7 +85,7 @@ async def root():
 
 
 # Import and include routers
-from .api import auth, companies, deals, ai_chat, market, portfolio, workflows
+from .api import auth, companies, deals, ai_chat, market, portfolio, workflows, metrics
 from .api.v1 import data
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
@@ -90,6 +96,7 @@ app.include_router(market.router, prefix="/api/v1/market", tags=["market-data"])
 app.include_router(portfolio.router, prefix="/api/v1/portfolio", tags=["portfolio"])
 app.include_router(workflows.router, prefix="/api/v1/workflows", tags=["workflows"])
 app.include_router(data.router, prefix="/api/v1/data", tags=["data-optimization"])
+app.include_router(metrics.router, prefix="/api/v1/metrics", tags=["metrics"])
 
 
 if __name__ == "__main__":

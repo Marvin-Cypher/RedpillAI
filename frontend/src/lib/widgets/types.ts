@@ -118,6 +118,7 @@ export interface WidgetComponentProps extends BaseWidgetProps {
   data?: any;
   loading?: boolean;
   error?: string | null;
+  onRefresh?: () => Promise<void>;
 }
 
 // Alias for backward compatibility

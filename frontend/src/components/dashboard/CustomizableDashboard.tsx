@@ -315,6 +315,29 @@ export const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
     setState(prev => ({ ...prev, isEditing: !prev.isEditing }));
   };
 
+  // Refresh individual widget data
+  const refreshWidgetData = useCallback(async (widgetId: string) => {
+    const widget = state.widgets.find(w => w.id === widgetId);
+    if (!widget) return;
+
+    try {
+      const data = await fetchWidgetData(widget, companyId);
+      setDataCache(prev => {
+        const newCache = new Map(prev);
+        newCache.set(widgetId, data);
+        return newCache;
+      });
+    } catch (error) {
+      console.error(`Failed to refresh widget ${widgetId}:`, error);
+      setDataCache(prev => {
+        const newCache = new Map(prev);
+        newCache.set(widgetId, { error: error.message });
+        return newCache;
+      });
+      throw error;
+    }
+  }, [companyId, state.widgets]);
+
   // Render widget
   const renderWidget = (widget: Widget) => {
     if (!widget.isVisible) return null;
@@ -342,6 +365,7 @@ export const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
         isEditing={state.isEditing}
         onUpdate={(config) => handleUpdateWidget(widget.id, config)}
         onRemove={() => handleRemoveWidget(widget.id)}
+        onRefresh={() => refreshWidgetData(widget.id)}
       />
     );
   };

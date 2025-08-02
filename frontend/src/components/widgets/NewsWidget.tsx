@@ -89,7 +89,17 @@ const NewsWidget: React.FC<WidgetProps> = ({
         {/* Header */}
         <div className="flex items-start justify-between mb-2">
           <div className="flex-1 mr-3">
-            <h4 className="text-sm font-medium text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
+            <h4 
+              className="text-sm font-medium text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors cursor-pointer"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (item.url && (item.url.startsWith('http://') || item.url.startsWith('https://'))) {
+                  window.open(item.url, '_blank', 'noopener,noreferrer');
+                }
+              }}
+              title={item.url ? "Click to open article" : "No link available"}
+            >
               {item.title}
             </h4>
           </div>
@@ -129,7 +139,22 @@ const NewsWidget: React.FC<WidgetProps> = ({
               variant="ghost"
               size="sm"
               className="h-6 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                  // Validate URL before opening
+                  if (item.url && (item.url.startsWith('http://') || item.url.startsWith('https://'))) {
+                    window.open(item.url, '_blank', 'noopener,noreferrer');
+                  } else {
+                    console.warn('Invalid URL:', item.url);
+                  }
+                } catch (error) {
+                  console.error('Error opening URL:', error);
+                  // Fallback: try direct navigation
+                  window.location.href = item.url;
+                }
+              }}
             >
               <ExternalLink className="w-3 h-3" />
             </Button>
@@ -230,7 +255,7 @@ const NewsWidget: React.FC<WidgetProps> = ({
         {/* News List */}
         <div className="flex-1 overflow-auto">
           <div className="space-y-0">
-            {newsItems.map((item, index) => renderNewsItem(item, index))}
+            {newsItems.map((item: NewsItem, index: number) => renderNewsItem(item, index))}
           </div>
         </div>
 

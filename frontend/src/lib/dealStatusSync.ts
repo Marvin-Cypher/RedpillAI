@@ -34,12 +34,13 @@ export const updateDealStatus = (
 
   try {
     const updates = getDealStatusUpdates()
-    const companyId = companyName.toLowerCase().replace(/\s+/g, '-')
+    const companySlug = companyName.toLowerCase().replace(/\s+/g, '-')
     
-    const existingUpdateIndex = updates.findIndex(u => u.dealId === dealId)
+    // Store both the UUID dealId and company name/slug for flexible lookup
+    const existingUpdateIndex = updates.findIndex(u => u.dealId === dealId || u.companyId === companySlug)
     const newUpdate: DealStatusUpdate = {
-      dealId,
-      companyId,
+      dealId, // This could be UUID or slug, depending on the source
+      companyId: companySlug, // Always use slug for consistent lookup
       companyName,
       newStatus,
       updatedAt: new Date().toISOString()
@@ -64,10 +65,25 @@ export const updateDealStatus = (
   }
 }
 
-// Get deal status for a specific company
+// Get deal status for a specific company (supports both UUID and slug lookup)
 export const getDealStatusForCompany = (companyId: string): DealStatusUpdate['newStatus'] | null => {
   const updates = getDealStatusUpdates()
-  const companyUpdate = updates.find(u => u.companyId === companyId)
+  
+  // Try direct lookup first (for UUID)
+  let companyUpdate = updates.find(u => u.dealId === companyId)
+  
+  // If not found, try slug lookup
+  if (!companyUpdate) {
+    companyUpdate = updates.find(u => u.companyId === companyId)
+  }
+  
+  // If still not found, try generating slug from companyId and lookup
+  if (!companyUpdate && companyId.length > 10) {
+    // This might be a company name, convert to slug
+    const companySlug = companyId.toLowerCase().replace(/\s+/g, '-')
+    companyUpdate = updates.find(u => u.companyId === companySlug)
+  }
+  
   return companyUpdate?.newStatus || null
 }
 

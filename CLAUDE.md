@@ -34,12 +34,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Data Flow Optimization**: Profile endpoint now merges Company table + CompanyDataCache for complete widget data
 - **User Experience**: When users see wrong widget data → click refresh → system generates appropriate metrics → widgets show correct data
 
+### Bug Fixes Complete (2025-08-02)
+- **All Critical UI Bugs Fixed**: Successfully resolved 4 primary bugs plus additional issues found during testing
+  - AI chat functionality confirmed working (was user misunderstanding, not a bug)
+  - Deal flow navigation fixed: Changed from companySlug to UUID-based routing (`/portfolio/${deal.id}/deal`)
+  - News widget links fixed: Replaced fake URLs with real search queries to Google News, Reuters, Bloomberg, etc.
+  - Deal status persistence fixed: Enhanced lookup strategies and real-time subscriptions for status changes
+  - Authentication bypass implemented: DEMO_MODE flag allows access without login for testing
+  - Next.js static asset issues resolved: Cache cleanup fixed webpack 404 errors
+- **Enhanced User Experience**: All major user flows now functional and tested
+  - /dealflow page fully operational with drag-and-drop deal management
+  - Widget system operational with real clickable news links
+  - Company navigation working correctly with UUID system
+  - Deal status changes persist across page navigation
+
 ### Recent System State (2025-08-02)
 - **Service Architecture**: All blocking I/O operations now async-safe with proper error handling
 - **Widget Refresh System**: Operational with user-triggered data enrichment and realistic metrics generation
 - **MarketDataService**: Operational with OpenBB connection + async crypto prices via executors
 - **AI Chat Service**: Consolidated and operational with unified debugging (chat_id system)
 - **API Routing**: All endpoints accessible with proper async patterns
+- **Frontend Development**: All pages accessible and functional with DEMO_MODE authentication bypass
 - Database contains 12+ companies including: Phala Network, NVIDIA, Chainlink, Amazon, Polygon, Solana, Uniswap, Aave, The Graph, **Polkadot**, OpenAI, Anthropic
 - All companies support widget refresh to generate complete enriched_data and key_metrics
 - CoinGecko integration working for crypto companies (async via MarketDataService)

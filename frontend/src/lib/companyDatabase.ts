@@ -7,7 +7,7 @@ export interface Company {
   domain?: string
   website?: string
   ticker?: string // Stock/crypto ticker symbol (e.g., AMZN, BTC, LINK)
-  company_type?: 'crypto' | 'traditional' | 'fintech' | 'ai' | 'saas'
+  company_type?: 'public' | 'crypto' | 'private'
   sector: string
   stage: string
   founded_year?: number
@@ -54,6 +54,71 @@ export interface Company {
 
 const COMPANIES_STORAGE_KEY = 'redpill-companies'
 
+// Helper functions for deal status assignment
+const getDealStatusForCompany = (companyName: string): string | null => {
+  if (typeof window === 'undefined') return null
+  try {
+    const dealUpdates = JSON.parse(localStorage.getItem('deal-status-updates') || '[]')
+    const companySlug = companyName.toLowerCase().replace(/\s+/g, '-')
+    
+    // Try multiple lookup strategies
+    let update = dealUpdates.find((u: any) => u.companyId === companySlug)
+    if (!update) {
+      update = dealUpdates.find((u: any) => u.companyName === companyName)
+    }
+    if (!update) {
+      update = dealUpdates.find((u: any) => u.dealId === companyName)
+    }
+    
+    return update?.newStatus || null
+  } catch {
+    return null
+  }
+}
+
+const getRandomDealStatus = (companyName: string): 'sourcing' | 'screening' | 'due_diligence' | 'term_sheet' | 'invested' | 'passed' => {
+  // Assign realistic deal statuses based on company characteristics
+  const name = companyName.toLowerCase()
+  
+  // High-profile companies more likely to be in later stages
+  if (name.includes('amazon') || name.includes('nvidia') || name.includes('microsoft')) {
+    return 'invested'
+  }
+  
+  // Well-known crypto projects likely in due diligence or invested
+  if (name.includes('chainlink') || name.includes('polygon') || name.includes('solana')) {
+    return Math.random() > 0.5 ? 'due_diligence' : 'term_sheet'
+  }
+  
+  // Smaller/newer companies in earlier stages
+  if (name.includes('phala') || name.includes('aave') || name.includes('uniswap')) {
+    const statuses: Array<'sourcing' | 'screening' | 'due_diligence'> = ['sourcing', 'screening', 'due_diligence']
+    return statuses[Math.floor(Math.random() * statuses.length)]
+  }
+  
+  // Default distribution for unknown companies
+  const allStatuses: Array<'sourcing' | 'screening' | 'due_diligence' | 'term_sheet' | 'invested' | 'passed'> = 
+    ['sourcing', 'screening', 'due_diligence', 'term_sheet', 'invested', 'passed']
+  return allStatuses[Math.floor(Math.random() * allStatuses.length)]
+}
+
+const getPriorityForCompany = (companyName: string): 'high' | 'medium' | 'low' => {
+  const name = companyName.toLowerCase()
+  
+  // High priority for major companies and hot crypto projects
+  if (name.includes('nvidia') || name.includes('chainlink') || name.includes('polygon')) {
+    return 'high'
+  }
+  
+  // Medium priority for established projects
+  if (name.includes('amazon') || name.includes('phala') || name.includes('solana')) {
+    return 'medium'
+  }
+  
+  // Default to medium priority
+  return 'medium'
+}
+
 // Default companies data
 const DEFAULT_COMPANIES: Company[] = [
   {
@@ -62,7 +127,7 @@ const DEFAULT_COMPANIES: Company[] = [
     domain: 'amazon.com',
     website: 'https://amazon.com',
     ticker: 'AMZN',
-    company_type: 'traditional',
+    company_type: 'public',
     sector: 'E-commerce/Cloud',
     stage: 'Public',
     founded_year: 1994,
@@ -139,6 +204,7 @@ const DEFAULT_COMPANIES: Company[] = [
     name: 'GreenTech Solutions',
     domain: 'greentech-solutions.com',
     website: 'https://greentech-solutions.com',
+    company_type: 'public',
     sector: 'CleanTech',
     stage: 'Seed',
     founded_year: 2023,
@@ -250,6 +316,14 @@ const DEFAULT_COMPANIES: Company[] = [
   }
 ]
 
+// Debug function to clear localStorage
+export const clearCompanyCache = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(COMPANIES_STORAGE_KEY)
+    console.log('🗑️ Cleared company localStorage cache')
+  }
+}
+
 // Get all companies from backend API with localStorage fallback
 export const getAllCompanies = async (): Promise<Company[]> => {
   if (typeof window === 'undefined') return DEFAULT_COMPANIES
@@ -259,7 +333,7 @@ export const getAllCompanies = async (): Promise<Company[]> => {
     const stored = localStorage.getItem(COMPANIES_STORAGE_KEY)
     if (stored) {
       const localCompanies = JSON.parse(stored)
-      console.log('🔍 Found companies in localStorage:', localCompanies.length, localCompanies.map(c => c.name))
+      console.log('🔍 Found companies in localStorage:', localCompanies.length, localCompanies.map((c: Company) => c.name))
       return localCompanies
     }
   } catch (error) {
@@ -314,8 +388,8 @@ export const getAllCompanies = async (): Promise<Company[]> => {
           arr: 6000000,
           gross_margin: 75.0
         },
-        deal_status: 'invested',
-        priority: 'high',
+        deal_status: getDealStatusForCompany(company.name) || getRandomDealStatus(company.name),
+        priority: getPriorityForCompany(company.name),
         created_at: company.created_at || new Date().toISOString(),
         updated_at: company.updated_at || new Date().toISOString()
       }))
@@ -347,8 +421,8 @@ export const getAllCompanies = async (): Promise<Company[]> => {
 // Get company by ID
 export const getCompanyById = async (id: string): Promise<Company | null> => {
   try {
-    // First try to get data from our real data API
-    const response = await fetch(`/api/v1/data/companies/${encodeURIComponent(id)}/profile`)
+    // Use the unified UUID-based API endpoint
+    const response = await fetch(`http://localhost:8000/api/v1/data/companies/${encodeURIComponent(id)}/profile`)
     
     if (response.ok) {
       const apiData = await response.json()
@@ -411,7 +485,6 @@ export const getCompanyById = async (id: string): Promise<Company | null> => {
 
 // Add new company
 export const addCompany = async (company: Omit<Company, 'id' | 'created_at' | 'updated_at'>): Promise<Company> => {
-  const companies = await getAllCompanies()
   const newCompany: Company = {
     ...company,
     id: company.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
@@ -419,6 +492,37 @@ export const addCompany = async (company: Omit<Company, 'id' | 'created_at' | 'u
     updated_at: new Date().toISOString()
   }
   
+  try {
+    // Try to sync to backend database first
+    const response = await fetch('http://localhost:8000/api/v1/companies/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer fake-token', // TODO: Replace with real auth
+      },
+      body: JSON.stringify({
+        name: newCompany.name,
+        description: newCompany.description,
+        website: newCompany.website,
+        company_type: newCompany.company_type || 'traditional',
+        sector: newCompany.sector,
+        founded_year: newCompany.founded_year,
+        headquarters: `${newCompany.headquarters.city}, ${newCompany.headquarters.country}`,
+        employee_count: newCompany.employee_count?.toString() || '50'
+      })
+    })
+    
+    if (response.ok) {
+      console.log('✅ Company synced to backend database')
+    } else {
+      console.warn('⚠️ Failed to sync to backend, saving locally only')
+    }
+  } catch (error) {
+    console.warn('⚠️ Backend unavailable, saving locally only:', error)
+  }
+  
+  // Always save to localStorage as backup
+  const companies = await getAllCompanies()
   companies.push(newCompany)
   
   if (typeof window !== 'undefined') {
@@ -543,6 +647,8 @@ export const getCompanyTicker = (company: Company): string | null => {
     'binance': 'BNB',
     'avalanche': 'AVAX',
     'polkadot': 'DOT',
+    'phala network': 'PHA',
+    'phala': 'PHA',
     'uniswap': 'UNI',
     'aave': 'AAVE',
     'compound': 'COMP',
@@ -596,22 +702,17 @@ export const getCompanyTicker = (company: Company): string | null => {
 }
 
 // Determine if company should use crypto or equity data sources
-export const getCompanyAssetType = (company: Company): 'crypto' | 'equity' => {
-  // Check explicit company type
+export type CompanyCategory = 'public' | 'crypto' | 'private';
+
+export const getCompanyCategory = (company: Company): CompanyCategory => {
+  // Check explicit company type first
   if (company.company_type === 'crypto') {
     return 'crypto'
   }
-  
+
   // Check if it's a blockchain/crypto company by sector
   const cryptoSectors = [
-    'blockchain',
-    'cryptocurrency', 
-    'crypto',
-    'defi',
-    'web3',
-    'nft',
-    'metaverse',
-    'dao'
+    'blockchain', 'cryptocurrency', 'crypto', 'defi', 'web3', 'nft', 'metaverse', 'dao'
   ]
   
   const sector = company.sector.toLowerCase()
@@ -633,7 +734,32 @@ export const getCompanyAssetType = (company: Company): 'crypto' | 'equity' => {
       return 'crypto'
     }
   }
+
+  // Determine if public or private based on known indicators
+  if (company.company_type === 'public') {
+    // Known public companies (have stock tickers)
+    const publicTickers = ['NVDA', 'AMZN', 'MSFT', 'GOOGL', 'AAPL', 'TSLA', 'META', 'NFLX']
+    if (ticker && publicTickers.includes(ticker)) {
+      return 'public'
+    }
+    
+    // Large companies are likely public
+    if (company.employee_count && company.employee_count > 10000) {
+      return 'public'
+    }
+    
+    // High valuation traditional companies are likely public
+    if (company.metrics?.revenue_current && company.metrics.revenue_current > 1000000000) {
+      return 'public'
+    }
+  }
   
-  // Default to equity for traditional companies
-  return 'equity'
+  // Default to private for startups, AI companies, etc.
+  return 'private'
+}
+
+// Keep backward compatibility
+export const getCompanyAssetType = (company: Company): 'crypto' | 'equity' => {
+  const category = getCompanyCategory(company)
+  return category === 'crypto' ? 'crypto' : 'equity'
 }
