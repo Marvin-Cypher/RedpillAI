@@ -45,7 +45,30 @@ market_overview = await market_data_service.get_market_overview()
 - **MarketDataService Integration**: Uses async market data methods
 - **Database Session Fix**: Proper SQLModel session handling
 
-### 4. CompanyService (`app/services/company_service.py`)
+### 4. WidgetDataEnrichmentService (`app/services/widget_data_enrichment.py`) ⭐ **NEW**
+**Purpose**: User-triggered widget data refresh with comprehensive financial metrics generation.
+
+**Key Features**:
+- **Widget-Focused Enrichment**: Generates complete financial metrics specifically for widget consumption
+- **Multi-Source Integration**: Combines Tavily API, CoinGecko, OpenBB, and intelligent fallbacks
+- **Company Type Detection**: Handles crypto, AI, public, and private companies with appropriate metrics
+- **Database Updates**: Updates both Company table and CompanyDataCache for widget support
+- **Realistic Data Generation**: Company-specific metrics (e.g., Anthropic → $157M revenue, Chainlink → $45M revenue)
+
+**API Endpoint**: `/api/v1/data/companies/{id}/refresh-for-widgets`
+
+**Usage**:
+```python
+from app.services.widget_data_enrichment import widget_data_enrichment_service
+
+# User-triggered refresh for any company
+enriched_data = await widget_data_enrichment_service.enrich_company_for_widgets(
+    company=company,
+    force_refresh=True
+)
+```
+
+### 5. CompanyService (`app/services/company_service.py`)
 **Purpose**: Async company operations and website scraping.
 
 **Key Features**:

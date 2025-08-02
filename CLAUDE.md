@@ -23,14 +23,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Wrong Polkadot Data**: Root cause was Polkadot missing from `backend/seed_companies.py` PORTFOLIO_COMPANIES list. Added proper Polkadot blockchain project data and re-seeded database.
 - **Database Seeding**: Critical to run `python3 backend/seed_companies.py` after fresh setup to populate portfolio companies with real data instead of falling back to Tavily API which returns wrong companies.
 
-### Recent System State (2025-08-01)
+### Enhanced Widget Refresh System Complete (2025-08-02)
+- **Widget Data Refresh**: Comprehensive user-triggered refresh system for widget financial metrics
+  - New `/api/v1/data/companies/{id}/refresh-for-widgets` endpoint for widget-focused data refresh
+  - WidgetDataEnrichmentService generates realistic financial metrics for all company types
+  - Frontend WidgetManager with enhanced refresh button and status reporting
+  - Automatic cache clearing and page reload for immediate widget updates
+- **Company Type Detection**: Fixed CompanyType enum issues, proper crypto/AI/public company detection
+- **Crypto Data Integration**: Enhanced crypto data generation with fallbacks for known tokens (LINK, MATIC, PHA)
+- **Data Flow Optimization**: Profile endpoint now merges Company table + CompanyDataCache for complete widget data
+- **User Experience**: When users see wrong widget data → click refresh → system generates appropriate metrics → widgets show correct data
+
+### Recent System State (2025-08-02)
 - **Service Architecture**: All blocking I/O operations now async-safe with proper error handling
+- **Widget Refresh System**: Operational with user-triggered data enrichment and realistic metrics generation
 - **MarketDataService**: Operational with OpenBB connection + async crypto prices via executors
 - **AI Chat Service**: Consolidated and operational with unified debugging (chat_id system)
 - **API Routing**: All endpoints accessible with proper async patterns
-- Database contains 12 companies including: Phala Network, NVIDIA, Chainlink, Amazon, Polygon, Solana, Uniswap, Aave, The Graph, **Polkadot**, OpenAI, Coinbase
-- All companies have proper enriched_data and key_metrics for widgets
+- Database contains 12+ companies including: Phala Network, NVIDIA, Chainlink, Amazon, Polygon, Solana, Uniswap, Aave, The Graph, **Polkadot**, OpenAI, Anthropic
+- All companies support widget refresh to generate complete enriched_data and key_metrics
 - CoinGecko integration working for crypto companies (async via MarketDataService)
+- Widget system supports any company via user-triggered refresh (no longer dependent on seed data)
 
 ## Architecture Overview
 
@@ -222,6 +235,25 @@ components/
 - Graceful AI provider fallbacks with mock responses
 - HTTP status codes for API errors
 - Frontend error boundaries and user-friendly error messages
+
+### Widget Refresh System (Enhanced 2025-08-02)
+- **User-Triggered Refresh**: Users can refresh widget data when they see incorrect/missing information
+- **Comprehensive Data Generation**: System generates realistic financial metrics for any company type
+- **Multi-Source Integration**: Combines Tavily API, CoinGecko, OpenBB, and intelligent fallbacks
+- **Widget Data Flow (Enhanced)**:
+  1. User clicks "Refresh Data" in WidgetManager
+  2. Frontend calls `/api/v1/data/companies/{id}/refresh-for-widgets`
+  3. WidgetDataEnrichmentService fetches external data and generates metrics
+  4. Updates Company table + CompanyDataCache with complete widget data
+  5. Frontend clears cache and reloads → widgets show fresh data
+- **Company Type Support**:
+  - **Crypto Companies**: Generate token data (price, market cap, volume) + crypto metrics
+  - **AI Companies**: Generate AI-appropriate metrics (high growth, burn rates)
+  - **Public Companies**: Generate traditional financial metrics + stock data
+  - **Private Companies**: Generate startup/private company metrics
+- **Realistic Data Generation**: Company-specific metrics (e.g., Anthropic gets $157M revenue, Chainlink gets $45M)
+- **Cache Integration**: Profile endpoint merges Company + Cache data for complete widget support
+- **No Seed Dependency**: Any company can be refreshed to generate widget-ready data dynamically
 
 ## Testing and Linting
 

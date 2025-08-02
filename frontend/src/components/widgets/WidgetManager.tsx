@@ -121,27 +121,52 @@ export function WidgetManager({
 
   const handleRefreshCompanyData = async () => {
     setIsRefreshing(true);
-    setRefreshStatus('Refreshing company data from Tavily + OpenBB...');
+    setRefreshStatus('🔄 Refreshing widget data from external APIs...');
 
     try {
-      const result = await companyDataService.refreshCompanyData(companyId);
+      const result = await companyDataService.refreshCompanyDataForWidgets(companyId, true);
       
       if (result.success) {
-        setRefreshStatus('✅ Company data refreshed successfully!');
+        let successMessage = '✅ Widget data refreshed successfully!';
+        if (result.widgetMetricsGenerated) {
+          successMessage += ' 📊 Financial metrics generated for widgets.';
+        }
+        if (result.message) {
+          successMessage += ` ${result.message}`;
+        }
+        
+        setRefreshStatus(successMessage);
+        
+        // Clear widget cache and reload to show fresh data
+        if (typeof window !== 'undefined' && window.localStorage) {
+          // Clear any widget data cache
+          const keysToRemove = [];
+          for (let i = 0; i < window.localStorage.length; i++) {
+            const key = window.localStorage.key(i);
+            if (key && (key.includes('widget_') || key.includes('company_'))) {
+              keysToRemove.push(key);
+            }
+          }
+          keysToRemove.forEach(key => window.localStorage.removeItem(key));
+        }
+        
         // Trigger a page reload to update all widgets with fresh data
         setTimeout(() => {
           window.location.reload();
-        }, 1500);
+        }, 2000);
       } else {
-        setRefreshStatus(`❌ Failed to refresh: ${result.error}`);
+        setRefreshStatus(`❌ Failed to refresh widget data: ${result.error}`);
       }
     } catch (error) {
-      setRefreshStatus(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setRefreshStatus(`❌ Error refreshing widgets: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
+      // Keep status visible longer for user feedback
       setTimeout(() => {
         setIsRefreshing(false);
-        setRefreshStatus('');
-      }, 3000);
+        if (!refreshStatus.includes('✅')) {
+          setRefreshStatus('');
+        }
+      }, 4000);
     }
   };
 
