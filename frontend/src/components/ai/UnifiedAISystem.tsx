@@ -91,7 +91,7 @@ export function UnifiedAISystem({
 
   // Generate unique session ID
   const generateSessionId = useCallback(() => {
-    return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    return `session-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
   }, [])
 
   // Save session to localStorage
@@ -451,17 +451,13 @@ export function UnifiedAISystem({
     ? children(contextValue)
     : children
 
-  if (!enableAI) {
-    return <>{childrenWithProps}</>
-  }
-
   console.log('UnifiedAISystem render - isOpen:', isOpen, 'currentSession:', !!currentSession)
 
   return (
     <AIContext.Provider value={contextValue}>
-      <div className="relative">
-        {childrenWithProps}
-        {isOpen && currentSession && (
+      {childrenWithProps}
+      {enableAI && isOpen && currentSession && (
+        <div className="relative z-50">
           <OpenResearchCanvas
             projectId={currentSession.projectId}
             projectName={currentSession.projectName}
@@ -474,8 +470,8 @@ export function UnifiedAISystem({
               window.dispatchEvent(new Event('memoUpdated'))
             }}
           />
-        )}
-      </div>
+        </div>
+      )}
     </AIContext.Provider>
   )
 }

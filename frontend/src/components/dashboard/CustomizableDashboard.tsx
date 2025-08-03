@@ -101,9 +101,10 @@ export const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
       const savedState = localStorage.getItem(`dashboard-${companyId}-${userId}`);
       if (savedState) {
         const parsed = JSON.parse(savedState);
+        const widgets = parsed.widgets || initialWidgets;
         return {
-          widgets: parsed.widgets || initialWidgets,
-          layouts: getLayoutsFromWidgets(parsed.widgets || initialWidgets)
+          widgets,
+          layouts: getLayoutsFromWidgets(widgets)
         };
       }
     } catch (error) {
@@ -149,6 +150,31 @@ export const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
     
     setDataCache(newDataCache);
   }, [companyId]);
+
+  // Migrate widgets when companyInfo becomes available
+  useEffect(() => {
+    if (companyInfo && state.widgets.length > 0) {
+      const needsMigration = state.widgets.some(w => !w.config.companyName);
+      if (needsMigration) {
+        console.log(`🔧 Migrating ${state.widgets.length} widgets to add company name: ${companyInfo.name}`);
+        const migratedWidgets = state.widgets.map(widget => {
+          if (!widget.config.companyName) {
+            console.log(`  - Migrating widget ${widget.id} (${widget.type})`);
+            return {
+              ...widget,
+              config: {
+                ...widget.config,
+                companyName: companyInfo.name,
+                website: companyInfo.website || undefined
+              }
+            };
+          }
+          return widget;
+        });
+        setState(prev => ({ ...prev, widgets: migratedWidgets, isDirty: true }));
+      }
+    }
+  }, [companyInfo]); // Only depend on companyInfo to avoid infinite loops
 
   // Initial data fetch
   useEffect(() => {
@@ -210,11 +236,17 @@ export const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
     
     // Add company information to widget config
     if (newWidget && companyInfo) {
+      console.log(`🏢 Adding company info to widget ${newWidget.type}:`, { 
+        companyName: companyInfo.name, 
+        website: companyInfo.website 
+      });
       newWidget.config = {
         ...newWidget.config,
         companyName: companyInfo.name,
         website: companyInfo.website || undefined
       };
+    } else {
+      console.warn(`⚠️ Cannot add company info to widget - newWidget: ${!!newWidget}, companyInfo: ${!!companyInfo}`);
     }
 
     if (newWidget) {
@@ -320,13 +352,17 @@ export const CustomizableDashboard: React.FC<CustomizableDashboardProps> = ({
     const widget = state.widgets.find(w => w.id === widgetId);
     if (!widget) return;
 
+    console.log(`🔄 Refreshing widget data for ${widget.type} (${widgetId}) - forcing fresh fetch`);
+
     try {
-      const data = await fetchWidgetData(widget, companyId);
+      // Pass skipCache: true to force fresh data fetch from API
+      const data = await fetchWidgetData(widget, companyId, true);
       setDataCache(prev => {
         const newCache = new Map(prev);
         newCache.set(widgetId, data);
         return newCache;
       });
+      console.log(`✅ Widget ${widgetId} refreshed successfully with fresh data`);
     } catch (error) {
       console.error(`Failed to refresh widget ${widgetId}:`, error);
       setDataCache(prev => {

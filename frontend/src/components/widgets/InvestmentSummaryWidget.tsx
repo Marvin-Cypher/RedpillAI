@@ -4,10 +4,10 @@
  */
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DollarSign, TrendingUp, Users, Calendar } from 'lucide-react';
 import { WidgetProps } from '@/lib/widgets/types';
+import { BaseWidget } from './BaseWidget';
 
 interface InvestmentData {
   investment_amount: number;
@@ -25,7 +25,9 @@ const InvestmentSummaryWidget: React.FC<WidgetProps> = ({
   error,
   isEditing,
   onUpdate,
-  onRemove
+  onRemove,
+  companyId,
+  onRefresh
 }) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { 
@@ -40,72 +42,45 @@ const InvestmentSummaryWidget: React.FC<WidgetProps> = ({
     return `${value.toFixed(1)}%`;
   };
 
-  const investmentData: InvestmentData = data || {
-    investment_amount: 2500000,
-    valuation: 50000000,
-    ownership_percentage: 12.5,
-    lead_partner: 'John Partner',
+  // Create mock data for testing if no real data available
+  const mockData = !data ? {
+    investment_amount: 2500000, // $2.5M
+    valuation: 50000000, // $50M
+    ownership_percentage: 12.5, // 12.5%
+    lead_partner: 'Jane Smith',
     round_type: 'Series A',
     investment_date: '2024-03-15'
-  };
+  } : null;
 
-  if (loading) {
-    return (
-      <Card className="h-full">
-        <CardHeader>
-          <CardTitle>Investment Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center h-32">
+  const investmentData: InvestmentData = data || mockData;
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center h-32">
           <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
-        </CardContent>
-      </Card>
-    );
-  }
+        </div>
+      );
+    }
 
-  if (error) {
+    if (error) {
+      return (
+        <div className="flex items-center justify-center h-32">
+          <p className="text-red-600 text-sm">Error loading investment data</p>
+        </div>
+      );
+    }
+
+    if (!investmentData) {
+      return (
+        <div className="flex items-center justify-center h-32">
+          <p className="text-gray-500 text-sm">No investment data available</p>
+        </div>
+      );
+    }
+
     return (
-      <Card className="h-full border-red-200">
-        <CardHeader>
-          <CardTitle className="text-red-600">Investment Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center h-32">
-          <p className="text-red-600 text-sm">Error loading data</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="h-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-lg font-semibold">Investment Summary</CardTitle>
-        {isEditing && (
-          <div className="flex space-x-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onUpdate?.({ ...widget.config })}
-              className="h-6 w-6 p-0 hover:bg-gray-100"
-            >
-              <DollarSign className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onRemove?.();
-              }}
-              className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
-              title="Delete widget"
-            >
-              ×
-            </Button>
-          </div>
-        )}
-      </CardHeader>
-      <CardContent className="pt-2">
+      <div className="pt-2">
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center p-3 bg-blue-50 rounded-lg">
             <div className="text-xl font-bold text-gray-900 mb-1">
@@ -142,8 +117,21 @@ const InvestmentSummaryWidget: React.FC<WidgetProps> = ({
             <span>{new Date(investmentData.investment_date).toLocaleDateString()}</span>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    );
+  };
+
+  return (
+    <BaseWidget 
+      widget={widget} 
+      isEditing={isEditing} 
+      onUpdate={onUpdate} 
+      onRemove={onRemove}
+      companyId={companyId}
+      onRefresh={onRefresh}
+    >
+      {renderContent()}
+    </BaseWidget>
   );
 };
 

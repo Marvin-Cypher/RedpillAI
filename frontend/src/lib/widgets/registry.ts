@@ -121,10 +121,39 @@ class WidgetRegistry {
         chart_type: 'pie',
         show_percentages: true
       },
-      [WidgetType.KEY_METRICS]: {
+      [WidgetType.STARTUP_METRICS]: {
         companyName: 'Unknown Company',
         show_trends: true,
         metric_period: 'monthly'
+      },
+      [WidgetType.OPERATIONAL_METRICS]: {
+        show_trends: true,
+        metrics: ['revenue_per_employee', 'operating_cash_flow']
+      },
+      [WidgetType.RUNWAY_BURN_RATE]: {
+        runway_threshold_days: 180,
+        show_warning: true
+      },
+      [WidgetType.TOKEN_ECONOMY_DASHBOARD]: {
+        show_vesting: true,
+        show_tvl: true,
+        show_yield: true
+      },
+      [WidgetType.SEC_FILINGS_VIEWER]: {
+        default_filing_type: '10-K',
+        max_documents: 5
+      },
+      [WidgetType.RISK_SENTIMENT_HEATMAP]: {
+        components: ['news_sentiment', 'onchain_alerts', 'dev_activity']
+      },
+      [WidgetType.CAP_TABLE_EVOLUTION]: {
+        time_window: 'all',
+        highlight_shareholders: ['founders', 'vcs']
+      },
+      [WidgetType.ESG_IMPACT_METRICS]: {
+        show_environmental: true,
+        show_social: true,
+        show_governance: true
       },
       [WidgetType.TOKEN_PRICE]: {
         refresh_interval: '60',
@@ -151,7 +180,14 @@ class WidgetRegistry {
       [WidgetType.PEER_COMPARISON]: 1800, // 30 minutes
       [WidgetType.TECHNICAL_ANALYSIS]: 300, // 5 minutes
       [WidgetType.PORTFOLIO_ALLOCATION]: 3600, // 1 hour
-      [WidgetType.KEY_METRICS]: 1800, // 30 minutes
+      [WidgetType.STARTUP_METRICS]: 1800, // 30 minutes
+      [WidgetType.OPERATIONAL_METRICS]: 1800, // 30 minutes
+      [WidgetType.RUNWAY_BURN_RATE]: 3600, // 1 hour
+      [WidgetType.TOKEN_ECONOMY_DASHBOARD]: 1800, // 30 minutes
+      [WidgetType.SEC_FILINGS_VIEWER]: 86400, // 24 hours
+      [WidgetType.RISK_SENTIMENT_HEATMAP]: 900, // 15 minutes
+      [WidgetType.CAP_TABLE_EVOLUTION]: 86400, // 24 hours
+      [WidgetType.ESG_IMPACT_METRICS]: 86400, // 24 hours
       [WidgetType.TOKEN_PRICE]: 60, // 1 minute
       [WidgetType.INVESTMENT_SUMMARY]: 3600 // 1 hour
     };

@@ -2,7 +2,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Providers } from './providers'
-import { AppLayout } from '@/components/layout/AppLayout'
+import AppLayout from '@/components/layout/AppLayout'
 import Script from 'next/script'
 
 const inter = Inter({

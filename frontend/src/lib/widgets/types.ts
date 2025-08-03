@@ -11,8 +11,15 @@ export enum WidgetType {
   TECHNICAL_ANALYSIS = 'technical_analysis',
   PORTFOLIO_ALLOCATION = 'portfolio_allocation',
   INVESTMENT_SUMMARY = 'investment_summary',
-  KEY_METRICS = 'key_metrics',
-  TOKEN_PRICE = 'token_price'
+  TOKEN_PRICE = 'token_price',
+  STARTUP_METRICS = 'startup_metrics',
+  OPERATIONAL_METRICS = 'operational_metrics',
+  RUNWAY_BURN_RATE = 'runway_burn_rate',
+  TOKEN_ECONOMY_DASHBOARD = 'token_economy_dashboard',
+  SEC_FILINGS_VIEWER = 'sec_filings_viewer',
+  RISK_SENTIMENT_HEATMAP = 'risk_sentiment_heatmap',
+  CAP_TABLE_EVOLUTION = 'cap_table_evolution',
+  ESG_IMPACT_METRICS = 'esg_impact_metrics'
 }
 
 export interface GridPosition {
@@ -52,7 +59,8 @@ export interface WidgetMetadata {
   defaultSize: GridPosition;
   configSchema: Record<string, any>;
   icon: string;
-  category: 'market' | 'analysis' | 'news' | 'portfolio' | 'company';
+  category: 'market' | 'analysis' | 'news' | 'portfolio' | 'company' | 'finance' | 'crypto' | 'regulatory' | 'risk' | 'ownership' | 'impact';
+  compatibleAssetTypes?: Array<'private' | 'crypto' | 'public'>;
 }
 
 export interface DashboardLayout {

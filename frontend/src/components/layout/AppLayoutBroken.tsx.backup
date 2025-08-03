@@ -4,16 +4,16 @@ import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Navigation, TopBar } from './Navigation'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
-import { UnifiedAISystem } from '@/components/ai'
+import { UnifiedAISystem, FloatingAIButton } from '@/components/ai'
 import { useAuthStore } from '@/lib/stores/authStore'
 
 interface AppLayoutProps {
   children: React.ReactNode
 }
 
-// Auth guard component - Fixed version
+// Auth guard component
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  // Always call hooks at the top level - this is critical!
+  // Always call hooks at the top level
   const router = useRouter()
   const pathname = usePathname()
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore()
@@ -21,14 +21,13 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   // DEMO MODE: Bypass authentication for testing
   const DEMO_MODE = true // Set to false to re-enable authentication
   
-  // Always run useEffect hooks, but make them conditional inside
+  if (DEMO_MODE) {
+    console.log('🔓 Demo mode active - authentication bypassed')
+    return <>{children}</>
+  }
+
+  // Check authentication status on mount and route changes
   useEffect(() => {
-    // If demo mode, just log and return early
-    if (DEMO_MODE) {
-      console.log('🔓 Demo mode active - authentication bypassed')
-      return
-    }
-    
     // Skip auth check for public routes
     const publicRoutes = ['/login', '/simple-login', '/direct-login']
     if (publicRoutes.includes(pathname)) {
@@ -47,12 +46,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
     // Always check auth status with the server (for HTTP-only cookies)
     checkAuth()
-  }, [pathname, checkAuth, DEMO_MODE])
+  }, [pathname, checkAuth])
 
   useEffect(() => {
-    // If demo mode, return early
-    if (DEMO_MODE) return
-    
     // Skip auth check for public routes
     const publicRoutes = ['/login', '/simple-login', '/direct-login']
     if (publicRoutes.includes(pathname)) {
@@ -64,12 +60,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       const returnUrl = encodeURIComponent(pathname)
       router.push(`/login?returnUrl=${returnUrl}`)
     }
-  }, [isAuthenticated, isLoading, pathname, router, DEMO_MODE])
-
-  // If demo mode is enabled, just return children directly
-  if (DEMO_MODE) {
-    return <>{children}</>
-  }
+  }, [isAuthenticated, isLoading, pathname, router])
 
   // Show loading screen while checking auth
   if (isLoading) {
@@ -95,18 +86,40 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-export default function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children }: AppLayoutProps) {
+  const pathname = usePathname()
+  const isLoginPage = pathname === '/login'
+
   return (
     <ThemeProvider>
       <AuthGuard>
-        <UnifiedAISystem>
-          <div className="min-h-screen bg-gray-50">
-            <Navigation />
-            <TopBar />
-            <main className="lg:pl-64">
-              {children}
-            </main>
-          </div>
+        <UnifiedAISystem
+          globalProjectType="open"
+          globalProjectName="RedPill VC Platform"
+          enableAI={true}
+        >
+          {(aiContext) => (
+            <>
+              {isLoginPage ? (
+                // Render login page without navigation
+                <div className="min-h-screen">
+                  {children}
+                </div>
+              ) : (
+                // Render normal app layout with navigation
+                <div className="min-h-screen bg-gray-50">
+                  <Navigation />
+                  <TopBar />
+                  
+                  <main className="lg:pl-64 w-full overflow-x-hidden">
+                    <div className="w-full max-w-none lg:max-w-7xl mx-auto">
+                      {children}
+                    </div>
+                  </main>
+                </div>
+              )}
+            </>
+          )}
         </UnifiedAISystem>
       </AuthGuard>
     </ThemeProvider>

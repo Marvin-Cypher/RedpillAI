@@ -8,8 +8,8 @@ import { apiClient as centralApiClient } from '@/lib/api';
 import { getCompanyCategory } from '@/lib/companyDatabase';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ? 
-  `${process.env.NEXT_PUBLIC_API_URL}/api/v1/market` : 
-  'http://localhost:8000/api/v1/market';
+  `${process.env.NEXT_PUBLIC_API_URL.replace('/api/v1', '')}/api/v1` : 
+  'http://localhost:8000/api/v1';
 
 // Generate realistic news URLs based on source
 const generateNewsUrl = (company: string, title: string, source: string): string => {
@@ -55,45 +55,45 @@ class WidgetApiClient {
 
   // Price data endpoints
   async getCryptoPrice(symbol: string): Promise<any> {
-    return this.request(`/crypto/${symbol}/price`);
+    return this.request(`/market/crypto/${symbol}/price`);
   }
 
   async getCryptoHistorical(symbol: string, days: number = 30): Promise<{ data: PriceData[] }> {
-    return this.request(`/crypto/${symbol}/historical?days=${days}`);
+    return this.request(`/market/crypto/${symbol}/historical?days=${days}`);
   }
 
   async getEquityPrice(ticker: string): Promise<any> {
-    return this.request(`/equity/${ticker}/price`);
+    return this.request(`/market/equity/${ticker}/price`);
   }
 
   async getEquityHistorical(ticker: string, days: number = 252): Promise<{ data: PriceData[] }> {
-    return this.request(`/equity/${ticker}/historical?days=${days}`);
+    return this.request(`/market/equity/${ticker}/historical?days=${days}`);
   }
 
   // Fundamental data
   async getEquityFundamentals(ticker: string): Promise<FundamentalData> {
-    return this.request(`/equity/${ticker}/fundamentals`);
+    return this.request(`/market/equity/${ticker}/fundamentals`);
   }
 
   async compareEquities(tickers: string[]): Promise<ComparisonData> {
     const tickerString = tickers.join(',');
-    return this.request(`/equity/compare?tickers=${tickerString}`);
+    return this.request(`/market/equity/compare?tickers=${tickerString}`);
   }
 
   // News data
   async getCryptoNews(symbol?: string, limit: number = 10): Promise<{ news: NewsItem[] }> {
     const params = new URLSearchParams({ limit: limit.toString() });
     if (symbol) params.append('symbol', symbol);
-    return this.request(`/news?${params}`);
+    return this.request(`/market/news?${params}`);
   }
 
   async getEquityNews(ticker: string, limit: number = 10): Promise<{ news: NewsItem[] }> {
-    return this.request(`/equity/${ticker}/news?limit=${limit}`);
+    return this.request(`/market/equity/${ticker}/news?limit=${limit}`);
   }
 
   // Market overview
   async getMarketOverview(): Promise<any> {
-    return this.request('/overview');
+    return this.request('/market/overview');
   }
 }
 
@@ -130,6 +130,67 @@ const generateMockPriceData = (ticker: string, days: number): { data: PriceData[
   }
   
   return { data };
+};
+
+// Company name to token symbol mapping for crypto companies
+const mapCompanyNameToTokenSymbol = (companyName: string): string | null => {
+  const name = companyName.toLowerCase().trim();
+  
+  // Common company name to token mappings
+  const companyToTokenMap: Record<string, string> = {
+    // Popular tokens
+    'chainlink': 'LINK',
+    'chainlink labs': 'LINK',
+    'solana': 'SOL', 
+    'solana labs': 'SOL',
+    'solana foundation': 'SOL',
+    'uniswap': 'UNI',
+    'uniswap labs': 'UNI',
+    'polygon': 'MATIC',
+    'polygon technology': 'MATIC',
+    'polygon labs': 'MATIC',
+    'avalanche': 'AVAX',
+    'ava labs': 'AVAX',
+    'near': 'NEAR',
+    'near protocol': 'NEAR',
+    'near foundation': 'NEAR',
+    'the graph': 'GRT',
+    'graph protocol': 'GRT',
+    'aave': 'AAVE',
+    'compound': 'COMP',
+    'makerdao': 'MKR',
+    'maker': 'MKR',
+    'cosmos': 'ATOM',
+    'cosmos network': 'ATOM',
+    'polkadot': 'DOT',
+    'web3 foundation': 'DOT',
+    'algorand': 'ALGO',
+    'algorand foundation': 'ALGO',
+    'cardano': 'ADA',
+    'iohk': 'ADA',
+    'input output': 'ADA',
+    'ethereum': 'ETH',
+    'ethereum foundation': 'ETH',
+    'fantom': 'FTM',
+    'fantom foundation': 'FTM',
+    'phala network': 'PHA',
+    'phala': 'PHA',
+    // Add more mappings as needed
+  };
+  
+  // Direct lookup
+  if (companyToTokenMap[name]) {
+    return companyToTokenMap[name];
+  }
+  
+  // Fuzzy matching - check if company name contains token name
+  for (const [companyKey, token] of Object.entries(companyToTokenMap)) {
+    if (name.includes(companyKey) || companyKey.includes(name.split(' ')[0])) {
+      return token;
+    }
+  }
+  
+  return null;
 };
 
 // Widget-specific data fetchers
@@ -510,216 +571,189 @@ export const widgetDataFetchers = {
   },
 
   key_metrics: async (widget: Widget, companyId: string) => {
-    const companyName = widget.config.companyName;
-    const website = widget.config.website;
+    console.log('🔍 Key metrics widget data fetch using companyId:', { companyId, widgetType: widget.type });
     
-    console.log('🔍 Key metrics widget data fetch:', { companyName, website, companyId });
-    
-    if (!companyName) {
-      console.error('No company name provided to key_metrics widget');
-      throw new Error('Company name is required');
+    if (!companyId) {
+      throw new Error('Company ID is required for key metrics widget');
     }
     
-    // Try to fetch cached company data from our enhanced backend API
+    // Use companyId (UUID) directly for API call
     try {
-      console.log('📡 Fetching cached company data from backend...');
-      const response = await fetch(`http://localhost:8000/api/v1/data/companies/${encodeURIComponent(companyName)}/profile?${website ? `website=${encodeURIComponent(website)}` : ''}`);
+      console.log('📡 Fetching company data using UUID...');
+      const response = await fetch(`${API_BASE}/data/companies/${encodeURIComponent(companyId)}/profile`);
       
-      if (response.ok) {
-        const result = await response.json();
-        const companyData = result.data;
-        
-        console.log(`✅ Key metrics data fetched for ${companyName}:`, companyData);
-        console.log(`💾 Data source: ${result.source}, cached: ${result.cached}, cost: $${result.cost}`);
-        
-        // Use the enhanced cached data from our seeded backend
-        return {
-          revenue_current: companyData.key_metrics?.revenue || companyData.revenue_current || 0,
-          revenue_growth: companyData.key_metrics?.revenue_growth || companyData.revenue_growth || 0,
-          burn_rate: companyData.key_metrics?.burn_rate || companyData.burn_rate || 0,
-          runway_months: companyData.key_metrics?.runway || companyData.runway_months || 0,
-          employees: parseInt(companyData.employee_count?.replace(/[^\d]/g, '') || '0') || companyData.key_metrics?.employees || companyData.employees || 0,
-          customers: companyData.key_metrics?.customers || companyData.customers || 0,
-          arr: companyData.key_metrics?.arr || companyData.arr || 0,
-          gross_margin: companyData.key_metrics?.gross_margin || companyData.gross_margin || 0,
-          // Additional enriched metadata
-          founded_year: companyData.founded_year,
-          headquarters: companyData.headquarters,
-          description: companyData.description,
-          total_funding: companyData.total_funding,
-          industry: companyData.industry,
-          valuation: companyData.key_metrics?.valuation || 0,
-          // Cache metadata
-          data_quality: companyData.data_quality || 'unknown',
-          last_updated: companyData.last_updated,
-          source: result.source
-        };
-      } else {
-        console.error(`❌ API request failed for ${companyName}: ${response.status} ${response.statusText}`);
+      if (!response.ok) {
         throw new Error(`API Error: ${response.status} ${response.statusText}`);
       }
+
+      const result = await response.json();
+      const companyData = result.data;
+      
+      console.log(`✅ Key metrics data fetched for ${companyData.name}:`, {
+        has_key_metrics: !!companyData.key_metrics,
+        company_type: companyData.company_type,
+        data_source: result.source
+      });
+      
+      // Use the enhanced cached data from our backend
+      return {
+        revenue_current: companyData.key_metrics?.revenue || companyData.revenue_current || 0,
+        revenue_growth: companyData.key_metrics?.revenue_growth || companyData.revenue_growth || 0,
+        burn_rate: companyData.key_metrics?.burn_rate || companyData.burn_rate || 0,
+        runway_months: companyData.key_metrics?.runway || companyData.runway_months || 0,
+        employees: parseInt(companyData.employee_count?.replace(/[^\d]/g, '') || '0') || companyData.key_metrics?.employees || companyData.employees || 0,
+        customers: companyData.key_metrics?.customers || companyData.customers || 0,
+        arr: companyData.key_metrics?.arr || companyData.arr || 0,
+        gross_margin: companyData.key_metrics?.gross_margin || companyData.gross_margin || 0,
+        // Additional enriched metadata
+        founded_year: companyData.founded_year,
+        headquarters: companyData.headquarters,
+        description: companyData.description,
+        total_funding: companyData.total_funding,
+        industry: companyData.industry,
+        valuation: companyData.key_metrics?.valuation || 0,
+        // Cache metadata
+        data_quality: companyData.data_quality || 'unknown',
+        last_updated: companyData.last_updated,
+        source: result.source
+      };
     } catch (error) {
-      console.warn(`⚠️ Failed to fetch cached company data for ${companyName}, using fallback:`, error);
+      console.error(`❌ Failed to fetch key metrics for company ${companyId}:`, error);
+      throw error;
     }
-    
-    // Enhanced fallback with better estimates based on company name
-    const companyNameLower = companyName.toLowerCase();
-    if (companyNameLower.includes('nvidia')) {
-      return {
-        revenue_current: 60900000000,  // $60.9B
-        revenue_growth: 122.0,
-        burn_rate: 0,  // Profitable
-        runway_months: 999,
-        employees: 26000,
-        customers: 40000,
-        arr: 60900000000,
-        gross_margin: 73.0
-      };
-    } else if (companyNameLower.includes('chainlink')) {
-      return {
-        revenue_current: 45000000,  // $45M
-        revenue_growth: 85.0,
-        burn_rate: 2500000,
-        runway_months: 24,
-        employees: 150,
-        customers: 1500,
-        arr: 54000000,
-        gross_margin: 88.0
-      };
-    } else if (companyNameLower.includes('phala')) {
-      return {
-        revenue_current: 2400000,  // $2.4M
-        revenue_growth: 180.0,
-        burn_rate: 350000,
-        runway_months: 18,
-        employees: 75,
-        customers: 75,
-        arr: 2880000,
-        gross_margin: 82.0
-      };
-    }
-    
-    // Default fallback
-    return {
-      revenue_current: 450000,
-      revenue_growth: 15.2,
-      burn_rate: 180000,
-      runway_months: 18,
-      employees: 45,
-      customers: 1250,
-      arr: 5400000,
-      gross_margin: 72.5
-    };
   },
 
   token_price: async (widget: Widget, companyId: string) => {
-    const companyName = widget.config.companyName;
-    const website = widget.config.website;
+    console.log('🪙 Token price widget data fetch using companyId:', { companyId, widgetType: widget.type });
+    console.log('🪙 Widget config:', widget.config);
+    console.log('🪙 Widget dataSource:', widget.dataSource);
     
-    console.log('🪙 Token price widget data fetch:', { companyName, companyId });
-    
-    if (!companyName) {
-      console.error('No company name provided to token price widget');
-      throw new Error('Company name is required for token price widget');
+    if (!companyId) {
+      throw new Error('Company ID is required for token price widget');
     }
-    
-    // Fetch from centralized company database
+
+    // Use companyId (UUID) directly for API call - much simpler and more reliable
     try {
-      console.log('📡 Fetching token price data from backend...');
-      const response = await fetch(`http://localhost:8000/api/v1/data/companies/${encodeURIComponent(companyName)}/profile?${website ? `website=${encodeURIComponent(website)}` : ''}`);
+      console.log('📡 Fetching company profile using UUID...');
+      const profileResponse = await fetch(`${API_BASE}/data/companies/${encodeURIComponent(companyId)}/profile`);
       
-      if (response.ok) {
-        const result = await response.json();
-        const companyData = result.data;
+      if (!profileResponse.ok) {
+        throw new Error(`Profile API Error: ${profileResponse.status} ${profileResponse.statusText}`);
+      }
+
+      const profileResult = await profileResponse.json();
+      const companyData = profileResult.data;
+      
+      console.log(`✅ Company profile fetched for ${companyData.name}:`, {
+        company_type: companyData.company_type,
+        has_crypto_data: !!companyData.crypto_data,
+        crypto_symbol: companyData.crypto_data?.symbol
+      });
+      console.log('🪙 Full crypto_data:', companyData.crypto_data);
+      
+      // Smart crypto company detection and token mapping
+      let tokenSymbol = null;
+      
+      // First, try to get token from existing crypto_data
+      if (companyData.crypto_data && companyData.crypto_data.symbol) {
+        tokenSymbol = companyData.crypto_data.symbol;
+        console.log(`🪙 ${companyData.name} has existing crypto_data with token: ${tokenSymbol}`);
+      }
+      // If no crypto_data but company is crypto type, try to map company name to token
+      else if (companyData.company_type === 'crypto') {
+        tokenSymbol = mapCompanyNameToTokenSymbol(companyData.name);
+        console.log(`🪙 ${companyData.name} is crypto company, mapped to token: ${tokenSymbol}`);
+      }
+      
+      if (tokenSymbol) {
         
-        console.log(`✅ Token price data fetched for ${companyName}:`, companyData);
-        
-        // Extract crypto data if available
-        if (companyData.crypto_data) {
-          return {
-            ...companyData.crypto_data,
-            name: companyData.name,
-            last_updated: new Date().toISOString(),
-            data_source: result.source
-          };
-        } else {
-          console.warn(`No crypto_data found for ${companyName}, generating fallback`);
-          // Generate realistic fallback for non-crypto companies
-          return {
-            symbol: 'N/A',
-            name: companyName,
-            current_price: 0,
-            market_cap: companyData.key_metrics?.valuation || 0,
-            message: `${companyName} is not a crypto company`,
-            data_source: 'fallback'
-          };
+        try {
+          // Fetch REAL-TIME crypto price from market API
+          console.log(`📈 Fetching real-time price for ${tokenSymbol}...`);
+          const priceResponse = await fetch(`${API_BASE}/market/crypto/${tokenSymbol}/price`);
+          
+          if (priceResponse.ok) {
+            const realTimePrice = await priceResponse.json();
+            console.log(`✅ Real-time price fetched for ${tokenSymbol}:`, {
+              current_price: realTimePrice.current_price,
+              change_percent: realTimePrice.change_percent
+            });
+            console.log('🪙 Full real-time price data:', realTimePrice);
+            
+            // Merge real-time price data with company crypto_data (if available)
+            const result = {
+              symbol: tokenSymbol,
+              name: companyData.name,
+              current_price: realTimePrice.current_price,
+              price_change_24h: realTimePrice.current_price - realTimePrice.open_price,
+              price_change_percentage_24h: realTimePrice.change_percent,
+              market_cap: companyData.crypto_data?.market_cap || null,
+              market_cap_rank: companyData.crypto_data?.market_cap_rank || null,
+              volume_24h: realTimePrice.volume_24h,
+              circulating_supply: companyData.crypto_data?.circulating_supply || null,
+              total_supply: companyData.crypto_data?.total_supply || null,
+              high_24h: realTimePrice.high_24h,
+              low_24h: realTimePrice.low_24h,
+              last_updated: realTimePrice.last_updated,
+              data_source: companyData.crypto_data ? 'real_time_with_cached_data' : 'real_time_only'
+            };
+            console.log('🪙 Final token price result:', result);
+            return result;
+          } else {
+            console.warn(`⚠️ Real-time price API failed for ${tokenSymbol}, using fallback`);
+            // Fallback to cached crypto_data if available, otherwise basic structure
+            if (companyData.crypto_data) {
+              return {
+                ...companyData.crypto_data,
+                name: companyData.name,
+                last_updated: new Date().toISOString(),
+                data_source: 'cached_fallback'
+              };
+            } else {
+              return {
+                symbol: tokenSymbol,
+                name: companyData.name,
+                current_price: 0,
+                message: `Unable to fetch price data for ${tokenSymbol}`,
+                data_source: 'fallback_no_data'
+              };
+            }
+          }
+        } catch (marketError) {
+          console.warn(`⚠️ Market API error for ${tokenSymbol}:`, marketError);
+          // Fallback to cached crypto_data if available, otherwise basic structure
+          if (companyData.crypto_data) {
+            return {
+              ...companyData.crypto_data,
+              name: companyData.name,
+              last_updated: new Date().toISOString(),
+              data_source: 'cached_fallback'
+            };
+          } else {
+            return {
+              symbol: tokenSymbol,
+              name: companyData.name,
+              current_price: 0,
+              message: `Market API error for ${tokenSymbol}`,
+              data_source: 'error_fallback'
+            };
+          }
         }
       } else {
-        console.error(`❌ API request failed for ${companyName}: ${response.status} ${response.statusText}`);
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        console.warn(`${companyData.name} is not a crypto company or has no token data`);
+        // Generate fallback for non-crypto companies
+        return {
+          symbol: 'N/A',
+          name: companyData.name,
+          current_price: 0,
+          market_cap: companyData.key_metrics?.valuation || 0,
+          message: `${companyData.name} is not a crypto company`,
+          data_source: 'fallback'
+        };
       }
     } catch (error) {
-      console.warn(`⚠️ Failed to fetch token price for ${companyName}, using mock fallback:`, error);
-      
-      // Enhanced fallback for specific crypto companies
-      const companyNameLower = companyName.toLowerCase();
-      if (companyNameLower.includes('near')) {
-        return {
-          symbol: 'NEAR',
-          name: 'NEAR Protocol',
-          current_price: 3.45,
-          market_cap: 3450000000,
-          market_cap_rank: 25,
-          volume_24h: 185000000,
-          circulating_supply: 1000000000,
-          total_supply: 1000000000,
-          price_change_24h: 0.18,
-          price_change_percentage_24h: 5.5,
-          last_updated: new Date().toISOString(),
-          data_source: 'mock_fallback'
-        };
-      } else if (companyNameLower.includes('phala')) {
-        return {
-          symbol: 'PHA',
-          name: 'Phala Network',
-          current_price: 0.12,
-          market_cap: 120000000,
-          market_cap_rank: 235,
-          volume_24h: 8500000,
-          circulating_supply: 1000000000,
-          total_supply: 1000000000,
-          price_change_24h: 0.008,
-          price_change_percentage_24h: 7.2,
-          last_updated: new Date().toISOString(),
-          data_source: 'mock_fallback'
-        };
-      } else if (companyNameLower.includes('chainlink')) {
-        return {
-          symbol: 'LINK',
-          name: 'Chainlink',
-          current_price: 14.50,
-          market_cap: 8500000000,
-          market_cap_rank: 15,
-          volume_24h: 450000000,
-          circulating_supply: 556849970,
-          total_supply: 1000000000,
-          price_change_24h: 0.45,
-          price_change_percentage_24h: 3.21,
-          last_updated: new Date().toISOString(),
-          data_source: 'mock_fallback'
-        };
-      }
-      
-      // Generic fallback
-      return {
-        symbol: 'N/A',
-        name: companyName,
-        current_price: 0,
-        market_cap: 0,
-        message: `Token price data not available for ${companyName}`,
-        last_updated: new Date().toISOString(),
-        data_source: 'mock_fallback'
-      };
+      console.error(`❌ Failed to fetch token price for company ${companyId}:`, error);
+      throw error;
     }
   }
 };
@@ -872,12 +906,29 @@ class DataCache {
 export const dataCache = new DataCache();
 
 // Enhanced data fetcher with caching
-export async function fetchWidgetData(widget: Widget, companyId: string): Promise<any> {
+export async function fetchWidgetData(widget: Widget, companyId: string, skipCache: boolean = false): Promise<any> {
   const cacheKey = `${widget.type}_${widget.dataSource.ticker}_${JSON.stringify(widget.config)}`;
   
-  // Check cache first
-  const cachedData = dataCache.get(cacheKey);
-  if (cachedData) return cachedData;
+  console.log(`🚀 fetchWidgetData called:`, { 
+    widgetType: widget.type, 
+    companyId, 
+    skipCache,
+    ticker: widget.dataSource.ticker,
+    cacheKey
+  });
+  
+  // Check cache first (unless skipCache is true for refresh)
+  if (!skipCache) {
+    const cachedData = dataCache.get(cacheKey);
+    if (cachedData) {
+      console.log(`📋 Using cached data for widget ${widget.type}`, { cacheKey });
+      return cachedData;
+    }
+  } else {
+    console.log(`🔄 Skipping cache for widget refresh ${widget.type}`, { cacheKey });
+    // Clear existing cache entry when refreshing
+    dataCache.clear();
+  }
 
   // Fetch fresh data
   const fetcher = widgetDataFetchers[widget.type];
@@ -885,6 +936,7 @@ export async function fetchWidgetData(widget: Widget, companyId: string): Promis
     throw new Error(`No data fetcher found for widget type: ${widget.type}`);
   }
 
+  console.log(`📡 Fetching fresh data for widget ${widget.type}`, { companyId, skipCache });
   const data = await fetcher(widget, companyId);
   
   // Cache the result

@@ -226,7 +226,7 @@ export const withWidgetData = <T extends object>(
   WrappedComponent: React.ComponentType<BaseWidgetProps & T>,
   dataFetcher: (widget: BaseWidgetProps['widget'], companyId: string) => Promise<any>
 ) => {
-  return (props: BaseWidgetProps & T) => {
+  const WithWidgetDataComponent = (props: BaseWidgetProps & T) => {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -266,4 +266,8 @@ export const withWidgetData = <T extends object>(
       />
     );
   };
+
+  WithWidgetDataComponent.displayName = `withWidgetData(${WrappedComponent.displayName || WrappedComponent.name || 'Component'})`;
+  
+  return WithWidgetDataComponent;
 };

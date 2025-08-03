@@ -3,7 +3,7 @@
  * Shows real-time token price and market data for crypto companies
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { WidgetProps } from '@/lib/widgets/types';
 import { BaseWidget } from './BaseWidget';
+import { fetchWidgetData } from '@/lib/widgets/data';
 
 interface TokenPriceData {
   symbol?: string;
@@ -46,6 +47,51 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
   companyId,
   onRefresh
 }) => {
+  // Self-sufficient data fetching when no data is provided (WidgetGrid system)
+  const [selfFetchedData, setSelfFetchedData] = useState<TokenPriceData | null>(null);
+  const [selfLoading, setSelfLoading] = useState(false);
+  const [selfError, setSelfError] = useState<string | null>(null);
+
+  const fetchSelfData = async (skipCache: boolean = false) => {
+    if (!companyId) return;
+    
+    setSelfLoading(true);
+    setSelfError(null);
+    
+    try {
+      console.log('🪙 TokenPriceWidget self-fetching data for companyId:', companyId);
+      const result = await fetchWidgetData(widget, companyId, skipCache);
+      setSelfFetchedData(result);
+      console.log('🪙 TokenPriceWidget self-fetch result:', result);
+    } catch (err) {
+      console.error('🪙 TokenPriceWidget self-fetch error:', err);
+      setSelfError(err instanceof Error ? err.message : 'Failed to fetch token data');
+    } finally {
+      setSelfLoading(false);
+    }
+  };
+
+  // Fetch data on mount if no data is provided from parent
+  useEffect(() => {
+    if (!data && !loading && companyId) {
+      console.log('🪙 No data provided to TokenPriceWidget, self-fetching...');
+      fetchSelfData();
+    }
+  }, [companyId, data, loading]);
+
+  // Use provided data or self-fetched data
+  const activeData = data || selfFetchedData;
+  const activeLoading = loading || selfLoading;
+  const activeError = error || selfError;
+
+  const handleRefresh = () => {
+    if (onRefresh) {
+      onRefresh();
+    } else {
+      // Self-refresh when no onRefresh provided
+      fetchSelfData(true);
+    }
+  };
   const formatCurrency = (amount: number | null | undefined, decimals: number = 2) => {
     if (amount === null || amount === undefined || isNaN(amount)) {
       return 'N/A';
@@ -98,23 +144,10 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
     );
   };
 
-  const tokenData: TokenPriceData = data || {
-    symbol: 'BTC',
-    name: 'Bitcoin',
-    current_price: 43250.00,
-    price_change_24h: 1150.50,
-    price_change_percentage_24h: 2.73,
-    market_cap: 845000000000,
-    market_cap_rank: 1,
-    volume_24h: 25600000000,
-    circulating_supply: 19500000,
-    total_supply: 21000000,
-    high_24h: 44100.00,
-    low_24h: 42000.00,
-    last_updated: new Date().toISOString()
-  };
+  // Use activeData or fallback to empty data (no more BTC hardcoding)
+  const tokenData: TokenPriceData = activeData || {};
 
-  if (loading) {
+  if (activeLoading) {
     return (
       <Card className="h-full">
         <CardHeader>
@@ -127,14 +160,22 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
     );
   }
 
-  if (error) {
+  if (activeError) {
     return (
       <Card className="h-full border-red-200">
         <CardHeader>
           <CardTitle className="text-red-600">Token Price</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-32">
-          <p className="text-red-600 text-sm">Error loading token data</p>
+          <p className="text-red-600 text-sm">Error: {activeError}</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            className="mt-2"
+          >
+            Retry
+          </Button>
         </CardContent>
       </Card>
     );
@@ -147,7 +188,7 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
       onRemove={onRemove}
       isEditing={isEditing}
       companyId={companyId}
-      onRefresh={onRefresh}
+      onRefresh={handleRefresh}
     >
       <div className="space-y-4">
         {/* Token Title */}

@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - companies.py: CoinGecko/OpenBB calls now async with proper error handling
   - cost_optimized_data_service.py: Updated with async context managers
 
-### Critical Data Flow Issues Fixed (2025-01-31)
+### Critical Data Flow Issues Fixed (2025-08-01)
 - **Polkadot Widget 404 Error**: Fixed by correcting API_BASE URL from `/api/market` to `/api/v1/market` in `frontend/src/lib/widgets/data.ts`
 - **Wrong Polkadot Data**: Root cause was Polkadot missing from `backend/seed_companies.py` PORTFOLIO_COMPANIES list. Added proper Polkadot blockchain project data and re-seeded database.
 - **Database Seeding**: Critical to run `python3 backend/seed_companies.py` after fresh setup to populate portfolio companies with real data instead of falling back to Tavily API which returns wrong companies.
@@ -48,15 +48,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Company navigation working correctly with UUID system
   - Deal status changes persist across page navigation
 
-### Recent System State (2025-08-02)
+### Real-Time Crypto Widget Data Fetching Resolution (2025-08-03)
+- **Dual Widget System Discovery**: Identified two widget systems in codebase
+  - CustomizableDashboard: Centralized data fetching with `fetchWidgetData()`
+  - WidgetGrid: Widget-level self-sufficient data fetching
+  - Portfolio pages use WidgetGrid but widgets were designed for CustomizableDashboard
+- **Self-Sufficient Widget Pattern**: Enhanced TokenPriceWidget with dual compatibility
+  - Automatic data fetching when no data provided (WidgetGrid system)
+  - Uses provided data when available (CustomizableDashboard system)
+  - Smart error handling and retry functionality
+- **Intelligent Crypto Company Detection**: Automatic token symbol mapping
+  - 20+ company name to token mappings (Solana Labs → SOL, Chainlink → LINK)
+  - Works for any `company_type: "crypto"` without manual enrichment
+  - Fuzzy matching for company name variations
+- **Robust Fallback Strategy**: Multi-level fallback system
+  - Real-time price + cached market data (best case)
+  - Real-time price only (for new crypto companies)
+  - Cached data fallback (API failures)
+  - Basic structure with error message (complete failure)
+  - Eliminated hardcoded BTC fallback data
+- **Real-Time Price Integration**: Live crypto prices via OpenBB Platform
+  - `/api/v1/market/crypto/{symbol}/price` endpoints working
+  - Price data: LINK ~$16.23, SOL ~$161.84, etc.
+  - Volume, change %, high/low 24h data included
+
+### Recent System State (2025-08-03)
 - **Service Architecture**: All blocking I/O operations now async-safe with proper error handling
-- **Widget Refresh System**: Operational with user-triggered data enrichment and realistic metrics generation
+- **Widget System**: Dual compatibility - works in both CustomizableDashboard and WidgetGrid systems
+- **Crypto Widget Support**: All crypto companies automatically supported without manual data enrichment
 - **MarketDataService**: Operational with OpenBB connection + async crypto prices via executors
 - **AI Chat Service**: Consolidated and operational with unified debugging (chat_id system)
 - **API Routing**: All endpoints accessible with proper async patterns
 - **Frontend Development**: All pages accessible and functional with DEMO_MODE authentication bypass
 - Database contains 12+ companies including: Phala Network, NVIDIA, Chainlink, Amazon, Polygon, Solana, Uniswap, Aave, The Graph, **Polkadot**, OpenAI, Anthropic
-- All companies support widget refresh to generate complete enriched_data and key_metrics
+- **Real-Time Crypto Data**: Token Price widgets show live prices for all crypto companies
 - CoinGecko integration working for crypto companies (async via MarketDataService)
 - Widget system supports any company via user-triggered refresh (no longer dependent on seed data)
 
@@ -191,19 +216,40 @@ components/
 └── layout/          # Layout components (AppLayout, Navigation)
 ```
 
-### Widget System Architecture
-**Widget Data Flow (Async-Safe):**
-1. Widget calls `fetchWidgetData()` in `frontend/src/lib/widgets/data.ts`
-2. Data fetcher calls appropriate API endpoint (e.g., `/api/v1/data/companies/{name}/profile`)
-3. Backend routes through service layer: Companies database → CompanyDataCache → MarketDataService (async)
-4. MarketDataService handles external API calls via async wrappers (CoinGecko/OpenBB)
-5. Widget receives structured data and renders with BaseWidget wrapper
+### Widget System Architecture (Enhanced 2025-08-03)
+**Dual Widget System Support:**
+The codebase has two widget systems that now work seamlessly together:
 
-**Common Widget Issues:**
-- **Wrong Data**: Check if company exists in database (run seed script if missing)
-- **404 Errors**: Verify API_BASE URL matches backend route mounting  
-- **Missing Crypto Data**: Ensure crypto companies have `crypto_data` in cache entries
-- **Timeout Issues**: MarketDataService handles async timeouts and fallbacks automatically
+1. **CustomizableDashboard System** (`src/components/dashboard/CustomizableDashboard.tsx`):
+   - Centralized data fetching via `fetchWidgetData()`
+   - Passes `data`, `loading`, `error`, `onRefresh` to widgets
+   - Used by dashboard pages with drag-and-drop layouts
+
+2. **WidgetGrid System** (`src/components/widgets/WidgetGrid.tsx`):
+   - Self-sufficient widget data fetching
+   - Widgets handle their own data loading
+   - Used by portfolio pages with simpler grid layouts
+
+**Smart Widget Data Flow (Self-Sufficient Pattern):**
+1. Widget checks if data is provided (CustomizableDashboard system)
+2. If no data provided, widget self-fetches using `fetchWidgetData()` (WidgetGrid system)
+3. Data fetcher calls appropriate API endpoint (e.g., `/api/v1/data/companies/{uuid}/profile`)
+4. Backend routes through service layer: Companies database → CompanyDataCache → MarketDataService (async)
+5. MarketDataService handles external API calls via async wrappers (CoinGecko/OpenBB)
+6. Widget receives structured data and renders with BaseWidget wrapper
+
+**Crypto Company Intelligence (Token Price Widgets):**
+- **Automatic Detection**: Any company with `company_type: "crypto"` 
+- **Smart Token Mapping**: 20+ company name to token symbol mappings
+- **Fuzzy Matching**: Handles variations like "Solana Labs", "Solana Foundation" → "SOL"
+- **Real-Time Prices**: Live data via `/api/v1/market/crypto/{symbol}/price`
+- **Graceful Fallbacks**: Works with or without pre-populated crypto_data
+
+**Resolved Widget Issues:**
+- ✅ **BTC Fallback Fixed**: Eliminated hardcoded BTC data, now shows real token prices
+- ✅ **Dual System Support**: All widgets work in both CustomizableDashboard and WidgetGrid
+- ✅ **Auto Crypto Support**: No manual enrichment needed for crypto companies
+- ✅ **API Integration**: Proper UUID-based company identification
 
 ## Configuration Patterns
 

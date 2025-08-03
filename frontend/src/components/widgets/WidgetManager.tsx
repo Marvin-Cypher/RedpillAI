@@ -45,6 +45,7 @@ interface WidgetManagerProps {
   widgets: Widget[];
   onAddWidget: (widget: Widget) => void;
   onRemoveWidget: (widgetId: string) => void;
+  onRefreshAllWidgets?: () => void;
   companyId: string;
   companyName: string;
 }
@@ -60,9 +61,9 @@ interface WidgetTemplate {
 
 const AVAILABLE_WIDGETS: WidgetTemplate[] = [
   {
-    id: 'key-metrics',
-    type: WidgetType.KEY_METRICS,
-    title: 'Key Performance Metrics',
+    id: 'startup-metrics',
+    type: WidgetType.STARTUP_METRICS,
+    title: 'Startup Metrics',
     description: 'Revenue, growth, employees, and core business metrics',
     icon: <TrendingUp className="w-5 h-5" />,
     category: 'metrics'
@@ -113,6 +114,7 @@ export function WidgetManager({
   widgets, 
   onAddWidget, 
   onRemoveWidget, 
+  onRefreshAllWidgets,
   companyId, 
   companyName 
 }: WidgetManagerProps) {
@@ -137,23 +139,26 @@ export function WidgetManager({
         
         setRefreshStatus(successMessage);
         
-        // Clear widget cache and reload to show fresh data
+        // Clear widget data cache but preserve widget layout
         if (typeof window !== 'undefined' && window.localStorage) {
-          // Clear any widget data cache
+          // Clear only widget data cache, not widget configuration
           const keysToRemove = [];
           for (let i = 0; i < window.localStorage.length; i++) {
             const key = window.localStorage.key(i);
-            if (key && (key.includes('widget_') || key.includes('company_'))) {
+            if (key && (key.includes('widget_data_') || key.includes('company_data_'))) {
               keysToRemove.push(key);
             }
           }
           keysToRemove.forEach(key => window.localStorage.removeItem(key));
         }
         
-        // Trigger a page reload to update all widgets with fresh data
+        // Trigger widget refresh without page reload
         setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+          setRefreshStatus('✅ Widget data refreshed! Refreshing widgets now...');
+          if (onRefreshAllWidgets) {
+            onRefreshAllWidgets();
+          }
+        }, 1000);
       } else {
         setRefreshStatus(`❌ Failed to refresh widget data: ${result.error}`);
       }
