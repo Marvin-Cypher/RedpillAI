@@ -3,33 +3,26 @@
  * Shows key performance metrics for the portfolio company using real data API
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   DollarSign, 
   TrendingUp, 
   TrendingDown,
   Clock, 
   Building,
-  AlertTriangle
+  AlertTriangle,
+  Users,
+  Activity
 } from 'lucide-react';
 import { WidgetProps } from '@/lib/widgets/types';
 import { BaseWidget } from './BaseWidget';
+import { fetchWidgetData } from '@/lib/widgets/data';
 // Removed useCachedCompanyData import - widget should use data passed via props
 
-interface MetricsData {
-  revenue_current: number;
-  revenue_growth: number;
-  burn_rate: number;
-  runway_months: number;
-  employees: number;
-  customers: number;
-  arr: number;
-  gross_margin: number;
-}
+// Removed unused MetricsData interface - now using dynamic data
 
 interface KeyMetricsWidgetProps extends WidgetProps {
   companyName?: string;
-  website?: string;
 }
 
 const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
@@ -42,16 +35,44 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
   onRemove,
   companyId,
   onRefresh,
-  companyName,
-  website
+  companyName
 }) => {
-  // Get company name from widget config if not passed as prop
-  const effectiveCompanyName = companyName || widget.config?.companyName || 'Unknown Company';
-  
-  // Use data passed from widget system instead of fetching directly
-  const loading = externalLoading;
-  const realData = data;
-  const error = externalError;
+  // Self-sufficient data fetching state (for WidgetGrid system)
+  const [selfData, setSelfData] = useState<any>(null);
+  const [selfLoading, setSelfLoading] = useState(false);
+  const [selfError, setSelfError] = useState<string | null>(null);
+
+  // Self-sufficient data fetching (when no data is provided)
+  useEffect(() => {
+    if (!data && !externalLoading && companyId) {
+      console.log('🔄 KeyMetricsWidget: No data provided, fetching self-sufficiently');
+      setSelfLoading(true);
+      setSelfError(null);
+      
+      fetchWidgetData(widget, companyId)
+        .then((fetchedData) => {
+          console.log('✅ KeyMetricsWidget: Self-fetched data:', fetchedData);
+          setSelfData(fetchedData);
+        })
+        .catch((fetchError) => {
+          console.error('❌ KeyMetricsWidget: Self-fetch failed:', fetchError);
+          setSelfError(fetchError.message || 'Failed to fetch key metrics');
+        })
+        .finally(() => {
+          setSelfLoading(false);
+        });
+    }
+  }, [data, externalLoading, widget, companyId]);
+
+  // Determine which data/loading/error to use
+  const actualData = data || selfData;
+  const actualLoading = externalLoading || selfLoading;
+  const actualError = externalError || selfError;
+
+  // Use actualData which handles both external and self-fetched data
+  const loading = actualLoading;
+  const realData = actualData;
+  const error = actualError;
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { 
       style: 'currency', 
@@ -65,37 +86,118 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
     return `${value.toFixed(1)}%`;
   };
 
-  const getMetricTrend = (value: number) => {
-    return value >= 0 ? (
-      <TrendingUp className="w-4 h-4 text-green-500" />
-    ) : (
-      <TrendingDown className="w-4 h-4 text-red-500" />
+
+  // Determine company type from data
+  const companyType = realData?.company_category || realData?.company_type || 'private';
+  
+  // Create appropriate mock data based on company type
+  const getMockData = () => {
+    if (companyType === 'crypto') {
+      return {
+        network_transactions: 750000,
+        network_growth: 25,
+        token_holders: 250000,
+        market_cap: 8000000000,
+        tvl: 2500000000,
+        developers: 65,
+        partnerships: 25,
+        chain_activity: 85
+      };
+    } else if (companyType === 'public') {
+      return {
+        revenue_current: 250000000000,
+        revenue_growth: 12.5,
+        profit_margin: 0.15,
+        market_cap: 1500000000000,
+        pe_ratio: 28,
+        dividend_yield: 0.025,
+        employees: 180000,
+        stock_performance: 8.5
+      };
+    } else {
+      return {
+        revenue_current: 450000,
+        revenue_growth: 15.2,
+        burn_rate: 180000,
+        runway_months: 18,
+        employees: 45,
+        customers: 1250,
+        arr: 5400000,
+        gross_margin: 0.725
+      };
+    }
+  };
+
+  const mockData = !realData ? getMockData() : null;
+  const finalData = realData || mockData;
+
+  // Dynamic metric rendering based on company type
+  const renderMetricCard = (label: string, value: any, icon: any, color: string, format: string) => {
+    const IconComponent = icon;
+    let formattedValue = 'N/A';
+    
+    if (value !== null && value !== undefined) {
+      switch (format) {
+        case 'currency':
+          formattedValue = formatCurrency(value);
+          break;
+        case 'percentage':
+          formattedValue = formatPercentage(value);
+          break;
+        case 'number':
+          formattedValue = value.toLocaleString();
+          break;
+        case 'months':
+          formattedValue = `${value} months`;
+          break;
+        default:
+          formattedValue = value.toString();
+      }
+    }
+    
+    return (
+      <div className="bg-gray-50 rounded-lg p-3">
+        <div className="flex items-center space-x-2 mb-1">
+          <IconComponent className={`w-4 h-4 ${color}`} />
+          <span className="text-xs font-medium text-gray-600">{label}</span>
+        </div>
+        <div className="text-lg font-bold text-gray-900">{formattedValue}</div>
+      </div>
     );
   };
 
-  // Create mock data for testing if no real data available
-  const mockData = !data ? {
-    revenue_current: 450000, // $450K monthly revenue
-    revenue_growth: 15.2, // 15.2% quarter over quarter growth
-    burn_rate: 180000, // $180K monthly burn rate
-    runway_months: 18, // 18 months runway
-    employees: 45, // 45 employees
-    customers: 1250, // 1,250 customers
-    arr: 5400000, // $5.4M ARR
-    gross_margin: 0.725 // 72.5% gross margin
-  } : null;
+  const renderCryptoMetrics = () => (
+    <div className="grid grid-cols-2 gap-3">
+      {renderMetricCard('Daily Transactions', finalData?.network_transactions, Activity, 'text-blue-600', 'number')}
+      {renderMetricCard('Network Growth', finalData?.network_growth, TrendingUp, 'text-green-600', 'percentage')}
+      {renderMetricCard('Token Holders', finalData?.token_holders, Users, 'text-purple-600', 'number')}
+      {renderMetricCard('Market Cap', finalData?.market_cap, Building, 'text-orange-600', 'currency')}
+      {renderMetricCard('TVL', finalData?.tvl, DollarSign, 'text-green-600', 'currency')}
+      {renderMetricCard('Active Devs', finalData?.developers, Users, 'text-blue-600', 'number')}
+    </div>
+  );
 
-  // Extract metrics from real API data or use fallback
-  const metricsData: MetricsData = {
-    revenue_current: realData?.key_metrics?.revenue || data?.revenue_current || mockData?.revenue_current || 450000,
-    revenue_growth: realData?.key_metrics?.revenue_growth || data?.revenue_growth || mockData?.revenue_growth || 15.2,
-    burn_rate: realData?.key_metrics?.burn_rate || data?.burn_rate || mockData?.burn_rate || 180000,
-    runway_months: realData?.key_metrics?.runway || data?.runway_months || mockData?.runway_months || 18,
-    employees: parseInt(realData?.employee_count?.replace(/[^0-9]/g, '') || '') || data?.employees || mockData?.employees || 45,
-    customers: realData?.key_metrics?.customers || data?.customers || mockData?.customers || 1250,
-    arr: realData?.key_metrics?.arr || data?.arr || mockData?.arr || 5400000,
-    gross_margin: realData?.key_metrics?.gross_margin || data?.gross_margin || mockData?.gross_margin || 0.725
-  };
+  const renderPublicMetrics = () => (
+    <div className="grid grid-cols-2 gap-3">
+      {renderMetricCard('Revenue (TTM)', finalData?.revenue_current, DollarSign, 'text-green-600', 'currency')}
+      {renderMetricCard('Revenue Growth', finalData?.revenue_growth, TrendingUp, 'text-blue-600', 'percentage')}
+      {renderMetricCard('Profit Margin', finalData?.profit_margin, TrendingUp, 'text-green-600', 'percentage')}
+      {renderMetricCard('Market Cap', finalData?.market_cap, Building, 'text-purple-600', 'currency')}
+      {renderMetricCard('P/E Ratio', finalData?.pe_ratio, Building, 'text-orange-600', 'number')}
+      {renderMetricCard('Stock Performance', finalData?.stock_performance, TrendingUp, 'text-blue-600', 'percentage')}
+    </div>
+  );
+
+  const renderPrivateMetrics = () => (
+    <div className="grid grid-cols-2 gap-3">
+      {renderMetricCard('Monthly Revenue', finalData?.revenue_current, DollarSign, 'text-green-600', 'currency')}
+      {renderMetricCard('Growth Rate', finalData?.revenue_growth, TrendingUp, 'text-blue-600', 'percentage')}
+      {renderMetricCard('Burn Rate', finalData?.burn_rate, TrendingDown, 'text-red-600', 'currency')}
+      {renderMetricCard('Runway', finalData?.runway_months, Clock, 'text-orange-600', 'months')}
+      {renderMetricCard('Employees', finalData?.employees, Users, 'text-purple-600', 'number')}
+      {renderMetricCard('ARR', finalData?.arr, Building, 'text-green-600', 'currency')}
+    </div>
+  );
 
   const renderContent = () => {
     if (loading) {
@@ -119,7 +221,7 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
       );
     }
 
-    if (!metricsData) {
+    if (!finalData) {
       return (
         <div className="flex items-center justify-center h-32">
           <p className="text-gray-500 text-sm">No metrics data available</p>
@@ -127,62 +229,15 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
       );
     }
 
+    // Render different metrics based on company type
     return (
-      <div className="pt-2 overflow-hidden">
-        <div className="grid grid-cols-2 gap-2 h-full">
-          <div className="text-center p-2 bg-blue-50 rounded-lg overflow-hidden">
-            <div className="flex items-center justify-center space-x-1 mb-1">
-              <DollarSign className="w-4 h-4 text-blue-500" />
-              {getMetricTrend(metricsData.revenue_growth)}
-            </div>
-            <div className="text-sm font-bold text-gray-900 truncate">
-              {formatCurrency(metricsData.revenue_current)}
-            </div>
-            <div className="text-xs text-blue-600 font-medium truncate">Monthly Revenue</div>
-            <div className="text-xs text-green-600 mt-1 truncate">
-              +{formatPercentage(metricsData.revenue_growth)} QoQ
-            </div>
-          </div>
-          
-          <div className="text-center p-2 bg-green-50 rounded-lg overflow-hidden">
-            <div className="flex items-center justify-center space-x-1 mb-1">
-              <TrendingUp className="w-4 h-4 text-green-500" />
-            </div>
-            <div className="text-sm font-bold text-gray-900 truncate">
-              {formatCurrency(metricsData.arr)}
-            </div>
-            <div className="text-xs text-green-600 font-medium truncate">ARR</div>
-            <div className="text-xs text-blue-600 mt-1 truncate">
-              {formatPercentage(metricsData.gross_margin)} gross margin
-            </div>
-          </div>
-
-          <div className="text-center p-2 bg-orange-50 rounded-lg overflow-hidden">
-            <div className="flex items-center justify-center space-x-1 mb-1">
-              <Clock className="w-4 h-4 text-orange-500" />
-            </div>
-            <div className="text-sm font-bold text-gray-900 truncate">
-              {metricsData.runway_months}
-            </div>
-            <div className="text-xs text-orange-600 font-medium truncate">Months Runway</div>
-            <div className="text-xs text-gray-500 mt-1 truncate">
-              {formatCurrency(metricsData.burn_rate)}/mo burn
-            </div>
-          </div>
-
-          <div className="text-center p-2 bg-purple-50 rounded-lg overflow-hidden">
-            <div className="flex items-center justify-center space-x-1 mb-1">
-              <Building className="w-4 h-4 text-purple-500" />
-            </div>
-            <div className="text-sm font-bold text-gray-900 truncate">
-              {metricsData.customers}
-            </div>
-            <div className="text-xs text-purple-600 font-medium truncate">Customers</div>
-            <div className="text-xs text-blue-600 mt-1 truncate">
-              {metricsData.employees} employees
-            </div>
-          </div>
+      <div className="h-full">
+        <div className="mb-2">
+          <div className="text-xs text-gray-500 capitalize">{companyType} Company Metrics</div>
         </div>
+        {companyType === 'crypto' && renderCryptoMetrics()}
+        {companyType === 'public' && renderPublicMetrics()}
+        {companyType === 'private' && renderPrivateMetrics()}
       </div>
     );
   };

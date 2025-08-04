@@ -237,8 +237,8 @@ const WIDGET_METADATA: Partial<Record<WidgetType, WidgetMetadata>> = {
   },
   [WidgetType.STARTUP_METRICS]: {
     type: WidgetType.STARTUP_METRICS,
-    name: 'Startup Metrics',
-    description: 'Key performance metrics for private companies (MRR, CAC, LTV)',
+    name: 'Key Metrics',
+    description: 'Key performance metrics adapted for company type (crypto network metrics, public financials, or startup metrics)',
     defaultSize: { x: 0, y: 0, w: 6, h: 4 },
     configSchema: {
       show_trends: {
@@ -259,7 +259,7 @@ const WIDGET_METADATA: Partial<Record<WidgetType, WidgetMetadata>> = {
     },
     icon: 'BarChart3',
     category: 'company',
-    compatibleAssetTypes: ['private']
+    compatibleAssetTypes: ['private', 'crypto', 'public']
   },
   [WidgetType.TOKEN_PRICE]: {
     type: WidgetType.TOKEN_PRICE,
@@ -561,10 +561,10 @@ export function registerWidgets() {
     WIDGET_METADATA[WidgetType.INVESTMENT_SUMMARY]
   );
 
-  // Register Startup Metrics Widget
+  // Register Startup Metrics Widget (now using KeyMetricsWidget with dynamic company support)
   widgetRegistry.register(
     WidgetType.STARTUP_METRICS,
-    StartupMetricsWidget,
+    KeyMetricsWidget,
     WIDGET_METADATA[WidgetType.STARTUP_METRICS]
   );
 

@@ -344,9 +344,11 @@ export const getAllCompanies = async (): Promise<Company[]> => {
     // Try to fetch from backend API first
     const response = await fetch('http://localhost:8000/api/v1/companies/', {
       headers: {
-        'Authorization': 'Bearer fake-token', // TODO: Replace with real auth
+        'Content-Type': 'application/json',
       }
     })
+    
+    console.log('🔍 Backend response status:', response.status, response.statusText)
     
     if (response.ok) {
       const backendCompanies = await response.json()

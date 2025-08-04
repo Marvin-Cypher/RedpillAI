@@ -291,11 +291,12 @@ async def enrich_company_data(
                 detail="Company name is required for enrichment"
             )
         
-        # Validate company type
+        # Validate company type - convert to uppercase for enum validation
         try:
-            company_type_enum = CompanyType(company_type)
+            company_type_enum = CompanyType(company_type.upper())
         except ValueError:
-            company_type_enum = CompanyType.TRADITIONAL
+            # Default to PRIVATE if invalid type provided
+            company_type_enum = CompanyType.PRIVATE
         
         # Initialize Tavily service for real data enrichment
         tavily_service = TavilyService()

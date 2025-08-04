@@ -3,7 +3,7 @@
  * Interactive price chart with technical indicators
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   LineChart,
   Line,
@@ -27,6 +27,7 @@ import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { WidgetProps, PriceData } from '@/lib/widgets/types';
 import { format, parseISO } from 'date-fns';
 import { BaseWidget } from './BaseWidget';
+import { fetchWidgetData } from '@/lib/widgets/data';
 
 interface PriceChartData {
   data: PriceData[];
@@ -44,8 +45,40 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
   companyId,
   onRefresh
 }) => {
+  // Self-sufficient data fetching state (for WidgetGrid system)
+  const [selfData, setSelfData] = useState<any>(null);
+  const [selfLoading, setSelfLoading] = useState(false);
+  const [selfError, setSelfError] = useState<string | null>(null);
+
+  // Self-sufficient data fetching (when no data is provided)
+  useEffect(() => {
+    if (!data && !loading && companyId) {
+      console.log('🔄 PriceChartWidget: No data provided, fetching self-sufficiently');
+      setSelfLoading(true);
+      setSelfError(null);
+      
+      fetchWidgetData(widget, companyId)
+        .then((fetchedData) => {
+          console.log('✅ PriceChartWidget: Self-fetched data:', fetchedData);
+          setSelfData(fetchedData);
+        })
+        .catch((fetchError) => {
+          console.error('❌ PriceChartWidget: Self-fetch failed:', fetchError);
+          setSelfError(fetchError.message || 'Failed to fetch price data');
+        })
+        .finally(() => {
+          setSelfLoading(false);
+        });
+    }
+  }, [data, loading, widget, companyId]);
+
+  // Determine which data/loading/error to use
+  const actualData = data || selfData;
+  const actualLoading = loading || selfLoading;
+  const actualError = error || selfError;
+
   // Create mock data for testing if no real data available
-  const mockData = !data ? {
+  const mockData = !actualData ? {
     data: Array.from({ length: 30 }, (_, i) => {
       const date = new Date();
       date.setDate(date.getDate() - (29 - i));
@@ -69,7 +102,7 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
     change_percent_24h: 3.85
   } : null;
 
-  const actualData = data || mockData;
+  const finalData = actualData || mockData;
   const [selectedTimeframe, setSelectedTimeframe] = useState(
     widget.config.timeframe || '3M'
   );
@@ -111,9 +144,9 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
 
   // Process chart data with technical indicators
   const chartData = useMemo(() => {
-    if (!actualData?.data || !Array.isArray(actualData.data)) return [];
+    if (!finalData?.data || !Array.isArray(finalData.data)) return [];
 
-    const priceData = actualData.data.map((item: PriceData) => ({
+    const priceData = finalData.data.map((item: PriceData) => ({
       ...item,
       date: typeof item.date === 'string' ? item.date : item.date.toString(),
       formattedDate: format(parseISO(item.date), 'MMM dd')
@@ -139,7 +172,7 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
     }
 
     return priceData;
-  }, [actualData, selectedIndicators]);
+  }, [finalData, selectedIndicators]);
 
   // Get current price and change
   const currentPrice = chartData.length > 0 ? chartData[chartData.length - 1] : null;
@@ -203,7 +236,7 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
   };
 
   const renderContent = () => {
-    if (loading) {
+    if (actualLoading) {
       return (
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
@@ -214,13 +247,13 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
       );
     }
 
-    if (error) {
+    if (actualError) {
       return (
         <div className="flex items-center justify-center h-full text-center">
           <div className="text-red-600">
             <TrendingDown className="w-8 h-8 mx-auto mb-2" />
             <p className="text-sm font-medium">Failed to load price data</p>
-            <p className="text-xs text-gray-600 mt-1">{error}</p>
+            <p className="text-xs text-gray-600 mt-1">{actualError}</p>
           </div>
         </div>
       );

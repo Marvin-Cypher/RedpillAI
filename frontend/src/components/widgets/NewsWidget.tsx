@@ -3,7 +3,7 @@
  * Display latest news and updates for a company/ticker
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -23,50 +23,50 @@ import {
 import { WidgetProps, NewsItem } from '@/lib/widgets/types';
 import { parseISO, formatDistanceToNow } from 'date-fns';
 import { BaseWidget } from './BaseWidget';
+import { fetchWidgetData } from '@/lib/widgets/data';
 
 const NewsWidget: React.FC<WidgetProps> = ({
   widget,
   data,
-  loading,
-  error,
+  loading: externalLoading,
+  error: externalError,
   isEditing,
   onUpdate,
   onRemove,
   companyId,
   onRefresh
 }) => {
-  // Create mock data for testing if no real data available
-  const mockData = !data ? {
-    news: [
-      {
-        title: "Company Secures $50M Series B Funding Round",
-        summary: "The startup announced a significant funding milestone to accelerate product development and market expansion.",
-        url: "https://www.google.com/search?q=startup+series+b+funding+news",
-        published_at: new Date().toISOString(),
-        source: "Tech News Daily",
-        sentiment: "positive"
-      },
-      {
-        title: "New Product Launch Drives Customer Growth",
-        summary: "Latest product features have been well-received by early adopters and enterprise customers.",
-        url: "https://www.reuters.com/search/?blob=product+launch+startup",
-        published_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-        source: "Reuters Business",
-        sentiment: "positive"
-      },
-      {
-        title: "Strategic Partnership Announced with Industry Leader",
-        summary: "Partnership will expand market reach and provide new opportunities for growth.",
-        url: "https://www.bloomberg.com/search?query=strategic+partnership+announcement",
-        published_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-        source: "Bloomberg",
-        sentiment: "positive"
-      }
-    ],
-    count: 3
-  } : null;
+  // Self-sufficient data fetching state (for WidgetGrid system)
+  const [selfData, setSelfData] = useState<any>(null);
+  const [selfLoading, setSelfLoading] = useState(false);
+  const [selfError, setSelfError] = useState<string | null>(null);
 
-  const actualData = data || mockData;
+  // Self-sufficient data fetching (when no data is provided)
+  useEffect(() => {
+    if (!data && !externalLoading && companyId) {
+      console.log('🔄 NewsWidget: No data provided, fetching self-sufficiently');
+      setSelfLoading(true);
+      setSelfError(null);
+      
+      fetchWidgetData(widget, companyId)
+        .then((fetchedData) => {
+          console.log('✅ NewsWidget: Self-fetched data:', fetchedData);
+          setSelfData(fetchedData);
+        })
+        .catch((fetchError) => {
+          console.error('❌ NewsWidget: Self-fetch failed:', fetchError);
+          setSelfError(fetchError.message || 'Failed to fetch news data');
+        })
+        .finally(() => {
+          setSelfLoading(false);
+        });
+    }
+  }, [data, externalLoading, widget, companyId]);
+
+  // Determine which data/loading/error to use
+  const actualData = data || selfData;
+  const actualLoading = externalLoading || selfLoading;
+  const actualError = externalError || selfError;
   const [maxItems, setMaxItems] = useState(widget.config.max_items || 5);
   const [showSource, setShowSource] = useState(widget.config.show_source ?? true);
 
@@ -198,7 +198,7 @@ const NewsWidget: React.FC<WidgetProps> = ({
   };
 
   const renderContent = () => {
-    if (loading) {
+    if (actualLoading) {
       return (
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
@@ -209,13 +209,13 @@ const NewsWidget: React.FC<WidgetProps> = ({
       );
     }
 
-    if (error) {
+    if (actualError) {
       return (
         <div className="flex items-center justify-center h-full text-center">
           <div className="text-red-600">
             <AlertCircle className="w-8 h-8 mx-auto mb-2" />
             <p className="text-sm font-medium">Failed to load news</p>
-            <p className="text-xs text-gray-600 mt-1">{error}</p>
+            <p className="text-xs text-gray-600 mt-1">{actualError}</p>
           </div>
         </div>
       );

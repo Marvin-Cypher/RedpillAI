@@ -72,7 +72,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Price data: LINK ~$16.23, SOL ~$161.84, etc.
   - Volume, change %, high/low 24h data included
 
-### Recent System State (2025-08-03)
+### News Widget Google Search Integration Complete (2025-08-04)
+- **Google Search API News Service**: Replaced failing OpenBB news providers with Google Custom Search API
+  - Created new `NewsService` class in `backend/app/services/news_service.py`
+  - Integrated with existing Google Search API keys from frontend configuration
+  - Smart query building with company type detection (crypto, public, private)
+  - Reputable news sources: Reuters, Bloomberg, CNBC, CoinDesk, TechCrunch, etc.
+- **Widget Data Fetcher Fix**: Enhanced news_feed function in `frontend/src/lib/widgets/data.ts`
+  - **Root Issue**: News widget only worked with ticker symbols, fell back to generic news for companies without tickers
+  - **Solution**: Modified logic to use company names as fallback when tickers unavailable
+  - All company types now get relevant news: crypto (ticker OR name), public (ticker OR name), private (always name)
+- **Search Query Optimization**: Improved Google Search query building for better results
+  - Removes restrictive corporate suffixes: "Corporation", "Corp", "Inc", "LLC", etc.
+  - "NVIDIA Corporation" → "NVIDIA" → Better search results
+  - Company-specific search terms with relevant keywords based on company type
+- **Real News Links**: All news articles now have clickable URLs to actual news articles
+  - Example: "Nvidia Partner Hon Hai to Expand AI Server Assembly in the US" (Bloomberg)
+  - Search-based URLs ensure articles are relevant and recent (past month filter)
+- **Complete Coverage**: News widget now works for ALL companies regardless of ticker availability
+  - Before: Only companies with tickers got specific news, others got generic crypto market news
+  - After: All companies get relevant, company-specific news through Google Search API
+
+### Recent System State (2025-08-04)
 - **Service Architecture**: All blocking I/O operations now async-safe with proper error handling
 - **Widget System**: Dual compatibility - works in both CustomizableDashboard and WidgetGrid systems
 - **Crypto Widget Support**: All crypto companies automatically supported without manual data enrichment

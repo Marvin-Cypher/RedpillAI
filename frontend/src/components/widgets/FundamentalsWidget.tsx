@@ -3,7 +3,7 @@
  * Display key financial metrics and ratios
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -32,34 +32,39 @@ import {
 } from 'lucide-react';
 import { WidgetProps } from '@/lib/widgets/types';
 import { BaseWidget } from './BaseWidget';
+import { fetchWidgetData } from '@/lib/widgets/data';
 
-// Helper function to detect company type from data
+// Helper function to detect company type from data (fallback only)
 function detectCompanyType(data: any): 'public' | 'crypto' | 'private' {
   if (!data) return 'private';
   
-  // Check if it has crypto data (token info)
-  if (data.crypto_data || data.symbol || data.current_price || data.market_cap_rank) {
-    return 'crypto';
-  }
-  
-  // Check industry/sector for crypto indicators
-  const industry = (data.industry || '').toLowerCase();
   const name = (data.name || '').toLowerCase();
-  if (industry.includes('blockchain') || industry.includes('crypto') || 
-      name.includes('protocol') || name.includes('network') || name.includes('chain')) {
-    return 'crypto';
-  }
+  const industry = (data.industry || '').toLowerCase();
   
-  // Check for well-known public companies
+  // First check for well-known public companies (most reliable)
   const publicCompanies = ['amazon', 'nvidia', 'apple', 'microsoft', 'google', 'meta', 'tesla'];
   if (publicCompanies.some(company => name.includes(company))) {
     return 'public';
   }
   
-  // Check if it has public company indicators (large market cap, public company metrics)
-  if (data.pe_ratio || data.dividend_yield || 
-      (data.key_metrics?.valuation && data.key_metrics.valuation > 100000000000) ||
-      data.total_funding === 0) { // Public companies typically don't have "funding"
+  // Check if it has explicit crypto data (most reliable crypto indicator)
+  if (data.crypto_data || data.token_market_cap || data.token_price || data.circulating_supply) {
+    return 'crypto';
+  }
+  
+  // Check industry/sector for crypto indicators
+  if (industry.includes('blockchain') || industry.includes('crypto') || 
+      name.includes('protocol') || name.includes('network') || name.includes('chain')) {
+    return 'crypto';
+  }
+  
+  // Check if it has public company indicators (but not crypto indicators)
+  if (!data.crypto_data && (data.pe_ratio || data.dividend_yield || data.debt_ratio)) {
+    return 'public';
+  }
+  
+  // Check for very large valuations that suggest public companies
+  if (data.key_metrics?.valuation && data.key_metrics.valuation > 500000000000) { // $500B+
     return 'public';
   }
   
@@ -78,8 +83,40 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
   companyId,
   onRefresh
 }) => {
+  // Self-sufficient data fetching state (for WidgetGrid system)
+  const [selfData, setSelfData] = useState<any>(null);
+  const [selfLoading, setSelfLoading] = useState(false);
+  const [selfError, setSelfError] = useState<string | null>(null);
+
+  // Self-sufficient data fetching (when no data is provided)
+  useEffect(() => {
+    if (!data && !loading && companyId) {
+      console.log('🔄 FundamentalsWidget: No data provided, fetching self-sufficiently');
+      setSelfLoading(true);
+      setSelfError(null);
+      
+      fetchWidgetData(widget, companyId)
+        .then((fetchedData) => {
+          console.log('✅ FundamentalsWidget: Self-fetched data:', fetchedData);
+          setSelfData(fetchedData);
+        })
+        .catch((fetchError) => {
+          console.error('❌ FundamentalsWidget: Self-fetch failed:', fetchError);
+          setSelfError(fetchError.message || 'Failed to fetch fundamentals data');
+        })
+        .finally(() => {
+          setSelfLoading(false);
+        });
+    }
+  }, [data, loading, widget, companyId]);
+
+  // Determine which data/loading/error to use
+  const actualData = data || selfData;
+  const actualLoading = loading || selfLoading;
+  const actualError = error || selfError;
+
   // Create mock data for testing if no real data available
-  const mockData = {
+  const mockData = !actualData ? {
     company_type: 'private',
     key_metrics: {
       valuation: 2500000000, // $2.5B
@@ -88,33 +125,60 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
       burn_rate: 8000000 // $8M/month
     },
     total_funding: 350000000 // $350M
-  };
+  } : null;
 
-  const actualData = data || mockData;
+  const finalData = actualData || mockData;
 
-  // Determine company type from widget config or data
-  const companyType = widget.config?.companyType || detectCompanyType(actualData);
+  // Determine company type from data fetcher or widget config or fallback detection
+  const companyType = finalData?.company_category || widget.config?.companyType || detectCompanyType(finalData);
+  
+  // Debug company type detection
+  console.log(`🏷️ FundamentalsWidget company type detection:`, {
+    company_name: finalData?.name || 'Unknown',
+    detected_type: companyType,
+    company_category: finalData?.company_category,
+    widget_config_type: widget.config?.companyType,
+    fallback_detection: detectCompanyType(finalData)
+  });
   
   // Select default metrics based on company type
   const getDefaultMetrics = () => {
     switch (companyType) {
       case 'public':
-        return ['market_cap', 'pe_ratio', 'revenue_ttm', 'gross_margin'];
+        // Public companies: Focus on stock metrics and financial performance from public reports
+        return ['market_cap', 'pe_ratio', 'revenue_ttm', 'profit_margin', 'debt_ratio', 'dividend_yield'];
       case 'crypto':
-        return ['token_market_cap', 'token_price', 'circulating_supply', 'volume_24h'];
+        // Crypto companies: True fundamentals (not price metrics)
+        return ['listing_exchanges', 'founders_count', 'tokenomics_chart', 'github_repo', 'tge_date', 'twitter_followers'];
       case 'private':
-        return ['valuation', 'revenue_ttm', 'gross_margin', 'burn_rate'];
+        // Private companies: Focus on startup/growth metrics from Tavily data
+        return ['valuation', 'revenue_ttm', 'burn_rate', 'runway', 'total_funding', 'gross_margin'];
       default:
         return ['valuation', 'revenue_ttm', 'gross_margin', 'runway'];
     }
   };
   
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>(
-    widget.config?.metrics || getDefaultMetrics()
+    widget.config?.metrics || ['valuation', 'revenue_ttm', 'gross_margin', 'burn_rate'] // Default fallback
   );
   const [displayFormat, setDisplayFormat] = useState(
     widget.config?.display_format || 'cards'
   );
+
+  // Update metrics when company type changes (after data loads)
+  useEffect(() => {
+    if (!widget.config?.metrics && finalData) {
+      const defaultMetrics = getDefaultMetrics();
+      console.log(`🔄 FundamentalsWidget: Updating metrics for ${companyType} company (${finalData.name}):`, defaultMetrics);
+      console.log(`📊 Company data:`, { 
+        company_category: finalData.company_category, 
+        has_crypto_data: !!finalData.crypto_data,
+        has_pe_ratio: !!finalData.pe_ratio,
+        name: finalData.name 
+      });
+      setSelectedMetrics(defaultMetrics);
+    }
+  }, [companyType, finalData, widget.config?.metrics]);
 
   // Available metrics with descriptions - includes both traditional and crypto metrics
   const metricDefinitions = {
@@ -159,45 +223,53 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
       color: 'text-green-600',
       category: 'public'
     },
-    // Crypto metrics
-    token_market_cap: {
-      label: 'Token Market Cap',
+    // Crypto fundamentals (proper fundamental analysis, not price metrics)
+    listing_exchanges: {
+      label: 'Listed Exchanges',
       icon: Building,
-      description: 'Total market value of circulating tokens',
-      format: 'currency_billions',
+      description: 'Number of exchanges and top 5 by volume',
+      format: 'exchanges',
       color: 'text-blue-600',
       category: 'crypto'
     },
-    token_price: {
-      label: 'Token Price',
+    founders_count: {
+      label: 'Founders',
       icon: DollarSign,
-      description: 'Current token price in USD',
-      format: 'currency',
+      description: 'Key founders with LinkedIn profiles',
+      format: 'founders',
       color: 'text-green-600',
       category: 'crypto'
     },
-    circulating_supply: {
-      label: 'Circulating Supply',
+    tokenomics_chart: {
+      label: 'Tokenomics',
       icon: BarChart3,
-      description: 'Number of tokens in circulation',
-      format: 'number',
+      description: 'Token distribution breakdown',
+      format: 'tokenomics',
       color: 'text-purple-600',
       category: 'crypto'
     },
-    volume_24h: {
-      label: '24h Volume',
+    github_repo: {
+      label: 'GitHub Repository',
       icon: TrendingUp,
-      description: 'Trading volume in last 24 hours',
-      format: 'currency_millions',
+      description: 'Official project repository',
+      format: 'github',
       color: 'text-orange-600',
       category: 'crypto'
     },
-    market_cap_rank: {
-      label: 'Market Cap Rank',
+    tge_date: {
+      label: 'TGE Date',
       icon: TrendingUp,
-      description: 'Ranking by market capitalization',
-      format: 'rank',
+      description: 'Token Generation Event date',
+      format: 'date',
       color: 'text-indigo-600',
+      category: 'crypto'
+    },
+    twitter_followers: {
+      label: 'Twitter Following',
+      icon: BarChart3,
+      description: 'Twitter handle and follower count',
+      format: 'twitter',
+      color: 'text-blue-600',
       category: 'crypto'
     },
     // Private company metrics
@@ -287,6 +359,18 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
         return `${value.toFixed(0)} months`;
       case 'rank':
         return `#${value}`;
+      case 'exchanges':
+        return typeof value === 'object' ? `${value.count || 0} exchanges` : 'N/A';
+      case 'founders':
+        return typeof value === 'object' ? `${value.length || 0} founders` : 'N/A';
+      case 'tokenomics':
+        return 'View Chart';
+      case 'github':
+        return typeof value === 'string' ? 'View Repository' : 'N/A';
+      case 'date':
+        return value ? new Date(value).toLocaleDateString() : 'N/A';
+      case 'twitter':
+        return typeof value === 'object' ? `@${value.handle} (${value.followers?.toLocaleString() || 0})` : 'N/A';
       default:
         return value.toLocaleString();
     }
@@ -294,53 +378,77 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
 
   // Map data sources to metric values based on company type
   const getMetricValue = (metric: string): any => {
-    if (!actualData) return null;
+    if (!finalData) return null;
+    
+    // Debug logging for crypto fundamentals
+    if (companyType === 'crypto' && ['listing_exchanges', 'founders_count', 'tokenomics_chart', 'github_repo', 'tge_date', 'twitter_followers'].includes(metric)) {
+      console.log(`🔍 Debug fundamentals metric ${metric} for ${finalData.name}:`, {
+        metric,
+        direct_value: finalData[metric],
+        crypto_fundamentals_value: finalData.crypto_fundamentals?.[metric],
+        final_result: finalData[metric] || finalData.crypto_fundamentals?.[metric] || null
+      });
+    }
+
+    // Debug crypto data mapping
+    if (companyType === 'crypto' && ['token_market_cap', 'token_price', 'total_supply'].includes(metric)) {
+      console.log(`🔍 Debug crypto metric ${metric} for ${finalData.name}:`, {
+        metric,
+        finalData_field: finalData[metric.replace('token_', '')],
+        crypto_data_field: finalData.crypto_data?.[metric.replace('token_', '')],
+        final_value: metric === 'token_market_cap' ? (finalData.market_cap || finalData.crypto_data?.market_cap) :
+                     metric === 'token_price' ? (finalData.current_price || finalData.crypto_data?.current_price) :
+                     metric === 'total_supply' ? (finalData.total_supply || finalData.crypto_data?.total_supply) : 'unknown'
+      });
+    }
 
     switch (metric) {
       // Public company metrics (from stock data)
       case 'market_cap':
-        return actualData.stock_data?.market_cap || actualData.market_cap || actualData.key_metrics?.valuation || null;
+        return finalData.stock_data?.market_cap || finalData.market_cap || finalData.key_metrics?.valuation || null;
       case 'pe_ratio':
-        return actualData.stock_data?.pe_ratio || actualData.pe_ratio || null;
+        return finalData.stock_data?.pe_ratio || finalData.pe_ratio || null;
       case 'price_to_book':
-        return actualData.stock_data?.price_to_book || actualData.price_to_book || null;
+        return finalData.stock_data?.price_to_book || finalData.price_to_book || null;
       case 'debt_ratio':
-        return actualData.stock_data?.debt_ratio || actualData.debt_ratio || null;
+        return finalData.stock_data?.debt_ratio || finalData.debt_ratio || null;
       case 'dividend_yield':
-        return actualData.stock_data?.dividend_yield || actualData.dividend_yield || null;
+        return finalData.stock_data?.dividend_yield || finalData.dividend_yield || null;
 
-      // Crypto metrics (from token data)
-      case 'token_market_cap':
-        return actualData.market_cap || actualData.crypto_data?.market_cap || null;
-      case 'token_price':
-        return actualData.current_price || actualData.crypto_data?.current_price || null;
-      case 'circulating_supply':
-        return actualData.circulating_supply || actualData.crypto_data?.circulating_supply || null;
-      case 'volume_24h':
-        return actualData.volume_24h || actualData.crypto_data?.volume_24h || null;
-      case 'market_cap_rank':
-        return actualData.market_cap_rank || actualData.crypto_data?.market_cap_rank || null;
+      // Crypto fundamentals (proper fundamental data, not price metrics)
+      case 'listing_exchanges':
+        return finalData.exchanges || finalData.crypto_fundamentals?.exchanges || null;
+      case 'founders_count':
+        return finalData.founders || finalData.crypto_fundamentals?.founders || null;
+      case 'tokenomics_chart':
+        return finalData.tokenomics || finalData.crypto_fundamentals?.tokenomics || null;
+      case 'github_repo':
+        return finalData.github_repo || finalData.crypto_fundamentals?.github_repo || null;
+      case 'tge_date':
+        return finalData.tge_date || finalData.crypto_fundamentals?.tge_date || null;
+      case 'twitter_followers':
+        return finalData.twitter || finalData.crypto_fundamentals?.twitter || null;
 
       // Private company metrics (from company data)
       case 'valuation':
-        return actualData.valuation || actualData.key_metrics?.valuation || actualData.investment?.valuation || null;
+        return finalData.valuation || finalData.key_metrics?.valuation || finalData.investment?.valuation || null;
       case 'burn_rate':
-        return actualData.burn_rate || actualData.key_metrics?.burn_rate || null;
+        return finalData.burn_rate || finalData.key_metrics?.burn_rate || null;
       case 'runway':
-        return actualData.runway_months || actualData.key_metrics?.runway || null;
+        return finalData.runway_months || finalData.key_metrics?.runway || null;
       case 'total_funding':
-        return actualData.total_funding || actualData.funding_total || null;
+        return finalData.total_funding || finalData.funding_total || null;
 
       // Shared metrics
       case 'revenue_ttm':
-        return actualData.revenue_current || actualData.key_metrics?.revenue || actualData.revenue_ttm || null;
+        return finalData.revenue_current || finalData.key_metrics?.revenue || finalData.revenue_ttm || null;
       case 'gross_margin':
-        return actualData.gross_margin || actualData.key_metrics?.gross_margin || null;
+        return finalData.gross_margin || finalData.key_metrics?.gross_margin || null;
       case 'profit_margin':
-        return actualData.profit_margin || actualData.key_metrics?.profit_margin || null;
+        return finalData.profit_margin || finalData.key_metrics?.profit_margin || null;
 
       default:
-        return actualData?.[metric] || null;
+        return finalData?.[metric] || null;
     }
   };
 
@@ -369,27 +477,57 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
     const IconComponent = definition.icon;
     const formattedValue = formatValue(value, definition.format);
 
+    // Special rendering for complex crypto data
+    if (metric === 'listing_exchanges' && value?.top_5) {
+      return (
+        <div key={metric} className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+          <div className="flex items-center space-x-2 mb-2">
+            <IconComponent className={`w-4 h-4 ${definition.color}`} />
+            <span className="text-sm font-medium text-gray-700">
+              {definition.label}
+            </span>
+          </div>
+          <div className="text-lg font-bold text-gray-900 mb-1">
+            {value.count} exchanges
+          </div>
+          <div className="text-xs text-gray-600">
+            {value.top_5.slice(0, 3).map((ex: any) => ex.name).join(', ')}
+          </div>
+        </div>
+      );
+    }
+
+    if (metric === 'founders_count' && Array.isArray(value)) {
+      return (
+        <div key={metric} className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+          <div className="flex items-center space-x-2 mb-2">
+            <IconComponent className={`w-4 h-4 ${definition.color}`} />
+            <span className="text-sm font-medium text-gray-700">
+              {definition.label}
+            </span>
+          </div>
+          <div className="text-lg font-bold text-gray-900 mb-1">
+            {value.length} founders
+          </div>
+          <div className="text-xs text-gray-600">
+            {value.slice(0, 2).map((founder: any) => founder.name).join(', ')}
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <TooltipProvider key={metric}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors cursor-help">
-              <div className="flex items-center space-x-2 mb-2">
-                <IconComponent className={`w-4 h-4 ${definition.color}`} />
-                <span className="text-sm font-medium text-gray-700">
-                  {definition.label}
-                </span>
-              </div>
-              <div className="text-lg font-bold text-gray-900">
-                {formattedValue}
-              </div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="text-sm">{definition.description}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <div key={metric} className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+        <div className="flex items-center space-x-2 mb-2">
+          <IconComponent className={`w-4 h-4 ${definition.color}`} />
+          <span className="text-sm font-medium text-gray-700">
+            {definition.label}
+          </span>
+        </div>
+        <div className="text-lg font-bold text-gray-900">
+          {formattedValue}
+        </div>
+      </div>
     );
   };
 
@@ -428,7 +566,7 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
   };
 
   const renderContent = () => {
-    if (loading) {
+    if (actualLoading) {
       return (
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
@@ -439,20 +577,20 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
       );
     }
 
-    if (error) {
+    if (actualError) {
       return (
         <div className="flex items-center justify-center h-full text-center">
           <div className="text-red-600">
             <BarChart3 className="w-8 h-8 mx-auto mb-2" />
             <p className="text-sm font-medium">Failed to load fundamentals</p>
-            <p className="text-xs text-gray-600 mt-1">{error}</p>
+            <p className="text-xs text-gray-600 mt-1">{actualError}</p>
           </div>
         </div>
       );
     }
 
-    // actualData is already defined at component level
-    if (!actualData) {
+    // finalData is already defined at component level
+    if (!finalData) {
       return (
         <div className="flex items-center justify-center h-full text-center">
           <div className="text-gray-500">
