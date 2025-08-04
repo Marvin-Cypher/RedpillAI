@@ -218,158 +218,151 @@ export function WidgetManager({
   }, {} as Record<string, WidgetTemplate[]>);
 
   return (
-    <div className="space-y-4">
-      {/* Header with Refresh Button */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Widget Management</h3>
-          <p className="text-sm text-gray-600">Add widgets or refresh company data</p>
-        </div>
-        
-        <Button
-          onClick={handleRefreshCompanyData}
-          disabled={isRefreshing}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh Data
-        </Button>
-      </div>
-
-      {/* Refresh Status */}
-      {refreshStatus && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <p className="text-sm">{refreshStatus}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Current Widgets */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Current Widgets ({widgets.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {widgets.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No widgets added yet</p>
-          ) : (
-            <div className="space-y-2">
-              {widgets.map((widget) => (
-                <div
-                  key={widget.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    {getWidgetIcon(widget.type)}
-                    <div>
-                      <p className="font-medium">{widget.title}</p>
-                      <p className="text-sm text-gray-600">{widget.type}</p>
-                    </div>
-                  </div>
-                  
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Remove Widget</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to remove "{widget.title}" from your dashboard?
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => onRemoveWidget(widget.id)}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          Remove
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Widget Library */}
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button className="w-full">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Widget from Library
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Widget Library</DialogTitle>
-            <DialogDescription>
-              Choose widgets to add to your {companyName} dashboard
-            </DialogDescription>
-          </DialogHeader>
+    <Card>
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Widget Management ({widgets.length} active)
+            </CardTitle>
+            <p className="text-sm text-gray-600 mt-1">Manage your dashboard widgets and refresh data</p>
+          </div>
           
-          <div className="space-y-6">
-            {Object.entries(groupedWidgets).map(([category, categoryWidgets]) => (
-              <div key={category}>
-                <h4 className="font-semibold text-sm uppercase tracking-wide text-gray-600 mb-3">
-                  {category}
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {categoryWidgets.map((template) => (
-                    <Card 
-                      key={template.id} 
-                      className={`cursor-pointer transition-colors ${
-                        isWidgetAdded(template.type) 
-                          ? 'bg-gray-50 border-gray-300' 
-                          : 'hover:bg-blue-50 hover:border-blue-300'
-                      }`}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="text-blue-600">
-                            {template.icon}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h5 className="font-medium">{template.title}</h5>
-                              {isWidgetAdded(template.type) && (
-                                <Badge variant="secondary" className="text-xs">
-                                  Added
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-600 mb-3">
-                              {template.description}
-                            </p>
-                            <Button
-                              size="sm"
-                              onClick={() => handleAddWidget(template)}
-                              disabled={isWidgetAdded(template.type)}
-                              className="w-full"
-                            >
-                              {isWidgetAdded(template.type) ? 'Already Added' : 'Add Widget'}
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleRefreshCompanyData}
+              disabled={isRefreshing}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh Data
+            </Button>
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Widget
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                  <DialogTitle>Widget Library</DialogTitle>
+                  <DialogDescription>
+                    Choose widgets to add to your {companyName} dashboard
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-6">
+                  {Object.entries(groupedWidgets).map(([category, categoryWidgets]) => (
+                    <div key={category}>
+                      <h4 className="font-semibold text-sm uppercase tracking-wide text-gray-600 mb-3">
+                        {category}
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {categoryWidgets.map((template) => (
+                          <Card 
+                            key={template.id} 
+                            className={`cursor-pointer transition-colors ${
+                              isWidgetAdded(template.type) 
+                                ? 'bg-gray-50 border-gray-300' 
+                                : 'hover:bg-blue-50 hover:border-blue-300'
+                            }`}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-3">
+                                <div className="text-blue-600">
+                                  {template.icon}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <h5 className="font-medium">{template.title}</h5>
+                                    {isWidgetAdded(template.type) && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        Added
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-gray-600 mb-3">
+                                    {template.description}
+                                  </p>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleAddWidget(template)}
+                                    disabled={isWidgetAdded(template.type)}
+                                    className="w-full"
+                                  >
+                                    {isWidgetAdded(template.type) ? 'Already Added' : 'Add Widget'}
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pt-0">
+        {/* Refresh Status */}
+        {refreshStatus && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">{refreshStatus}</p>
+          </div>
+        )}
+
+        {/* Current Widgets - Horizontal Layout */}
+        {widgets.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {widgets.map((widget) => (
+              <div
+                key={widget.id}
+                className="flex items-center gap-2 px-3 py-2 bg-gray-50 border rounded-lg"
+              >
+                <div className="flex items-center gap-2">
+                  {getWidgetIcon(widget.type)}
+                  <span className="text-sm font-medium">{widget.title}</span>
+                </div>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 h-6 w-6 p-0">
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remove Widget</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to remove &quot;{widget.title}&quot; from your dashboard?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => onRemoveWidget(widget.id)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Remove
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             ))}
           </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+        ) : (
+          <p className="text-gray-500 text-center py-4 text-sm">No widgets added yet. Click &quot;Add Widget&quot; to get started.</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Building2, MapPin, Calendar, Users, Globe, ExternalLink } from 'lucide-react'
+import { Building2, MapPin, Calendar, Users, Globe, ExternalLink, FileText } from 'lucide-react'
 import { Widget, WidgetType } from '@/lib/widgets/types'
 import { WidgetManager } from '@/components/widgets/WidgetManager'
 import { WidgetGrid } from '@/components/widgets/WidgetGrid'
@@ -213,6 +213,15 @@ export default function CompanyDetailPage() {
               projectName={company.name}
               projectId={company.id}
             />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.location.href = `/portfolio/${company.id}/deal`}
+              className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Deal Entry
+            </Button>
             {company.website && (
               <Button variant="outline" size="sm" asChild>
                 <a href={company.website} target="_blank" rel="noopener noreferrer">
@@ -277,42 +286,40 @@ export default function CompanyDetailPage() {
         </Card>
       </div>
 
-      {/* Widget Management */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <WidgetManager
-            widgets={widgets}
-            onAddWidget={handleAddWidget}
-            onRemoveWidget={handleRemoveWidget}
-            onRefreshAllWidgets={handleRefreshAllWidgets}
-            companyId={company.id}
-            companyName={company.name}
-          />
-        </div>
+      {/* Widget Management - Horizontal Layout */}
+      <div className="space-y-6">
+        {/* Widget Manager - Horizontal */}
+        <WidgetManager
+          widgets={widgets}
+          onAddWidget={handleAddWidget}
+          onRemoveWidget={handleRemoveWidget}
+          onRefreshAllWidgets={handleRefreshAllWidgets}
+          companyId={company.id}
+          companyName={company.name}
+        />
         
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Dashboard Widgets</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {widgets.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Building2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>No widgets added yet. Use the widget manager to add financial data widgets.</p>
-                </div>
-              ) : (
-                <WidgetGrid
-                  widgets={widgets}
-                  onUpdateWidget={handleUpdateWidget}
-                  onRemoveWidget={handleRemoveWidget}
-                  companyId={company.id}
-                  isEditing={false}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {/* Dashboard Widgets - Full Width */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Dashboard Widgets</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {widgets.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Building2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>No widgets added yet. Use the widget manager above to add financial data widgets.</p>
+              </div>
+            ) : (
+              <WidgetGrid
+                widgets={widgets}
+                onUpdateWidget={handleUpdateWidget}
+                onRemoveWidget={handleRemoveWidget}
+                companyId={company.id}
+                isEditing={false}
+              />
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
