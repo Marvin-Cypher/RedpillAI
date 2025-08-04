@@ -240,20 +240,57 @@ class OpenBBService:
         Get crypto-related news
         """
         try:
-            # For now, use a generic search since OpenBB news might need API keys
-            # In future, we can enhance this with:
-            # result = obb.news.world(provider='benzinga', limit=limit)
+            # Try to use OpenBB news with configured providers
+            news_items = []
             
-            return [{
-                'title': f'Latest {symbol or "Crypto"} Market Update',
-                'summary': 'Market analysis available through OpenBB integration',
-                'source': 'OpenBB Platform',
-                'published_at': datetime.now().isoformat(),
-                'url': 'https://openbb.co'
-            }]
+            # Try benzinga first (we have API key)
+            try:
+                if symbol:
+                    result = obb.news.company(symbol=symbol, provider='benzinga', limit=limit)
+                else:
+                    result = obb.news.world(provider='benzinga', limit=limit)
+                
+                if result and hasattr(result, 'results') and result.results:
+                    for item in result.results[:limit]:
+                        news_items.append({
+                            'title': str(getattr(item, 'title', getattr(item, 'headline', 'No title'))),
+                            'summary': str(getattr(item, 'text', getattr(item, 'summary', getattr(item, 'description', '')))),
+                            'source': 'Benzinga',
+                            'published_at': str(getattr(item, 'date', getattr(item, 'published', datetime.now()))),
+                            'url': str(getattr(item, 'url', getattr(item, 'link', '#'))),
+                            'ticker': symbol
+                        })
+                    return news_items
+            except Exception as benzinga_error:
+                print(f"Benzinga news error: {benzinga_error}")
+            
+            # Try FMP as fallback
+            try:
+                if symbol:
+                    result = obb.news.company(symbol=symbol, provider='fmp', limit=limit)
+                else:
+                    result = obb.news.world(provider='fmp', limit=limit)
+                
+                if result and hasattr(result, 'results') and result.results:
+                    for item in result.results[:limit]:
+                        news_items.append({
+                            'title': str(getattr(item, 'title', getattr(item, 'headline', 'No title'))),
+                            'summary': str(getattr(item, 'text', getattr(item, 'summary', getattr(item, 'description', '')))),
+                            'source': 'Financial Modeling Prep',
+                            'published_at': str(getattr(item, 'date', getattr(item, 'published', datetime.now()))),
+                            'url': str(getattr(item, 'url', getattr(item, 'link', '#'))),
+                            'ticker': symbol
+                        })
+                    return news_items
+            except Exception as fmp_error:
+                print(f"FMP news error: {fmp_error}")
+            
+            # If all providers fail, return empty list
+            print(f"No news available from any provider for {symbol or 'crypto'}")
+            return []
             
         except Exception as e:
-            print(f"Error getting news: {e}")
+            print(f"Error getting crypto news: {e}")
             return []
     
     def analyze_portfolio_risk(self, symbols: List[str], weights: List[float]) -> Dict[str, Any]:
@@ -569,18 +606,54 @@ class OpenBBService:
         Get equity-related news
         """
         try:
-            # For now, use a generic search since OpenBB news might need API keys
-            # In future, we can enhance this with:
-            # result = obb.news.company(symbol=ticker, provider='benzinga', limit=limit)
+            # Try to use OpenBB news with configured providers
+            news_items = []
             
-            return [{
-                'title': f'Latest {ticker or "Market"} News Update',
-                'summary': f'Market analysis for {ticker or "general market"} available through OpenBB integration',
-                'source': 'OpenBB Platform',
-                'published_at': datetime.now().isoformat(),
-                'url': 'https://openbb.co',
-                'ticker': ticker
-            }]
+            # Try benzinga first (we have API key)
+            try:
+                if ticker:
+                    result = obb.news.company(symbol=ticker, provider='benzinga', limit=limit)
+                else:
+                    result = obb.news.world(provider='benzinga', limit=limit)
+                
+                if result and hasattr(result, 'results') and result.results:
+                    for item in result.results[:limit]:
+                        news_items.append({
+                            'title': str(getattr(item, 'title', getattr(item, 'headline', 'No title'))),
+                            'summary': str(getattr(item, 'text', getattr(item, 'summary', getattr(item, 'description', '')))),
+                            'source': 'Benzinga',
+                            'published_at': str(getattr(item, 'date', getattr(item, 'published', datetime.now()))),
+                            'url': str(getattr(item, 'url', getattr(item, 'link', '#'))),
+                            'ticker': ticker
+                        })
+                    return news_items
+            except Exception as benzinga_error:
+                print(f"Benzinga equity news error: {benzinga_error}")
+            
+            # Try FMP as fallback
+            try:
+                if ticker:
+                    result = obb.news.company(symbol=ticker, provider='fmp', limit=limit)
+                else:
+                    result = obb.news.world(provider='fmp', limit=limit)
+                
+                if result and hasattr(result, 'results') and result.results:
+                    for item in result.results[:limit]:
+                        news_items.append({
+                            'title': str(getattr(item, 'title', getattr(item, 'headline', 'No title'))),
+                            'summary': str(getattr(item, 'text', getattr(item, 'summary', getattr(item, 'description', '')))),
+                            'source': 'Financial Modeling Prep',
+                            'published_at': str(getattr(item, 'date', getattr(item, 'published', datetime.now()))),
+                            'url': str(getattr(item, 'url', getattr(item, 'link', '#'))),
+                            'ticker': ticker
+                        })
+                    return news_items
+            except Exception as fmp_error:
+                print(f"FMP equity news error: {fmp_error}")
+            
+            # If all providers fail, return empty list
+            print(f"No news available from any provider for {ticker or 'market'}")
+            return []
             
         except Exception as e:
             print(f"Error getting equity news: {e}")

@@ -39,7 +39,7 @@ PORTFOLIO_COMPANIES = [
         "name": "NVIDIA Corporation",
         "description": "NVIDIA is the world leader in GPU computing, AI acceleration, and data center technologies. The company pioneered GPU computing and is at the forefront of AI infrastructure.",
         "website": "https://nvidia.com",
-        "company_type": CompanyType.AI,
+        "company_type": CompanyType.PRIVATE,
         "sector": "semiconductors",
         "token_symbol": "NVDA",  # Stock ticker
         "founded_year": 1993,
@@ -64,7 +64,7 @@ PORTFOLIO_COMPANIES = [
         "name": "Amazon",
         "description": "Amazon is a multinational technology company focusing on e-commerce, cloud computing, digital streaming, and artificial intelligence.",
         "website": "https://amazon.com",
-        "company_type": CompanyType.TRADITIONAL,
+        "company_type": CompanyType.PUBLIC,
         "sector": "e-commerce",
         "token_symbol": "AMZN",
         "founded_year": 1994,
@@ -154,7 +154,7 @@ PORTFOLIO_COMPANIES = [
         "name": "OpenAI",
         "description": "OpenAI is an AI research and deployment company that created ChatGPT, GPT-4, and DALL-E. Their mission is to ensure that artificial general intelligence benefits all of humanity.",
         "website": "https://openai.com",
-        "company_type": CompanyType.AI,
+        "company_type": CompanyType.PRIVATE,
         "sector": "ai",
         "founded_year": 2015,
         "headquarters": "San Francisco, USA",
@@ -165,7 +165,7 @@ PORTFOLIO_COMPANIES = [
         "name": "GreenTech Solutions",
         "description": "GreenTech Solutions develops innovative solar panel technology for residential and commercial applications.",
         "website": "https://greentech-solutions.com",
-        "company_type": CompanyType.TRADITIONAL,
+        "company_type": CompanyType.PUBLIC,
         "sector": "cleantech",
         "founded_year": 2023,
         "headquarters": "Berlin, Germany",
@@ -191,7 +191,7 @@ def create_company_data_cache(session: Session, company: Company, profile_data: 
 def generate_company_metrics(company_data: Dict[str, Any]) -> Dict[str, Any]:
     """Generate realistic company metrics based on company type and sector."""
     
-    company_type = company_data.get("company_type", CompanyType.TRADITIONAL)
+    company_type = company_data.get("company_type", CompanyType.PRIVATE)
     sector = company_data.get("sector", "technology")
     employee_count_str = company_data.get("employee_count", "50")
     
@@ -274,7 +274,7 @@ def generate_company_metrics(company_data: Dict[str, Any]) -> Dict[str, Any]:
                 "valuation": int(50000000 * multiplier)
             }
     
-    elif company_type == CompanyType.AI:
+    elif company_type == CompanyType.PRIVATE and sector in ["ai", "artificial intelligence"]:
         if "nvidia" in company_data["name"].lower():
             return {
                 "revenue": 60900000000,  # $60.9B annual (Q3 2024)
@@ -311,7 +311,7 @@ def generate_company_metrics(company_data: Dict[str, Any]) -> Dict[str, Any]:
                 "valuation": int(100000000 * multiplier)
             }
     
-    elif company_type == CompanyType.TRADITIONAL:
+    elif company_type == CompanyType.PUBLIC:
         if "amazon" in company_data["name"].lower():
             return {
                 "revenue": 574780000000,  # $574.78B annual
@@ -402,7 +402,7 @@ async def seed_companies():
                 "key_metrics": metrics,
                 "website": company_data.get("website"),
                 "token_symbol": company_data.get("token_symbol"),
-                "company_type": company_data.get("company_type", CompanyType.TRADITIONAL).value,
+                "company_type": company_data.get("company_type", CompanyType.PRIVATE).value,
                 "logo_url": company_data.get("logo_url"),
                 "github_repo": company_data.get("github_repo"),
                 "whitepaper_url": company_data.get("whitepaper_url"),
@@ -451,7 +451,7 @@ async def seed_companies():
         print(f"\n🎉 Database seeding successful! Your portfolio now includes:")
         for company in PORTFOLIO_COMPANIES:
             symbol = company.get('token_symbol', 'N/A')
-            company_type = company.get('company_type', CompanyType.TRADITIONAL).value
+            company_type = company.get('company_type', CompanyType.PRIVATE).value
             print(f"   • {company['name']} ({symbol}) - {company_type}")
 
 

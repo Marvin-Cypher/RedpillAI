@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     messari_api_key: Optional[str] = None
     etherscan_api_key: Optional[str] = None
     
+    # Google Search API for news
+    google_search_api_key: Optional[str] = "AIzaSyD5ZA1xwhdaaaxzueX1IzZRAhkz8Oa3XC4"
+    google_search_cx_id: Optional[str] = "7459ee20295754f7f"
+    
     # Tavily API for company data enrichment
     TAVILY_API_KEY: Optional[str] = None
     

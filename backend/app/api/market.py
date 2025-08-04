@@ -1,12 +1,16 @@
 # Market Data API using OpenBB
+import logging
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Query, Depends
 from datetime import datetime, timedelta
 
 from ..services.market_data_service import market_data_service
 from ..services.openbb_service import MarketData, CryptoPrice, EquityPrice, FundamentalData
+from ..services.news_service import news_service
 from ..core.auth import get_current_active_user
 from ..models.users import User
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -171,23 +175,33 @@ async def get_crypto_analysis(
 
 
 @router.get("/news")
-async def get_crypto_news(
-    symbol: Optional[str] = Query(None, description="Crypto symbol for specific news"),
-    limit: int = Query(10, ge=1, le=50, description="Number of news articles"),
+async def get_company_news(
+    symbol: Optional[str] = Query(None, description="Company symbol or name for specific news"),
+    limit: int = Query(5, ge=1, le=10, description="Number of news articles"),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Get crypto-related news"""
+    """Get company news using Google Search API"""
     try:
-        news_data = await market_data_service.search_crypto_news(symbol, limit)
+        # Use symbol as company name for news search
+        company_name = symbol if symbol else "crypto market"
+        company_type = "crypto" if symbol else "general"
+        
+        async with news_service as service:
+            news_articles = await service.get_company_news(
+                company_name=company_name,
+                company_type=company_type,
+                limit=limit
+            )
         
         return {
-            "news": news_data,
-            "symbol": symbol,
-            "count": len(news_data),
-            "source": "OpenBB Platform"
+            "news": news_articles,
+            "company": company_name,
+            "count": len(news_articles),
+            "source": "Google Search API"
         }
         
     except Exception as e:
+        logger.error(f"Failed to fetch news for {symbol}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch news: {str(e)}")
 
 
@@ -541,21 +555,28 @@ async def compare_equities(
 @router.get("/equity/{ticker}/news")
 async def get_equity_news(
     ticker: str,
-    limit: int = Query(10, ge=1, le=50, description="Number of news articles"),
+    limit: int = Query(5, ge=1, le=10, description="Number of news articles"),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Get news for a specific equity/stock"""
+    """Get news for a specific equity/stock using Google Search API"""
     try:
-        news_data = await market_data_service.search_equity_news(ticker, limit)
+        # Use ticker as company name for news search
+        async with news_service as service:
+            news_articles = await service.get_company_news(
+                company_name=ticker,
+                company_type="public",
+                limit=limit
+            )
         
         return {
-            "news": news_data,
+            "news": news_articles,
             "ticker": ticker,
-            "count": len(news_data),
-            "source": "OpenBB Platform"
+            "count": len(news_articles),
+            "source": "Google Search API"
         }
         
     except Exception as e:
+        logger.error(f"Failed to fetch news for {ticker}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch news for {ticker}: {str(e)}")
 
 
