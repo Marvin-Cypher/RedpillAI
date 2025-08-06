@@ -61,10 +61,37 @@ export default function CompanyDetailPage() {
   useEffect(() => {
     const loadCompanyData = async () => {
       try {
+        // Check if this might be a deal ID instead of company ID
+        // If the initial fetch fails, try to find the company via the deal
+        let companyId = params.id as string
+        
         // First try to get enriched data from the data service
-        const enrichedResponse = await fetch(`/api/data/companies/${params.id}/profile`)
-        if (enrichedResponse.ok) {
-          const enrichedResult = await enrichedResponse.json()
+        const enrichedResponse = await fetch(`/api/data/companies/${companyId}/profile`)
+        
+        if (!enrichedResponse.ok) {
+          // If company not found, check if this is a deal ID
+          console.log('🔍 Company not found, checking if this is a deal ID...')
+          try {
+            const dealsResponse = await fetch('/api/deals')
+            if (dealsResponse.ok) {
+              const deals = await dealsResponse.json()
+              const matchingDeal = deals.find((deal: any) => deal.id === params.id)
+              if (matchingDeal) {
+                console.log('✅ Found matching deal, redirecting to company ID:', matchingDeal.company_id)
+                companyId = matchingDeal.company_id
+                // Redirect to the correct company URL
+                window.history.replaceState({}, '', `/portfolio/${companyId}`)
+              }
+            }
+          } catch (dealError) {
+            console.error('Error checking deals:', dealError)
+          }
+        }
+        
+        // Try again with the (possibly updated) company ID
+        const finalEnrichedResponse = await fetch(`/api/data/companies/${companyId}/profile`)
+        if (finalEnrichedResponse.ok) {
+          const enrichedResult = await finalEnrichedResponse.json()
           console.log('📊 Loaded enriched company data:', enrichedResult)
           
           // The enriched data is wrapped in a 'data' property
@@ -72,7 +99,7 @@ export default function CompanyDetailPage() {
           
           // Transform enriched data to match the Company interface
           setCompany({
-            id: params.id as string,
+            id: companyId,
             name: enrichedData.name || 'Unknown Company',
             description: enrichedData.description || '',
             website: enrichedData.website,
@@ -89,10 +116,10 @@ export default function CompanyDetailPage() {
         } else {
           // Fallback to basic company endpoint
           console.log('⚠️ Enriched data not available, falling back to basic company data')
-          const response = await fetch(`/api/companies/${params.id}`)
+          const response = await fetch(`/api/companies/${companyId}`)
           if (response.ok) {
             const data = await response.json()
-            setCompany(data)
+            setCompany({ ...data, id: companyId })
           } else {
             setError(`Failed to load company data (${response.status})`)
           }

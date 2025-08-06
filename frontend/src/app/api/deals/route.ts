@@ -1,21 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { writeFileSync, readFileSync, existsSync } from 'fs'
+import { join } from 'path'
 
 const API_BASE_URL = 'http://localhost:8000'
 
+// File-based storage for demo deals persistence
+const DEALS_FILE = join(process.cwd(), 'demo-deals.json')
+
+function loadMockDeals(): any[] {
+  try {
+    if (existsSync(DEALS_FILE)) {
+      const data = readFileSync(DEALS_FILE, 'utf8')
+      return JSON.parse(data)
+    }
+  } catch (error) {
+    console.log('No existing deals file or parse error, starting fresh')
+  }
+  return []
+}
+
+function saveMockDeals(deals: any[]): void {
+  try {
+    writeFileSync(DEALS_FILE, JSON.stringify(deals, null, 2))
+  } catch (error) {
+    console.error('Failed to save deals file:', error)
+  }
+}
+
 // GET /api/deals - Get all deals
+async function ensureDemoAuth(): Promise<string> {
+  const cookieStore = await cookies()
+  let token = cookieStore.get('access_token')?.value
+  
+  if (!token) {
+    console.log('🔑 No auth token found, creating demo token')
+    // Create demo token
+    const demoToken = 'demo-token-' + Date.now()
+    cookieStore.set('access_token', demoToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    })
+    token = demoToken
+  }
+  
+  return token
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const token = cookieStore.get('access_token')?.value
+    const token = await ensureDemoAuth()
 
-    // Prepare headers - skip Authorization if no token (demo mode)
+    // Prepare headers with demo token
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-    }
-    
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
+      'Authorization': `Bearer ${token}`
     }
 
     const response = await fetch(`${API_BASE_URL}/api/v1/deals/`, {
@@ -23,41 +64,36 @@ export async function GET(request: NextRequest) {
     })
 
     if (!response.ok) {
-      return NextResponse.json(
-        { error: 'Failed to fetch deals', status: response.status },
-        { status: response.status }
-      )
+      console.log('⚠️ Backend deals fetch failed, falling back to mock deals')
+      const mockDeals = loadMockDeals()
+      return NextResponse.json(mockDeals)
     }
 
     const data = await response.json()
-    return NextResponse.json(data)
+    
+    // Return backend deals directly (no merging needed as backend has all deals)
+    return NextResponse.json(Array.isArray(data) ? data : [])
   } catch (error) {
     console.error('Deals API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    // Return mock deals as fallback
+    const mockDeals = loadMockDeals()
+    return NextResponse.json(mockDeals)
   }
 }
 
 // POST /api/deals - Create new deal
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const token = cookieStore.get('access_token')?.value
-
+    const token = await ensureDemoAuth()
     const body = await request.json()
     
     console.log('🔄 Creating deal with data:', JSON.stringify(body, null, 2))
-    console.log('🔑 Using token:', token ? 'Present' : 'Missing')
+    console.log('🔑 Using demo token:', token)
     
-    // Prepare headers - skip Authorization if no token (demo mode)
+    // Prepare headers with demo token
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-    }
-    
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
+      'Authorization': `Bearer ${token}`
     }
     
     const response = await fetch(`${API_BASE_URL}/api/v1/deals/`, {
@@ -91,7 +127,11 @@ export async function POST(request: NextRequest) {
           updated_at: new Date().toISOString()
         }
         
-        console.log('✅ Mock deal created:', mockDeal)
+        // Store mock deal for demo mode
+        const mockDeals = loadMockDeals()
+        mockDeals.push(mockDeal)
+        saveMockDeals(mockDeals)
+        console.log('✅ Mock deal created and stored:', mockDeal)
         return NextResponse.json(mockDeal)
       }
       
@@ -110,6 +150,14 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json()
     console.log('✅ Deal created successfully:', data)
+    
+    // Also store in mock deals for consistency in demo mode
+    const mockDeals = loadMockDeals()
+    if (data && !mockDeals.find(d => d.id === data.id)) {
+      mockDeals.push(data)
+      saveMockDeals(mockDeals)
+    }
+    
     return NextResponse.json(data)
   } catch (error) {
     console.error('💥 Create deal API error:', error)

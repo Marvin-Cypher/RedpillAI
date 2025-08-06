@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ChatWithAIButton } from '@/components/ai'
-import { getAllCompanies, Company } from '@/lib/companyDatabase'
+// import { getAllCompanies, Company } from '@/lib/companyDatabase'
 import { 
   Search, 
   Filter, 
@@ -26,7 +26,8 @@ import {
 } from 'lucide-react'
 
 interface PortfolioCompany {
-  id: string
+  id: string // Company ID
+  dealId: string // Deal ID for routing to deal pages
   name: string
   logo?: string
   sector: string
@@ -64,37 +65,92 @@ export default function PortfolioPage() {
   const [sortBy, setSortBy] = useState<string>('name')
   const [loading, setLoading] = useState(true)
 
-  // Load companies from centralized database
+  // Load portfolio companies (companies with deals) from backend
   useEffect(() => {
-    const loadCompanies = async () => {
+    const loadPortfolioCompanies = async () => {
       try {
-        const companiesFromDb = await getAllCompanies()
-        const portfolioCompanies: PortfolioCompany[] = companiesFromDb.map((company) => ({
-          id: company.id,
-          name: company.name,
-          logo: company.logo,
-          sector: company.sector,
-          stage: company.stage,
-          founded_year: company.founded_year || new Date().getFullYear(),
-          headquarters: company.headquarters,
-          investment: company.investment,
-          metrics: {
-            ...company.metrics,
-            last_updated: new Date().toISOString()
-          },
-          health_score: company.metrics.runway_months > 12 ? 'healthy' : 
-                        company.metrics.runway_months > 6 ? 'warning' : 'critical',
-          tags: [company.sector, company.stage, company.priority === 'high' ? 'Hot deal' : 'Standard']
-        }))
+        // Fetch all deals from backend
+        const dealsResponse = await fetch('/api/deals')
+        if (!dealsResponse.ok) throw new Error('Failed to fetch deals')
+        const deals = await dealsResponse.json()
+
+        // Fetch all companies
+        const companiesResponse = await fetch('/api/companies')  
+        if (!companiesResponse.ok) throw new Error('Failed to fetch companies')
+        const allCompanies = await companiesResponse.json()
+
+        // Filter companies that have deals and map to portfolio format
+        const portfolioCompanies: PortfolioCompany[] = []
+        const processedCompanyIds = new Set<string>() // Track processed companies to avoid duplicates
+        
+        for (const deal of deals) {
+          const company = allCompanies.find((c: any) => c.id === deal.company_id)
+          if (!company || processedCompanyIds.has(company.id)) continue
+          
+          processedCompanyIds.add(company.id)
+
+          // Convert deal stage to round type for display
+          const roundTypeMap: { [key: string]: string } = {
+            'pre_seed': 'Pre-Seed',
+            'seed': 'Seed',
+            'series_a': 'Series A', 
+            'series_b': 'Series B',
+            'series_c': 'Series C',
+            'series_d_plus': 'Series D+',
+            'growth': 'Growth',
+            'pre_ipo': 'Pre-IPO'
+          }
+
+          const portfolioCompany: PortfolioCompany = {
+            id: company.id, // Use company ID for portfolio routing
+            dealId: deal.id, // Deal ID for deal-specific routing
+            name: company.name,
+            logo: company.logo,
+            sector: company.sector || 'Technology',
+            stage: deal.stage,
+            founded_year: company.founded_year || new Date().getFullYear(),
+            headquarters: company.headquarters || { city: 'Unknown', country: 'Unknown' },
+            investment: {
+              round_type: roundTypeMap[deal.stage] || deal.stage,
+              investment_amount: deal.our_investment || 0,
+              valuation: deal.valuation || 0,
+              ownership_percentage: deal.our_investment && deal.valuation ? 
+                (deal.our_investment / deal.valuation) * 100 : 0,
+              investment_date: deal.created_at || new Date().toISOString(),
+              lead_partner: deal.lead_partner || 'TBD'
+            },
+            metrics: {
+              revenue_current: company.metrics?.revenue_current || 0,
+              revenue_growth: company.metrics?.revenue_growth || 0,
+              burn_rate: company.metrics?.burn_rate || 0,
+              runway_months: company.metrics?.runway_months || 12,
+              employees: company.metrics?.employees || 0,
+              arr: company.metrics?.arr || 0,
+              last_updated: deal.updated_at || new Date().toISOString()
+            },
+            health_score: (company.metrics?.runway_months || 12) > 12 ? 'healthy' : 
+                          (company.metrics?.runway_months || 12) > 6 ? 'warning' : 'critical',
+            tags: [
+              company.sector || 'Technology', 
+              roundTypeMap[deal.stage] || deal.stage,
+              deal.status === 'deal' ? 'Portfolio' : 'Pipeline'
+            ]
+          }
+
+          portfolioCompanies.push(portfolioCompany)
+        }
+
+        console.log('✅ Loaded portfolio companies with deals:', portfolioCompanies.length)
+        console.log('📊 Portfolio companies:', portfolioCompanies.map(c => ({ name: c.name, companyId: c.id, dealId: c.dealId })))
         setCompanies(portfolioCompanies)
       } catch (error) {
-        console.error('Error loading companies:', error)
+        console.error('❌ Error loading portfolio companies:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    loadCompanies()
+    loadPortfolioCompanies()
   }, [])
 
   // Filter and sort companies
@@ -381,7 +437,7 @@ export default function PortfolioPage() {
                       View Details
                     </Button>
                   </Link>
-                  <Link href={`/portfolio/${company.id}/deal`}>
+                  <Link href={`/portfolio/${company.dealId}/deal`}>
                     <Button variant="outline" size="sm">
                       <Briefcase className="w-4 h-4 mr-1" />
                       View Deal

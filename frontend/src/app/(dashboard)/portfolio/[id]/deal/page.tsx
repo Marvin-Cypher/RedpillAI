@@ -55,6 +55,7 @@ interface Company {
 import { AIMemoButton, ChatWithAIButton } from '@/components/ai'
 import { Textarea } from '@/components/ui/textarea'
 import { MemoViewer, useMemos, type Memo } from '@/components/memos'
+import { DealEditDialog } from '@/components/deals/DealEditDialog'
 import { 
   Dialog,
   DialogContent,
@@ -69,6 +70,7 @@ export default function DealDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [company, setCompany] = useState<Company | null>(null)
+  const [deal, setDeal] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
   const [newNote, setNewNote] = useState('')
@@ -76,60 +78,79 @@ export default function DealDetailPage() {
   const [memoViewerOpen, setMemoViewerOpen] = useState(false)
   const [isNewMemoDialogOpen, setIsNewMemoDialogOpen] = useState(false)
   const [newMemoForm, setNewMemoForm] = useState({ title: '', content: '' })
+  const [isDealEditDialogOpen, setIsDealEditDialogOpen] = useState(false)
   
-  const companyId = params.id as string
+  const dealId = params.id as string // This is actually a deal ID, not company ID
   const { saveMemo, deleteMemo } = useMemos()
   const [memos, setMemos] = useState<Memo[]>([])
 
   useEffect(() => {
-    const loadCompany = async () => {
+    const loadDealAndCompany = async () => {
       try {
-        // Use backend API instead of mock database
-        const response = await fetch(`/api/companies/${companyId}`)
-        if (response.ok) {
-          const companyData = await response.json()
-          setCompany(companyData)
+        // First fetch the deal to get the company_id
+        const dealsResponse = await fetch('/api/deals')
+        if (dealsResponse.ok) {
+          const deals = await dealsResponse.json()
+          const currentDeal = deals.find((d: any) => d.id === dealId)
+          
+          if (currentDeal) {
+            setDeal(currentDeal)
+            
+            // Now fetch the company using the company_id from the deal
+            const companyResponse = await fetch(`/api/companies/${currentDeal.company_id}`)
+            if (companyResponse.ok) {
+              const companyData = await companyResponse.json()
+              setCompany(companyData)
+            } else {
+              console.error('Failed to load company:', companyResponse.status)
+              setCompany(null)
+            }
+          } else {
+            console.error('Deal not found:', dealId)
+            setDeal(null)
+            setCompany(null)
+          }
         } else {
-          console.error('Failed to load company:', response.status)
-          setCompany(null)
+          console.error('Failed to load deals:', dealsResponse.status)
         }
       } catch (error) {
-        console.error('Error loading company:', error)
+        console.error('Error loading deal and company:', error)
+        setDeal(null)
         setCompany(null)
       } finally {
         setLoading(false)
       }
     }
 
-    if (companyId) {
-      loadCompany()
+    if (dealId) {
+      loadDealAndCompany()
     }
-  }, [companyId])
+  }, [dealId])
 
-  // Load memos when component mounts or companyId changes
+  // Load memos when component mounts or company is loaded
   useEffect(() => {
     const loadMemos = () => {
-      if (companyId) {
-        console.log('🔍 Loading memos for company:', companyId, 'Company name:', company?.name)
+      if (company?.id) {
+        console.log('🔍 Loading memos for company:', company.id, 'Company name:', company?.name)
         
         // Debug localStorage contents
         const allMemos = JSON.parse(localStorage.getItem('ai_memos') || '[]')
         console.log('🗄️ All memos in localStorage:', allMemos)
 
         const { getMemosByProject } = useMemos()
-        const projectMemos = getMemosByProject(companyId, 'deal')
+        const projectMemos = getMemosByProject(company.id, 'deal')
         console.log('📝 Found memos for deal (specific):', projectMemos)
 
         // Try to get any memos with this company ID regardless of type
         const companyMemos = allMemos.filter((memo: any) => {
-          const matchesId = memo.projectId === companyId
+          const matchesId = memo.projectId === company.id
           const matchesName = memo.projectName && company?.name && 
             memo.projectName.toLowerCase().includes(company.name.toLowerCase())
           
           console.log('🔍 Checking memo:', memo.title, {
             memoProjectId: memo.projectId,
             memoProjectName: memo.projectName,
-            targetId: companyId,
+            targetId: company.id,
             targetName: company?.name,
             matchesId,
             matchesName
@@ -146,21 +167,21 @@ export default function DealDetailPage() {
     // Add a small delay to ensure company data is loaded
     const timer = setTimeout(loadMemos, 100)
     return () => clearTimeout(timer)
-  }, [companyId, company?.name])
+  }, [company?.id, company?.name])
 
   // Listen for memo updates from AI system
   useEffect(() => {
     const handleMemoUpdate = () => {
-      if (companyId) {
+      if (company?.id) {
         console.log('🔄 Memo update event triggered')
         const { getMemosByProject } = useMemos()
-        const projectMemos = getMemosByProject(companyId, 'deal')
+        const projectMemos = getMemosByProject(company.id, 'deal')
         setMemos(projectMemos)
 
         // Also check all memos
         const allMemos = JSON.parse(localStorage.getItem('ai_memos') || '[]')
         const companyMemos = allMemos.filter((memo: any) => 
-          memo.projectId === companyId ||
+          memo.projectId === company.id ||
           (memo.projectName && company?.name && memo.projectName.toLowerCase().includes(company.name.toLowerCase()))
         )
         if (companyMemos.length > 0) {
@@ -175,7 +196,7 @@ export default function DealDetailPage() {
       window.removeEventListener('memoUpdated', handleMemoUpdate)
       window.removeEventListener('storage', handleMemoUpdate)
     }
-  }, [companyId, company?.name])
+  }, [company?.id, company?.name])
 
   const handleViewMemo = (memo: Memo) => {
     setSelectedMemo(memo)
@@ -186,7 +207,7 @@ export default function DealDetailPage() {
     saveMemo(memo)
     // Refresh memos list
     const { getMemosByProject } = useMemos()
-    const projectMemos = getMemosByProject(companyId, 'deal')
+    const projectMemos = getMemosByProject(company?.id || '', 'deal')
     setMemos(projectMemos)
   }
 
@@ -194,7 +215,7 @@ export default function DealDetailPage() {
     deleteMemo(memoId)
     // Refresh memos list
     const { getMemosByProject } = useMemos()
-    const projectMemos = getMemosByProject(companyId, 'deal')
+    const projectMemos = getMemosByProject(company?.id || '', 'deal')
     setMemos(projectMemos)
     setMemoViewerOpen(false)
   }
@@ -216,7 +237,7 @@ export default function DealDetailPage() {
       author: 'User',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      projectId: companyId,
+      projectId: company?.id || '',
       projectType: 'deal',
       projectName: company?.name || 'Deal'
     }
@@ -225,7 +246,7 @@ export default function DealDetailPage() {
     
     // Refresh memos list
     const { getMemosByProject } = useMemos()
-    const projectMemos = getMemosByProject(companyId, 'deal')
+    const projectMemos = getMemosByProject(company?.id || '', 'deal')
     setMemos(projectMemos)
 
     // Close dialog
@@ -348,7 +369,7 @@ export default function DealDetailPage() {
           </div>
           
           <div className="flex items-center gap-3">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setIsDealEditDialogOpen(true)}>
               <Edit className="w-4 h-4 mr-2" />
               Edit Deal
             </Button>
@@ -439,19 +460,23 @@ export default function DealDetailPage() {
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Round Type:</span>
-                          <span className="font-medium">Series A</span>
+                          <span className="font-medium">{deal?.stage ? deal.stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Investment Amount:</span>
-                          <span className="font-medium">{formatCurrency(15000000)}</span>
+                          <span className="font-medium">{deal?.our_investment ? formatCurrency(deal.our_investment) : 'TBD'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Valuation:</span>
-                          <span className="font-medium">{formatCurrency(150000000)}</span>
+                          <span className="font-medium">{deal?.valuation ? formatCurrency(deal.valuation) : 'TBD'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Ownership:</span>
-                          <span className="font-medium">10.0%</span>
+                          <span className="font-medium">
+                            {deal?.our_investment && deal?.valuation 
+                              ? `${((deal.our_investment / deal.valuation) * 100).toFixed(2)}%` 
+                              : 'TBD'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -461,11 +486,11 @@ export default function DealDetailPage() {
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Lead Partner:</span>
-                          <span className="font-medium">RedPill Partner</span>
+                          <span className="font-medium">{deal?.lead_partner || 'RedPill Partner'}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Investment Date:</span>
-                          <span className="font-medium">{new Date('2023-06-15').toLocaleDateString()}</span>
+                          <span className="text-muted-foreground">Deal Probability:</span>
+                          <span className="font-medium">{deal?.probability || 50}%</span>
                         </div>
                       </div>
                     </div>
@@ -581,12 +606,12 @@ export default function DealDetailPage() {
                           Create Memo
                         </Button>
                         <AIMemoButton 
-                          projectId={companyId}
+                          projectId={company?.id || ''}
                           projectType="deal"
                           projectName={company?.name}
                         />
                         <ChatWithAIButton 
-                          projectId={companyId}
+                          projectId={company?.id || ''}
                           projectType="deal"
                           projectName={company?.name}
                         />
@@ -683,7 +708,7 @@ export default function DealDetailPage() {
                               No AI memos yet for this deal
                             </p>
                             <AIMemoButton 
-                              projectId={companyId}
+                              projectId={company?.id || ''}
                               projectType="deal"
                               projectName={company?.name}
                               variant="outline"
@@ -917,6 +942,39 @@ export default function DealDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Deal Edit Dialog */}
+      {deal && company && (
+        <DealEditDialog
+          isOpen={isDealEditDialogOpen}
+          onClose={() => setIsDealEditDialogOpen(false)}
+          deal={deal}
+          company={company}
+          mode="edit"
+          onSave={async (dealData) => {
+            try {
+              const response = await fetch(`/api/deals/${deal.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dealData)
+              })
+              
+              if (response.ok) {
+                const updatedDeal = await response.json()
+                setDeal(updatedDeal)
+                // Reload to refresh all data
+                window.location.reload()
+              } else {
+                const error = await response.json()
+                alert(`Failed to update deal: ${error.message || error.detail}`)
+              }
+            } catch (error) {
+              console.error('Error updating deal:', error)
+              alert('Error updating deal. Please try again.')
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

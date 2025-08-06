@@ -35,6 +35,7 @@ import {
   Building2
 } from 'lucide-react'
 import { ChatWithAIButton } from '@/components/ai'
+import { DealEditDialog } from '@/components/deals/DealEditDialog'
 
 interface Deal {
   id: string
@@ -59,6 +60,27 @@ interface Deal {
   tags: string[]
 }
 
+// Map frontend dealflow stages to backend deal status
+const DEALFLOW_STATUS_MAP = {
+  'planned': 'sourcing',
+  'meeting': 'screening', 
+  'research': 'due_diligence',
+  'deal': 'term_sheet',
+  'track': 'invested',
+  'passed': 'passed',
+  'closed': 'invested'
+}
+
+// Reverse map for updating backend
+const STATUS_TO_BACKEND_MAP = {
+  'sourcing': 'planned',
+  'screening': 'meeting',
+  'due_diligence': 'research', 
+  'term_sheet': 'deal',
+  'invested': 'track',
+  'passed': 'passed'
+}
+
 const PIPELINE_STAGES = [
   { id: 'sourcing', name: 'Sourcing', color: 'bg-gray-100 border-gray-300 text-gray-700', count: 0 },
   { id: 'screening', name: 'Screening', color: 'bg-blue-100 border-blue-300 text-blue-700', count: 0 },
@@ -78,56 +100,65 @@ export default function DealflowPage() {
   const [isAddDealDialogOpen, setIsAddDealDialogOpen] = useState(false)
   const [availableCompanies, setAvailableCompanies] = useState<any[]>([])
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
+  const [selectedCompany, setSelectedCompany] = useState<any>(null)
   const [newCompanyForm, setNewCompanyForm] = useState({ name: '', domain: '' })
   const [createNewCompany, setCreateNewCompany] = useState(false)
 
-  // Load companies and convert to deals format
+  // Load real deals from backend
   useEffect(() => {
     const loadDeals = async () => {
       try {
-        // Load companies from backend API only to avoid UUID/name mismatches
-        const apiResponse = await fetch('/api/companies').then(res => res.ok ? res.json() : [])
+        // Load real deals from backend
+        const dealsResponse = await fetch('/api/deals').then(res => res.ok ? res.json() : [])
+        const backendDeals = Array.isArray(dealsResponse) ? dealsResponse : []
         
-        const apiCompanies = Array.isArray(apiResponse) ? apiResponse : apiResponse.companies || []
+        // Load companies for dropdown and deal enrichment
+        const companiesResponse = await fetch('/api/companies').then(res => res.ok ? res.json() : [])
+        const companies = Array.isArray(companiesResponse) ? companiesResponse : companiesResponse.companies || []
+        setAvailableCompanies(companies)
         
-        // Use API companies for both dropdown and display (single source of truth)
-        setAvailableCompanies(apiCompanies)
-        console.log('✅ Using backend companies as single source of truth:', apiCompanies)
+        console.log('✅ Loaded deals from backend:', backendDeals)
+        console.log('✅ Loaded companies for enrichment:', companies)
         
-        // Transform API companies to deals format with demo deal statuses
-        const dealsFromCompanies: Deal[] = apiCompanies.map((company: any, index: number) => {
-          // Generate realistic demo deal status for each company
-          const demoStatuses = ['sourcing', 'screening', 'due_diligence', 'term_sheet', 'invested', 'passed']
-          const demoPriorities = ['high', 'medium', 'low']
-          const demoStatus = demoStatuses[index % demoStatuses.length] as Deal['stage']
-          const demoPriority = demoPriorities[index % demoPriorities.length] as Deal['priority']
+        // Transform backend deals to frontend format
+        const transformedDeals: Deal[] = backendDeals.map((deal: any) => {
+          // Find company info
+          const company = companies.find((c: any) => c.id === deal.company_id) || {
+            name: 'Unknown Company',
+            sector: 'Unknown',
+            company_type: 'Unknown'
+          }
+          
+          // Map backend deal status to frontend dealflow stage
+          const dealflowStage = DEALFLOW_STATUS_MAP[deal.status] || 'sourcing'
+          
           return {
-            id: company.id,
+            id: deal.id,
             company: {
               name: company.name,
               logo: company.logo_url,
-              sector: company.sector,
-              stage: company.company_type,
+              sector: company.sector || 'Unknown',
+              stage: deal.stage || 'pre_seed', // Investment stage
               website: company.website,
               founded_year: company.founded_year
             },
-            stage: demoStatus,
-            priority: demoPriority,
-            target_investment: Math.floor(Math.random() * 50000000) + 5000000, // $5M-$55M random
-            target_valuation: Math.floor(Math.random() * 1000000000) + 100000000, // $100M-$1.1B random
-            deal_score: Math.floor(Math.random() * 4) + 6, // Random score 6-9
+            stage: dealflowStage as Deal['stage'], // Dealflow pipeline stage
+            priority: getPriorityFromProbability(deal.probability),
+            target_investment: deal.our_target,
+            target_valuation: deal.valuation,
+            deal_score: Math.floor(Math.random() * 4) + 6, // Generate score for now
             partner_owner: 'RedPill Partner',
-            next_milestone: getNextMilestone(demoStatus),
-            created_at: company.created_at.split('T')[0],
-            updated_at: company.updated_at.split('T')[0],
-            ai_summary: `${company.name} in ${company.sector}. ${company.description?.substring(0, 100) || 'No description available'}...`,
-            tags: [company.sector, company.company_type, demoPriority === 'high' ? 'Hot deal' : 'Standard']
+            next_milestone: deal.next_milestone || getNextMilestone(dealflowStage),
+            created_at: deal.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+            updated_at: deal.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+            ai_summary: `${company.name} in ${company.sector}. ${company.description?.substring(0, 100) || deal.internal_notes?.substring(0, 100) || 'No description available'}...`,
+            tags: [company.sector || 'Unknown', deal.stage || 'pre_seed', getPriorityFromProbability(deal.probability)]
           }
         })
         
-        setDeals(dealsFromCompanies)
+        setDeals(transformedDeals)
       } catch (error) {
-        // console.error('Error loading deals:', error)
+        console.error('Error loading deals:', error)
       } finally {
         setLoading(false)
       }
@@ -135,6 +166,13 @@ export default function DealflowPage() {
 
     loadDeals()
   }, [])
+
+  const getPriorityFromProbability = (probability?: number): Deal['priority'] => {
+    if (!probability) return 'low'
+    if (probability >= 75) return 'high'
+    if (probability >= 50) return 'medium'
+    return 'low'
+  }
 
   const getNextMilestone = (status: string): string => {
     switch (status) {
@@ -175,19 +213,58 @@ export default function DealflowPage() {
     e.preventDefault()
   }
 
-  const handleDrop = (e: React.DragEvent, targetStage: string) => {
+  const handleDrop = async (e: React.DragEvent, targetStage: string) => {
     e.preventDefault()
     if (draggedDeal && draggedDeal.stage !== targetStage) {
-      // Update local state
+      // Update local state immediately for responsiveness
       const updatedDeals = deals.map(deal => 
         deal.id === draggedDeal.id 
-          ? { ...deal, stage: targetStage as Deal['stage'], updated_at: new Date().toISOString() }
+          ? { ...deal, stage: targetStage as Deal['stage'], updated_at: new Date().toISOString().split('T')[0] }
           : deal
       )
       setDeals(updatedDeals)
       
-      // TODO: Sync status change to backend API
-      // console.log(`Updated deal ${draggedDeal.id} from ${draggedDeal.stage} to ${targetStage}`)
+      // Sync status change to backend API
+      try {
+        const backendStatus = STATUS_TO_BACKEND_MAP[targetStage]
+        if (backendStatus) {
+          console.log(`🔄 Updating deal ${draggedDeal.id} from ${draggedDeal.stage} to ${targetStage} (backend: ${backendStatus})`)
+          
+          const response = await fetch(`/api/deals/${draggedDeal.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: backendStatus })
+          })
+
+          if (response.ok) {
+            const updatedDeal = await response.json()
+            console.log('✅ Deal status updated successfully:', updatedDeal)
+          } else {
+            const errorData = await response.json().catch(() => ({ message: 'Failed to update deal' }))
+            console.error('❌ Failed to update deal status:', response.status, errorData)
+            
+            // Revert local state on error
+            setDeals(deals => deals.map(deal => 
+              deal.id === draggedDeal.id 
+                ? { ...deal, stage: draggedDeal.stage } // Revert to original stage
+                : deal
+            ))
+            
+            alert(`Failed to update deal status: ${errorData.message || errorData.detail}`)
+          }
+        }
+      } catch (error) {
+        console.error('💥 Error updating deal status:', error)
+        
+        // Revert local state on error
+        setDeals(deals => deals.map(deal => 
+          deal.id === draggedDeal.id 
+            ? { ...deal, stage: draggedDeal.stage } // Revert to original stage
+            : deal
+        ))
+        
+        alert('Error updating deal status. Please try again.')
+      }
     }
     setDraggedDeal(null)
   }
@@ -454,8 +531,8 @@ export default function DealflowPage() {
         </Card>
       </div>
       
-      {/* Add Deal Dialog */}
-      <Dialog open={isAddDealDialogOpen} onOpenChange={setIsAddDealDialogOpen}>
+      {/* Add Deal Dialog - Enhanced with DealEditDialog */}
+      <Dialog open={isAddDealDialogOpen && !selectedCompany} onOpenChange={setIsAddDealDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Add New Deal</DialogTitle>
@@ -488,7 +565,14 @@ export default function DealflowPage() {
             {!createNewCompany ? (
               <div className="grid gap-2">
                 <Label htmlFor="company">Select Company</Label>
-                <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+                <Select value={selectedCompanyId} onValueChange={(value) => {
+                  setSelectedCompanyId(value)
+                  const company = availableCompanies.find(c => c.id === value)
+                  if (company) {
+                    setSelectedCompany(company)
+                    setIsAddDealDialogOpen(false) // Close selection dialog
+                  }
+                }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose a company..." />
                   </SelectTrigger>
@@ -652,6 +736,41 @@ export default function DealflowPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Enhanced Deal Creation Dialog */}
+      {selectedCompany && (
+        <DealEditDialog
+          isOpen={!!selectedCompany}
+          onClose={() => {
+            setSelectedCompany(null)
+            setSelectedCompanyId('')
+          }}
+          company={selectedCompany}
+          mode="create"
+          onSave={async (dealData) => {
+            try {
+              const response = await fetch('/api/deals', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dealData)
+              })
+              
+              if (response.ok) {
+                setSelectedCompany(null)
+                setSelectedCompanyId('')
+                // Reload deals
+                window.location.reload()
+              } else {
+                const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
+                alert(`Failed to create deal: ${errorData.message || errorData.detail}`)
+              }
+            } catch (error) {
+              console.error('Error creating deal:', error)
+              alert('Error creating deal. Please try again.')
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

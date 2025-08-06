@@ -84,7 +84,7 @@ export function MemoViewer({ memo, isOpen, onClose, onSave, onDelete }: MemoView
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[100vw] h-[100vh] max-w-none max-h-none m-0 p-6 overflow-hidden flex flex-col border-0 rounded-none">
+      <DialogContent className="!w-[100vw] !h-[100vh] !max-w-none !max-h-none !m-0 p-6 overflow-hidden flex flex-col !border-0 !rounded-none !left-0 !top-0 !translate-x-0 !translate-y-0">
         <DialogHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">

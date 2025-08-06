@@ -33,10 +33,11 @@ export async function GET(request: NextRequest) {
     // Also fetch deals to enrich companies with deal status
     let dealsData = []
     try {
-      const dealsResponse = await fetch(`${API_BASE_URL}/api/v1/deals/`, {
+      // Use internal API route which handles auth properly
+      const dealsResponse = await fetch(`http://localhost:3000/api/deals`, {
         headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
           'Content-Type': 'application/json',
+          'Cookie': request.headers.get('cookie') || '',
         },
       })
       
@@ -44,7 +45,18 @@ export async function GET(request: NextRequest) {
         dealsData = await dealsResponse.json()
         console.log('✅ Fetched deals for enrichment:', dealsData?.length || 0)
       } else {
-        console.log('⚠️ Could not fetch deals, using companies without deal status')
+        console.log('⚠️ Could not fetch deals via internal API, status:', dealsResponse.status)
+        // Try direct backend call as fallback
+        const backendResponse = await fetch(`${API_BASE_URL}/api/v1/deals/`, {
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json',
+          },
+        })
+        if (backendResponse.ok) {
+          dealsData = await backendResponse.json()
+          console.log('✅ Fetched deals via backend fallback:', dealsData?.length || 0)
+        }
       }
     } catch (error) {
       console.log('⚠️ Error fetching deals:', error.message)
