@@ -465,46 +465,129 @@ Return ONLY a JSON object with this structure:
         try {
           // Try to parse the JSON response
           const planContent = planData.response || planData.content
+          
+          // Check if the response contains the literal template strings
+          if (planContent.includes('"string"') || planContent.includes('string: string')) {
+            console.warn('⚠️ AI returned template strings, using fallback plan')
+            throw new Error('Template strings in response')
+          }
+          
           const jsonMatch = planContent.match(/\{[\s\S]*\}/)
           if (jsonMatch) {
             const parsedPlan = JSON.parse(jsonMatch[0])
-            researchPlan = {
-              sections: parsedPlan.sections || [],
-              approved: false
+            // Validate that sections have actual content
+            if (parsedPlan.sections && 
+                parsedPlan.sections.length > 0 && 
+                parsedPlan.sections[0].title !== "string" &&
+                parsedPlan.sections[0].title !== "") {
+              researchPlan = {
+                sections: parsedPlan.sections,
+                approved: false
+              }
+            } else {
+              throw new Error('Invalid section data')
             }
           } else {
             throw new Error('No JSON found in response')
           }
         } catch (parseError) {
-          // Fallback to default research plan
-          researchPlan = {
-            sections: [
+          console.log('📋 Using intelligent fallback research plan for:', query, projectName)
+          // Create intelligent fallback based on the query context
+          const queryLower = query.toLowerCase()
+          const projectNameClean = projectName || 'the project'
+          
+          // Determine research focus based on query
+          let sections = []
+          
+          if (queryLower.includes('deal') || queryLower.includes('investment')) {
+            sections = [
+              {
+                title: "Investment Thesis",
+                description: "Core value proposition and investment rationale",
+                searchQueries: [`${projectNameClean} investment thesis`, `${projectNameClean} value proposition`, `${projectNameClean} growth potential`]
+              },
+              {
+                title: "Market Opportunity",
+                description: "Total addressable market and growth dynamics",
+                searchQueries: [`${projectNameClean} TAM market size`, `${projectNameClean} market growth`, `${projectNameClean} industry trends 2024`]
+              },
+              {
+                title: "Competitive Analysis",
+                description: "Competitive positioning and differentiation",
+                searchQueries: [`${projectNameClean} vs competitors`, `${projectNameClean} competitive advantage`, `${projectNameClean} market share`]
+              },
+              {
+                title: "Financial Metrics",
+                description: "Key financial indicators and valuation",
+                searchQueries: [`${projectNameClean} revenue valuation`, `${projectNameClean} funding history`, `${projectNameClean} financial performance`]
+              },
+              {
+                title: "Risk Assessment",
+                description: "Key risks and mitigation strategies",
+                searchQueries: [`${projectNameClean} business risks`, `${projectNameClean} challenges`, `${projectNameClean} risk factors`]
+              }
+            ]
+          } else if (queryLower.includes('company') || queryLower.includes('research')) {
+            sections = [
+              {
+                title: "Company Overview",
+                description: "Business model, products, and services",
+                searchQueries: [`${projectNameClean} company overview`, `${projectNameClean} business model`, `${projectNameClean} products services`]
+              },
+              {
+                title: "Market Position",
+                description: "Industry standing and market dynamics",
+                searchQueries: [`${projectNameClean} market position`, `${projectNameClean} industry analysis`, `${projectNameClean} market share 2024`]
+              },
+              {
+                title: "Technology & Innovation",
+                description: "Technical capabilities and innovation strategy",
+                searchQueries: [`${projectNameClean} technology stack`, `${projectNameClean} innovation`, `${projectNameClean} R&D capabilities`]
+              },
+              {
+                title: "Team & Leadership",
+                description: "Management team and organizational strength",
+                searchQueries: [`${projectNameClean} leadership team`, `${projectNameClean} founders executives`, `${projectNameClean} company culture`]
+              },
+              {
+                title: "Growth Strategy",
+                description: "Expansion plans and strategic initiatives",
+                searchQueries: [`${projectNameClean} growth strategy`, `${projectNameClean} expansion plans`, `${projectNameClean} strategic roadmap`]
+              }
+            ]
+          } else {
+            // Generic research structure
+            sections = [
+              {
+                title: "Executive Summary",
+                description: "Overview and key highlights",
+                searchQueries: [`${projectNameClean} overview`, `${projectNameClean} summary`, `${projectNameClean} key facts`]
+              },
               {
                 title: "Market Analysis",
-                description: "Current market conditions, size, and trends",
-                searchQueries: [`${projectName} market analysis`, `${projectName} industry trends`, `${projectName} market size`]
+                description: "Current market conditions and trends",
+                searchQueries: [`${projectNameClean} market analysis`, `${projectNameClean} industry trends`, `${projectNameClean} market size`]
               },
               {
                 title: "Competitive Landscape",
-                description: "Key competitors and competitive positioning",
-                searchQueries: [`${projectName} competitors`, `${projectName} competitive analysis`, `${projectName} market leaders`]
+                description: "Key competitors and positioning",
+                searchQueries: [`${projectNameClean} competitors`, `${projectNameClean} competitive analysis`, `${projectNameClean} market leaders`]
               },
               {
                 title: "Technical Assessment",
-                description: "Technology stack, innovation, and technical capabilities",
-                searchQueries: [`${projectName} technology`, `${projectName} technical analysis`, `${projectName} innovation`]
+                description: "Technology and capabilities",
+                searchQueries: [`${projectNameClean} technology`, `${projectNameClean} technical analysis`, `${projectNameClean} capabilities`]
               },
               {
-                title: "Financial Performance",
-                description: "Revenue, funding, valuation, and financial health",
-                searchQueries: [`${projectName} revenue`, `${projectName} funding`, `${projectName} valuation`]
-              },
-              {
-                title: "Risk Analysis",
-                description: "Potential risks, challenges, and mitigation strategies",
-                searchQueries: [`${projectName} risks`, `${projectName} challenges`, `${projectName} regulatory issues`]
+                title: "Strategic Outlook",
+                description: "Future prospects and recommendations",
+                searchQueries: [`${projectNameClean} future outlook`, `${projectNameClean} strategic plans`, `${projectNameClean} growth prospects`]
               }
-            ],
+            ]
+          }
+          
+          researchPlan = {
+            sections: sections,
             approved: false
           }
         }

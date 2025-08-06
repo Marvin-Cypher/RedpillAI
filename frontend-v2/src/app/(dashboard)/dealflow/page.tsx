@@ -34,6 +34,7 @@ import {
   Briefcase,
   Building2
 } from 'lucide-react'
+import { ChatWithAIButton } from '@/components/ai'
 
 interface Deal {
   id: string
@@ -382,14 +383,12 @@ export default function DealflowPage() {
                           <Eye className="w-3 h-3 mr-1" />
                           View
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <ChatWithAIButton 
+                          projectId={deal.id}
+                          projectType="deal"
+                          projectName={deal.company.name}
                           className="flex-1 text-xs"
-                        >
-                          <MessageSquare className="w-3 h-3 mr-1" />
-                          AI Chat
-                        </Button>
+                        />
                       </div>
                     </CardContent>
                   </Card>
