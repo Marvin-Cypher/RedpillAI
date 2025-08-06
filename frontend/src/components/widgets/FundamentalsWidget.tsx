@@ -480,17 +480,17 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
     // Special rendering for complex crypto data
     if (metric === 'listing_exchanges' && value?.top_5) {
       return (
-        <div key={metric} className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+        <div key={metric} className="bg-muted rounded-lg p-3 hover:bg-accent transition-colors">
           <div className="flex items-center space-x-2 mb-2">
             <IconComponent className={`w-4 h-4 ${definition.color}`} />
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-foreground">
               {definition.label}
             </span>
           </div>
-          <div className="text-lg font-bold text-gray-900 mb-1">
+          <div className="text-lg font-bold text-foreground mb-1">
             {value.count} exchanges
           </div>
-          <div className="text-xs text-gray-600">
+          <div className="text-xs text-muted-foreground">
             {value.top_5.slice(0, 3).map((ex: any) => ex.name).join(', ')}
           </div>
         </div>
@@ -499,17 +499,17 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
 
     if (metric === 'founders_count' && Array.isArray(value)) {
       return (
-        <div key={metric} className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+        <div key={metric} className="bg-muted rounded-lg p-3 hover:bg-accent transition-colors">
           <div className="flex items-center space-x-2 mb-2">
             <IconComponent className={`w-4 h-4 ${definition.color}`} />
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-foreground">
               {definition.label}
             </span>
           </div>
-          <div className="text-lg font-bold text-gray-900 mb-1">
+          <div className="text-lg font-bold text-foreground mb-1">
             {value.length} founders
           </div>
-          <div className="text-xs text-gray-600">
+          <div className="text-xs text-muted-foreground">
             {value.slice(0, 2).map((founder: any) => founder.name).join(', ')}
           </div>
         </div>
@@ -517,14 +517,14 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
     }
 
     return (
-      <div key={metric} className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+      <div key={metric} className="bg-muted rounded-lg p-3 hover:bg-accent transition-colors">
         <div className="flex items-center space-x-2 mb-2">
           <IconComponent className={`w-4 h-4 ${definition.color}`} />
-          <span className="text-sm font-medium text-gray-700">
+          <span className="text-sm font-medium text-foreground">
             {definition.label}
           </span>
         </div>
-        <div className="text-lg font-bold text-gray-900">
+        <div className="text-lg font-bold text-foreground">
           {formattedValue}
         </div>
       </div>
@@ -541,7 +541,7 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
     const formattedValue = formatValue(value, definition.format);
 
     return (
-      <tr key={metric} className="border-b border-gray-100 hover:bg-gray-50">
+      <tr key={metric} className="border-b border-border hover:bg-accent">
         <td className="py-2 px-3">
           <div className="flex items-center space-x-2">
             <IconComponent className={`w-4 h-4 ${definition.color}`} />
@@ -549,7 +549,7 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Info className="w-3 h-3 text-gray-400 cursor-help" />
+                  <Info className="w-3 h-3 text-muted-foreground cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="text-sm">{definition.description}</p>
@@ -559,7 +559,7 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
           </div>
         </td>
         <td className="py-2 px-3 text-right">
-          <span className="font-bold text-gray-900">{formattedValue}</span>
+          <span className="font-bold text-foreground">{formattedValue}</span>
         </td>
       </tr>
     );
@@ -607,10 +607,10 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <div>
-              <h4 className="text-sm font-medium text-gray-900">
+              <h4 className="text-sm font-medium text-foreground">
                 {widget.config?.companyName || widget.dataSource?.ticker || 'Company'} Fundamentals
               </h4>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-muted-foreground">
                 {companyType === 'public' ? 'Public company metrics' :
                  companyType === 'crypto' ? 'Token & crypto metrics' :
                  'Private company metrics'}
@@ -667,9 +667,9 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
             <div className="overflow-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b-2 border-gray-200">
-                    <th className="text-left py-2 px-3 font-medium text-gray-700">Metric</th>
-                    <th className="text-right py-2 px-3 font-medium text-gray-700">Value</th>
+                  <tr className="border-b-2 border-border">
+                    <th className="text-left py-2 px-3 font-medium text-foreground">Metric</th>
+                    <th className="text-right py-2 px-3 font-medium text-foreground">Value</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -683,8 +683,8 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="mt-4 pt-3 border-t border-gray-100">
-          <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="mt-4 pt-3 border-t border-border">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Last updated: {new Date().toLocaleDateString()}</span>
             <Badge variant="outline" className="text-xs">
               TTM Data

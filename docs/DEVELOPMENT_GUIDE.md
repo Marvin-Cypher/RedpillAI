@@ -43,6 +43,15 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 ### 3. Start Frontend
+
+#### Option A: v2 Frontend (Modern - Recommended)
+```bash
+cd frontend-v2
+npm install
+npm run dev
+```
+
+#### Option B: v1 Frontend (Legacy)
 ```bash
 cd frontend
 npm install
@@ -50,7 +59,8 @@ npm run dev
 ```
 
 ### 4. Access Application
-- **Frontend**: http://localhost:3000
+- **Frontend v2 (Modern)**: http://localhost:3000 (Next.js 15.1.7 + Shadcn/UI)
+- **Frontend v1 (Legacy)**: http://localhost:3000 (Next.js 14)
 - **Backend API**: http://localhost:8000
 - **API Docs**: http://localhost:8000/docs
 
@@ -58,13 +68,17 @@ npm run dev
 
 ### 🤖 Pillar 1: CopilotKit AI (AI Interface)
 
-**Location**: `frontend/src/components/ai/`
+**Location**: 
+- `frontend/src/components/ai/` (v1 Frontend)
+- `frontend-v2/src/components/ai/` (v2 Frontend - Enhanced)
 
 **Key Files**:
 - `UnifiedAISystem.tsx` - AI context provider
 - `CopilotSidebar.tsx` - CopilotKit interface
 - `OpenResearchCanvas.tsx` - Research workflow
-- `frontend/src/app/api/copilotkit/route.ts` - Backend proxy
+- `AIMemoButton.tsx` - AI memo generation (v2)
+- `ChatWithAIButton.tsx` - Enhanced AI chat (v2)
+- `frontend*/src/app/api/copilotkit/route.ts` - Backend proxy
 
 **Development**:
 ```bash
@@ -167,7 +181,7 @@ curl -X POST http://localhost:8000/api/v1/workflows/due-diligence \
 
 ```
 redpill-project/
-├── frontend/                    # Next.js frontend
+├── frontend/                    # v1 Frontend (Next.js 14 - Legacy)
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── ai/             # CopilotKit AI interface
@@ -176,6 +190,14 @@ redpill-project/
 │   │   └── lib/
 │   │       ├── agents/         # Mock AG-UI (legacy)
 │   │       └── integrations/   # Three-pillar bridge
+├── frontend-v2/                 # v2 Frontend (Next.js 15 + Shadcn/UI - Modern)
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ai/             # Enhanced AI components
+│   │   │   ├── ui/             # Shadcn/UI components
+│   │   │   └── widgets/        # Modern dashboard widgets
+│   │   └── app/
+│   │       └── (dashboard)/    # Modern dashboard layout
 ├── backend/                     # FastAPI backend
 │   ├── app/
 │   │   ├── api/                # API endpoints
@@ -185,6 +207,8 @@ redpill-project/
 │   │   └── models/             # Database models
 └── docs/                       # Documentation
     ├── DEVELOPMENT_GUIDE.md    # This file
+    ├── research/
+    │   └── Shadcn.md           # Frontend v2 refactor plan
     └── THREE_PILLAR_ARCHITECTURE_COMPLETE.md
 ```
 

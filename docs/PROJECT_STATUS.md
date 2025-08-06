@@ -15,14 +15,16 @@
 ## 🔧 System Components
 
 ### ✅ Frontend (Next.js)
-- **Location**: `frontend/`
-- **Status**: Operational
+- **v1 Frontend**: `frontend/` - Legacy Next.js 14 (Operational)
+- **v2 Frontend**: `frontend-v2/` - Modern Next.js 15.1.7 with Shadcn/UI (Production-ready)
+- **Status**: Dual frontend system - v2 recommended for new development
 - **Port**: 3000
 - **Features**:
-  - Three-pillar dashboard
-  - Agent interface components
-  - Financial data visualization
-  - Portfolio management UI
+  - Three-pillar dashboard with enhanced UI/UX
+  - Modern Shadcn/UI component system
+  - Agent interface components with improved AI integration
+  - Financial data visualization with real-time crypto prices
+  - Portfolio management UI with comprehensive deal detail pages
 
 ### ✅ Backend (FastAPI)
 - **Location**: `backend/`
@@ -50,16 +52,20 @@
 ```
 redpill-project/
 ├── 📄 README.md                              ✅ Updated
+├── 📄 CLAUDE.md                              ✅ Development guidance
 ├── 📄 THREE_PILLAR_ARCHITECTURE_COMPLETE.md  ✅ Master docs
 ├── 📄 CONTRIBUTING.md                         ✅ Current
 ├── 📄 DEPLOYMENT.md                           ✅ Current
 ├── 📄 docker-compose.yml                     ✅ Production ready
-├── 📁 frontend/                               ✅ Three-pillar UI
+├── 📁 frontend/                               ✅ Legacy UI (Next.js 14)
+├── 📁 frontend-v2/                            ✅ Modern UI (Next.js 15 + Shadcn)
 ├── 📁 backend/                                ✅ Three-pillar API
 ├── 📁 database/                               ✅ Schema & migrations
 └── 📁 docs/                                   ✅ Clean documentation
     ├── 📄 DEVELOPMENT_GUIDE.md                ✅ Current guide
     ├── 📄 PROJECT_STATUS.md                   ✅ This file
+    ├── 📁 research/                           ✅ Research documentation
+    │   └── 📄 Shadcn.md                       ✅ Frontend v2 refactor plan
     └── 📁 archive/                            ✅ Archived obsolete docs
         ├── 📁 superseded-architectures/       ✅ Old architecture docs
         └── 📁 obsolete-code/                  ✅ Old development files
@@ -97,8 +103,11 @@ docker-compose up -d postgres redis
 # Backend
 cd backend && uvicorn app.main:app --reload
 
-# Frontend  
+# Frontend v1 (Legacy)
 cd frontend && npm run dev
+
+# Frontend v2 (Modern - Recommended)
+cd frontend-v2 && npm run dev
 ```
 
 ### ✅ Three-Pillar Access
@@ -180,6 +189,7 @@ cd frontend && npm run dev
 
 ---
 
-*Last Updated*: 2025-07-25  
+*Last Updated*: 2025-08-06  
 *Architecture*: Three-Pillar System (CopilotKit AI + OpenBB + OpenProject)  
+*Frontend*: Dual System - v1 (Legacy) + v2 (Modern Shadcn/UI)  
 *Status*: Production Ready 🚀

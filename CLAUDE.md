@@ -93,14 +93,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Before: Only companies with tickers got specific news, others got generic crypto market news
   - After: All companies get relevant, company-specific news through Google Search API
 
-### Recent System State (2025-08-04)
+### Frontend v2 Refactor Complete (2025-08-06)
+- **Modern UI Framework Migration**: Successfully migrated to Next.js 15.1.7 with enhanced Shadcn/UI components
+  - Created `frontend-v2/` directory with complete redesign using modern component patterns
+  - Enhanced dashboard layout with improved navigation and responsive design
+  - Advanced deal management interface with comprehensive company profile views
+- **Component Architecture Improvements**: Modular, reusable component system
+  - Professional deal detail pages with tabbed interface (Overview, Financials, Timeline, Documents, Notes)
+  - Enhanced widget system with better data visualization and error handling
+  - Improved AI integration components (AIMemoButton, ChatWithAIButton)
+- **Null Safety Enhancements**: Fixed critical runtime errors in deal detail pages
+  - Added proper null checks for company properties (deal_status, investment, metrics, etc.)
+  - Implemented graceful fallbacks for undefined data fields
+  - Enhanced error boundaries and loading states
+- **Backend API Integration**: Seamless integration with existing FastAPI backend
+  - Maintained compatibility with `/api/v1/` endpoint structure
+  - Proper error handling for missing or incomplete company data
+  - Real-time data synchronization with existing MarketDataService
+
+### Recent System State (2025-08-06)
 - **Service Architecture**: All blocking I/O operations now async-safe with proper error handling
 - **Widget System**: Dual compatibility - works in both CustomizableDashboard and WidgetGrid systems
 - **Crypto Widget Support**: All crypto companies automatically supported without manual data enrichment
 - **MarketDataService**: Operational with OpenBB connection + async crypto prices via executors
 - **AI Chat Service**: Consolidated and operational with unified debugging (chat_id system)
 - **API Routing**: All endpoints accessible with proper async patterns
-- **Frontend Development**: All pages accessible and functional with DEMO_MODE authentication bypass
+- **Frontend Development**: 
+  - **v1 Frontend** (`frontend/`): Legacy Next.js 14 implementation - fully functional with DEMO_MODE
+  - **v2 Frontend** (`frontend-v2/`): Modern Next.js 15.1.7 with enhanced UI/UX - production-ready
 - Database contains 12+ companies including: Phala Network, NVIDIA, Chainlink, Amazon, Polygon, Solana, Uniswap, Aave, The Graph, **Polkadot**, OpenAI, Anthropic
 - **Real-Time Crypto Data**: Token Price widgets show live prices for all crypto companies
 - CoinGecko integration working for crypto companies (async via MarketDataService)
@@ -130,8 +150,19 @@ alembic upgrade head  # Database migrations
 ```
 
 ### Frontend
+
+#### v1 Frontend (Legacy)
 ```bash
 cd frontend
+npm install
+npm run dev  # Port 3000
+npm run build
+npm run lint
+```
+
+#### v2 Frontend (Modern - Recommended)
+```bash
+cd frontend-v2
 npm install
 npm run dev  # Port 3000
 npm run build
