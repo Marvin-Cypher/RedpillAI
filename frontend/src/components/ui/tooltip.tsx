@@ -1,134 +1,31 @@
-/**
- * Tooltip Components
- * Simple tooltip implementation using CSS and React state
- */
+"use client"
 
-import React, { useState, useRef, useEffect } from 'react';
-import { cn } from '@/lib/utils';
+import * as React from "react"
+import * as TooltipPrimitive from "@radix-ui/react-tooltip"
+import { cn } from "@/lib/utils"
 
-interface TooltipProps {
-  children: React.ReactNode;
-  content: React.ReactNode;
-  side?: 'top' | 'bottom' | 'left' | 'right';
-  align?: 'start' | 'center' | 'end';
-  className?: string;
-  delayDuration?: number;
-}
+const TooltipProvider = TooltipPrimitive.Provider
 
-export const TooltipProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <>{children}</>;
-};
+const Tooltip = TooltipPrimitive.Root
 
-export const Tooltip: React.FC<TooltipProps> = ({
-  children,
-  content,
-  side = 'top',
-  align = 'center',
-  className = '',
-  delayDuration = 200
-}) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const [showTimeout, setShowTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
-  const triggerRef = useRef<HTMLDivElement>(null);
+const TooltipTrigger = TooltipPrimitive.Trigger
 
-  const showTooltip = () => {
-    if (hideTimeout) {
-      clearTimeout(hideTimeout);
-      setHideTimeout(null);
-    }
-    const timeout = setTimeout(() => {
-      setIsVisible(true);
-    }, delayDuration);
-    setShowTimeout(timeout);
-  };
-
-  const hideTooltip = () => {
-    if (showTimeout) {
-      clearTimeout(showTimeout);
-      setShowTimeout(null);
-    }
-    const timeout = setTimeout(() => {
-      setIsVisible(false);
-    }, 100);
-    setHideTimeout(timeout);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (showTimeout) clearTimeout(showTimeout);
-      if (hideTimeout) clearTimeout(hideTimeout);
-    };
-  }, [showTimeout, hideTimeout]);
-
-  const getPositionClasses = () => {
-    const positions = {
-      top: {
-        start: 'bottom-full left-0 mb-2',
-        center: 'bottom-full left-1/2 transform -translate-x-1/2 mb-2',
-        end: 'bottom-full right-0 mb-2'
-      },
-      bottom: {
-        start: 'top-full left-0 mt-2',
-        center: 'top-full left-1/2 transform -translate-x-1/2 mt-2',
-        end: 'top-full right-0 mt-2'
-      },
-      left: {
-        start: 'right-full top-0 mr-2',
-        center: 'right-full top-1/2 transform -translate-y-1/2 mr-2',
-        end: 'right-full bottom-0 mr-2'
-      },
-      right: {
-        start: 'left-full top-0 ml-2',
-        center: 'left-full top-1/2 transform -translate-y-1/2 ml-2',
-        end: 'left-full bottom-0 ml-2'
-      }
-    };
-    return positions[side][align];
-  };
-
-  return (
-    <div className="relative inline-block" ref={triggerRef}>
-      <div
-        onMouseEnter={showTooltip}
-        onMouseLeave={hideTooltip}
-        onFocus={showTooltip}
-        onBlur={hideTooltip}
-      >
-        {children}
-      </div>
-      {isVisible && (
-        <div
-          className={cn(
-            'absolute z-50 px-3 py-1.5 text-sm text-white bg-gray-900 rounded-md shadow-lg whitespace-nowrap pointer-events-none',
-            getPositionClasses(),
-            className
-          )}
-        >
-          {content}
-        </div>
+const TooltipContent = React.forwardRef<
+  React.ElementRef<typeof TooltipPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
+>(({ className, sideOffset = 4, ...props }, ref) => (
+  <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Content
+      ref={ref}
+      sideOffset={sideOffset}
+      className={cn(
+        "bg-primary text-primary-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 overflow-hidden rounded-md px-3 py-1.5 text-xs",
+        className
       )}
-    </div>
-  );
-};
+      {...props}
+    />
+  </TooltipPrimitive.Portal>
+))
+TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-export const TooltipTrigger: React.FC<{ children: React.ReactNode; asChild?: boolean }> = ({ 
-  children, 
-  asChild = false 
-}) => {
-  return <>{children}</>;
-};
-
-export const TooltipContent: React.FC<{ 
-  children: React.ReactNode; 
-  className?: string;
-  side?: 'top' | 'bottom' | 'left' | 'right';
-  align?: 'start' | 'center' | 'end';
-}> = ({ 
-  children, 
-  className = '',
-  side = 'top',
-  align = 'center'
-}) => {
-  return <>{children}</>;
-};
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }

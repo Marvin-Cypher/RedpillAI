@@ -1,3 +1,5 @@
+"use client"
+
 /**
  * Peer Comparison Widget
  * Compare company metrics with competitor companies
@@ -33,6 +35,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { WidgetProps } from '@/lib/widgets/types';
+import { BaseWidget } from './BaseWidget';
 
 const PeerComparisonWidget: React.FC<WidgetProps> = ({
   widget,
@@ -42,7 +45,8 @@ const PeerComparisonWidget: React.FC<WidgetProps> = ({
   companyId,
   isEditing,
   onUpdate,
-  onRemove
+  onRemove,
+  onRefresh
 }) => {
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>(
     widget.config.metrics || ['market_cap', 'pe_ratio', 'revenue_ttm']
@@ -442,46 +446,24 @@ const PeerComparisonWidget: React.FC<WidgetProps> = ({
   };
 
   return (
-    <Card className="h-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <div className="flex items-center space-x-2">
-          <CardTitle className="text-lg font-semibold">Peer Comparison</CardTitle>
-          {widget.dataSource.ticker && (
-            <Badge variant="outline" className="text-xs">
-              {widget.dataSource.ticker.toUpperCase()}
-            </Badge>
-          )}
-        </div>
-        {isEditing && (
-          <div className="flex space-x-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onUpdate?.({ ...widget.config })}
-              className="h-6 w-6 p-0 hover:bg-accent"
-            >
-              <RefreshCw className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onRemove?.();
-              }}
-              className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
-              title="Delete widget"
-            >
-              ×
-            </Button>
-          </div>
+    <BaseWidget 
+      widget={widget} 
+      isEditing={isEditing} 
+      onUpdate={onUpdate} 
+      onRemove={onRemove}
+      companyId={companyId}
+      onRefresh={onRefresh}
+    >
+      <div className="space-y-4">
+        {/* Ticker badge if available */}
+        {widget.dataSource.ticker && (
+          <Badge variant="outline" className="text-xs">
+            {widget.dataSource.ticker.toUpperCase()}
+          </Badge>
         )}
-      </CardHeader>
-      <CardContent className="pt-2">
         {renderContent()}
-      </CardContent>
-    </Card>
+      </div>
+    </BaseWidget>
   );
 };
 

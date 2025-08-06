@@ -1,9 +1,11 @@
+"use client"
+
 /**
  * Fundamentals Widget
  * Display key financial metrics and ratios
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -115,8 +117,8 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
   const actualLoading = loading || selfLoading;
   const actualError = error || selfError;
 
-  // Create mock data for testing if no real data available
-  const mockData = !actualData ? {
+  // Create mock data for testing if no real data available (memoized to prevent re-renders)
+  const mockData = useMemo(() => (!actualData ? {
     company_type: 'private',
     key_metrics: {
       valuation: 2500000000, // $2.5B
@@ -125,7 +127,7 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
       burn_rate: 8000000 // $8M/month
     },
     total_funding: 350000000 // $350M
-  } : null;
+  } : null), [actualData]);
 
   const finalData = actualData || mockData;
 
@@ -141,8 +143,8 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
     fallback_detection: detectCompanyType(finalData)
   });
   
-  // Select default metrics based on company type
-  const getDefaultMetrics = () => {
+  // Select default metrics based on company type (memoized to prevent re-renders)
+  const getDefaultMetrics = useMemo(() => {
     switch (companyType) {
       case 'public':
         // Public companies: Focus on stock metrics and financial performance from public reports
@@ -156,7 +158,7 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
       default:
         return ['valuation', 'revenue_ttm', 'gross_margin', 'runway'];
     }
-  };
+  }, [companyType]);
   
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>(
     widget.config?.metrics || ['valuation', 'revenue_ttm', 'gross_margin', 'burn_rate'] // Default fallback
@@ -165,20 +167,19 @@ const FundamentalsWidget: React.FC<WidgetProps> = ({
     widget.config?.display_format || 'cards'
   );
 
-  // Update metrics when company type changes (after data loads)
+  // Update metrics when company type changes (after data loads) - only run once per company type change
   useEffect(() => {
-    if (!widget.config?.metrics && finalData) {
-      const defaultMetrics = getDefaultMetrics();
-      console.log(`🔄 FundamentalsWidget: Updating metrics for ${companyType} company (${finalData.name}):`, defaultMetrics);
+    if (!widget.config?.metrics && finalData && companyType) {
+      console.log(`🔄 FundamentalsWidget: Updating metrics for ${companyType} company (${finalData.name}):`, getDefaultMetrics);
       console.log(`📊 Company data:`, { 
         company_category: finalData.company_category, 
         has_crypto_data: !!finalData.crypto_data,
         has_pe_ratio: !!finalData.pe_ratio,
         name: finalData.name 
       });
-      setSelectedMetrics(defaultMetrics);
+      setSelectedMetrics(getDefaultMetrics);
     }
-  }, [companyType, finalData, widget.config?.metrics]);
+  }, [companyType, getDefaultMetrics, widget.config?.metrics]);
 
   // Available metrics with descriptions - includes both traditional and crypto metrics
   const metricDefinitions = {

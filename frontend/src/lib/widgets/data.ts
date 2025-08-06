@@ -7,9 +7,8 @@ import { Widget, PriceData, FundamentalData, NewsItem, ComparisonData } from './
 import { apiClient as centralApiClient } from '@/lib/api';
 import { getCompanyCategory } from '@/lib/companyDatabase';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ? 
-  `${process.env.NEXT_PUBLIC_API_URL.replace('/api/v1', '')}/api/v1` : 
-  'http://localhost:8000/api/v1';
+// In v2, we use Next.js API routes that proxy to the backend
+const API_BASE = '';
 
 // Generate realistic news URLs based on source
 const generateNewsUrl = (company: string, title: string, source: string): string => {
@@ -42,11 +41,17 @@ const generateNewsUrl = (company: string, title: string, source: string): string
 class WidgetApiClient {
   private async request<T>(endpoint: string): Promise<T> {
     try {
-      const response = await fetch(`${API_BASE}${endpoint}`);
+      // Ensure endpoint starts with /api for Next.js API routes
+      const apiEndpoint = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+      console.log(`🔍 Widget API request: ${apiEndpoint}`);
+      const response = await fetch(apiEndpoint);
       if (!response.ok) {
+        console.error(`❌ Widget API error: ${response.status} ${response.statusText} for ${apiEndpoint}`);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      return await response.json();
+      const data = await response.json();
+      console.log(`✅ Widget API success: ${apiEndpoint}`, data);
+      return data;
     } catch (error) {
       console.warn(`Failed to fetch from ${endpoint}:`, error);
       throw error;
@@ -391,7 +396,7 @@ export const widgetDataFetchers = {
     // Get company profile to determine type and ticker
     try {
       console.log('📡 Fetching company profile for price chart...');
-      const profileResponse = await fetch(`${API_BASE}/data/companies/${encodeURIComponent(companyId)}/profile`);
+      const profileResponse = await fetch(`/api/data/companies/${encodeURIComponent(companyId)}/profile`);
       
       if (!profileResponse.ok) {
         throw new Error(`Profile API Error: ${profileResponse.status} ${profileResponse.statusText}`);
@@ -470,7 +475,7 @@ export const widgetDataFetchers = {
     try {
       // First, get company information from database to determine type
       console.log('📡 Fetching company profile for fundamentals...');
-      const response = await fetch(`${API_BASE}/data/companies/${encodeURIComponent(companyId)}/profile`);
+      const response = await fetch(`/api/data/companies/${encodeURIComponent(companyId)}/profile`);
       
       if (!response.ok) {
         console.error(`❌ API request failed for company ${companyId}: ${response.status} ${response.statusText}`);
@@ -703,7 +708,7 @@ export const widgetDataFetchers = {
 
     try {
       // First, get company information from database to determine type
-      const response = await fetch(`${API_BASE}/data/companies/${encodeURIComponent(companyId)}/profile`);
+      const response = await fetch(`/api/data/companies/${encodeURIComponent(companyId)}/profile`);
       
       let actualCompanyName = companyName;
       let companyType: 'public' | 'crypto' | 'private' = 'private'; // default
@@ -932,7 +937,7 @@ export const widgetDataFetchers = {
     // Use companyId (UUID) directly for API call
     try {
       console.log('📡 Fetching company data using UUID...');
-      const response = await fetch(`${API_BASE}/data/companies/${encodeURIComponent(companyId)}/profile`);
+      const response = await fetch(`/api/data/companies/${encodeURIComponent(companyId)}/profile`);
       
       if (!response.ok) {
         throw new Error(`API Error: ${response.status} ${response.statusText}`);
@@ -1041,7 +1046,7 @@ export const widgetDataFetchers = {
     // Use companyId (UUID) directly for API call - much simpler and more reliable
     try {
       console.log('📡 Fetching company profile using UUID...');
-      const profileResponse = await fetch(`${API_BASE}/data/companies/${encodeURIComponent(companyId)}/profile`);
+      const profileResponse = await fetch(`/api/data/companies/${encodeURIComponent(companyId)}/profile`);
       
       if (!profileResponse.ok) {
         throw new Error(`Profile API Error: ${profileResponse.status} ${profileResponse.statusText}`);

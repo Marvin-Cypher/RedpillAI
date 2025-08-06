@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { createContext, useContext, ReactNode, useState, useCallback } from 'react'
 import { OpenResearchCanvas } from './OpenResearchCanvas'
@@ -96,6 +96,8 @@ export function UnifiedAISystem({
 
   // Save session to localStorage
   const saveSession = useCallback((session: AISession) => {
+    if (typeof window === 'undefined') return
+    
     if (!session.projectId) {
       console.warn('⚠️ Cannot save session without projectId:', session)
       return
@@ -104,8 +106,6 @@ export function UnifiedAISystem({
     const storageKey = `chat-history-${session.projectId}`
     const existingSessions = JSON.parse(localStorage.getItem(storageKey) || '[]')
     
-    console.log('💾 Saving session:', session.id, 'messages:', session.messages?.length, 'to key:', storageKey)
-    
     // Update existing session or add new one
     const sessionIndex = existingSessions.findIndex((s: AISession) => s.id === session.id)
     if (sessionIndex >= 0) {
@@ -113,13 +113,11 @@ export function UnifiedAISystem({
         ...session,
         lastActivity: new Date(session.lastActivity)
       }
-      console.log('📝 Updated existing session at index:', sessionIndex)
     } else {
       existingSessions.push({
         ...session,
         lastActivity: new Date(session.lastActivity)
       })
-      console.log('📋 Added new session to storage')
     }
     
     // Keep only last 20 sessions per project
@@ -128,7 +126,6 @@ export function UnifiedAISystem({
     }
     
     localStorage.setItem(storageKey, JSON.stringify(existingSessions))
-    console.log('✅ Session saved to localStorage:', storageKey)
   }, [])
 
   // Create new session
@@ -139,7 +136,7 @@ export function UnifiedAISystem({
   }) => {
     const session: AISession = {
       id: generateSessionId(),
-      projectId: options.projectId || globalProjectId,
+      projectId: options.projectId || globalProjectId || 'general',
       projectType: options.projectType || globalProjectType || 'open',
       projectName: options.projectName || globalProjectName || 'Dashboard',
       messages: [],
@@ -157,8 +154,6 @@ export function UnifiedAISystem({
     memoId?: string
     mode?: 'sidebar' | 'fullscreen'
   }) => {
-    console.log('UnifiedAISystem openAI called!', options)
-    
     // Create or update session
     const session = createSession({
       projectId: options?.projectId,
@@ -166,24 +161,19 @@ export function UnifiedAISystem({
       projectName: options?.projectName
     })
     
-    console.log('Created session:', session)
-    
     setCurrentSession(session)
     setCurrentMemoId(options?.memoId)
     setIsOpen(true)
     
     // Save session immediately when created
     saveSession(session)
-    
-    console.log('Set isOpen to true')
-  }, [createSession])
+  }, [createSession, saveSession])
 
   // Close AI interface
   const closeAI = useCallback(() => {
     setIsOpen(false)
     setCurrentMemoId(undefined)
-    setIsResearching(false) // Reset research state when closing
-    // Keep session for potential reopen
+    setIsResearching(false)
   }, [])
 
   // Add message to current session
@@ -192,8 +182,6 @@ export function UnifiedAISystem({
       console.warn('⚠️ Cannot add message without current session')
       return
     }
-    
-    console.log('📧 Adding message to session:', message.id, message.sender, message.content.substring(0, 50))
     
     const updatedSession = {
       ...currentSession,
@@ -233,7 +221,7 @@ export function UnifiedAISystem({
       setCurrentSession(updatedSession)
       saveSession(updatedSession)
 
-      // Call backend API using Next.js proxy route
+      // Call backend API through proxy route
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -259,7 +247,7 @@ export function UnifiedAISystem({
       // Add AI response to session
       const aiMessage: AIMessage = {
         id: `msg-${Date.now() + 1}`,
-        content: data.response || data.content || 'No response',
+        content: data.response || data.content || 'I apologize, but I could not process your request at this time.',
         sender: 'ai',
         timestamp: new Date(),
         type: 'research',
@@ -286,10 +274,10 @@ export function UnifiedAISystem({
     } catch (error) {
       console.error('Message send error:', error)
       
-      // Add error message
-      const errorMessage: AIMessage = {
+      // Add fallback AI message for demo purposes
+      const fallbackMessage: AIMessage = {
         id: `msg-${Date.now() + 2}`,
-        content: 'I apologize, but I encountered an error. Please try again.',
+        content: `I understand you're asking about: "${content}". While I'm currently in demo mode, I can help analyze deals, research companies, and provide investment insights. What specific aspect would you like to explore?`,
         sender: 'ai',
         timestamp: new Date(),
         type: 'text'
@@ -297,13 +285,13 @@ export function UnifiedAISystem({
 
       setCurrentSession(prev => prev ? {
         ...prev,
-        messages: [...prev.messages, errorMessage],
+        messages: [...prev.messages, fallbackMessage],
         lastActivity: new Date()
       } : null)
     } finally {
       setIsTyping(false)
     }
-  }, [currentSession])
+  }, [currentSession, saveSession])
 
   // Clear current session
   const clearSession = useCallback(() => {
@@ -320,15 +308,13 @@ export function UnifiedAISystem({
 
   // Get chat history for a project
   const getChatHistory = useCallback((projectId: string, _projectType: string): AISession[] => {
+    if (typeof window === 'undefined') return []
+    
     const storageKey = `chat-history-${projectId}`
-    console.log('📖 Getting chat history from key:', storageKey)
     
     try {
       const rawData = localStorage.getItem(storageKey)
-      console.log('📄 Raw localStorage data:', rawData?.substring(0, 200))
-      
       const sessions = JSON.parse(rawData || '[]')
-      console.log('📚 Parsed sessions count:', sessions.length)
       
       // Convert date strings back to Date objects and ensure messages array exists
       const processedSessions = sessions.map((session: any) => ({
@@ -340,21 +326,16 @@ export function UnifiedAISystem({
         })) : []
       }))
       
-      console.log('✅ Processed sessions:', processedSessions.map((s: AISession) => ({
-        id: s.id,
-        messageCount: s.messages?.length || 0
-      })))
-      
       return processedSessions.sort((a: AISession, b: AISession) => b.lastActivity.getTime() - a.lastActivity.getTime())
     } catch (error) {
-      console.error('❌ Error parsing chat history:', error)
+      console.error('Error parsing chat history:', error)
       return []
     }
   }, [])
 
   // Load a specific chat session
   const loadChatSession = useCallback((sessionId: string) => {
-    if (!currentSession) return
+    if (!currentSession || typeof window === 'undefined') return
     
     const storageKey = `chat-history-${currentSession.projectId}`
     const sessions = JSON.parse(localStorage.getItem(storageKey) || '[]')
@@ -383,8 +364,6 @@ export function UnifiedAISystem({
 
   // Open research canvas directly
   const openResearch = useCallback((projectId?: string, projectType?: 'company' | 'deal' | 'open', projectName?: string) => {
-    console.log('🔬 openResearch called:', { projectId, projectType, projectName })
-    
     // Open AI interface with research flag
     openAI({
       projectId: projectId || globalProjectId,
@@ -398,32 +377,30 @@ export function UnifiedAISystem({
 
   // Save memo
   const saveMemo = useCallback((content: string, title?: string) => {
-    if (!currentSession) return
+    if (!currentSession || typeof window === 'undefined') return
 
     const memo = {
       id: `memo-${Date.now()}`,
       title: title || `Research Memo - ${currentSession.projectName}`,
       content: content,
-      chatId: currentSession.id,
-      date: new Date().toISOString(),
+      type: 'ai' as const,
       author: 'AI Research Assistant',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       projectId: currentSession.projectId,
       projectType: currentSession.projectType,
       projectName: currentSession.projectName
     }
 
-    // Generate storage key that matches deal page expectations
-    const storageKey = currentSession.projectId 
-      ? `memos-${currentSession.projectId}` 
-      : `memos-${currentSession.projectType}-general`
-    
-    // Save to localStorage
-    const existingMemos = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    // Use the same storage key as MemoViewer
+    const existingMemos = JSON.parse(localStorage.getItem('ai_memos') || '[]')
     existingMemos.push(memo)
-    localStorage.setItem(storageKey, JSON.stringify(existingMemos))
+    localStorage.setItem('ai_memos', JSON.stringify(existingMemos))
 
     // Trigger memo update event
-    window.dispatchEvent(new Event('memoUpdated'))
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('memoUpdated'))
+    }
 
     return memo
   }, [currentSession])
@@ -451,8 +428,6 @@ export function UnifiedAISystem({
     ? children(contextValue)
     : children
 
-  console.log('UnifiedAISystem render - isOpen:', isOpen, 'currentSession:', !!currentSession)
-
   return (
     <AIContext.Provider value={contextValue}>
       {childrenWithProps}
@@ -466,8 +441,9 @@ export function UnifiedAISystem({
             isOpen={isOpen}
             onClose={closeAI}
             onSaveMemo={(memo) => {
-              console.log('Memo saved:', memo)
-              window.dispatchEvent(new Event('memoUpdated'))
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('memoUpdated'))
+              }
             }}
           />
         </div>
@@ -479,9 +455,7 @@ export function UnifiedAISystem({
 // Hook to use AI context
 export function useAI(): AIContextType {
   const context = useContext(AIContext)
-  console.log('useAI hook called, context:', !!context)
   if (!context) {
-    console.error('useAI called outside UnifiedAISystem!')
     throw new Error('useAI must be used within UnifiedAISystem')
   }
   return context

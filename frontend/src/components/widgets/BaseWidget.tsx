@@ -1,3 +1,5 @@
+"use client"
+
 /**
  * Base Widget Component
  * Provides common functionality for all dashboard widgets
@@ -271,3 +273,5 @@ export const withWidgetData = <T extends object>(
   
   return WithWidgetDataComponent;
 };
+
+export default BaseWidget;

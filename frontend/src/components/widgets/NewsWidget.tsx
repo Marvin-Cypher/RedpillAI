@@ -1,3 +1,5 @@
+"use client"
+
 /**
  * News Widget
  * Display latest news and updates for a company/ticker

@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAI, AIMessage } from './UnifiedAISystem'
@@ -25,7 +25,6 @@ import {
   RefreshCw,
   Save
 } from 'lucide-react'
-import { VCAssistant } from '@/lib/ai/vc-assistant'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -465,47 +464,130 @@ Return ONLY a JSON object with this structure:
         
         try {
           // Try to parse the JSON response
-          const planContent = planData.content
+          const planContent = planData.response || planData.content
+          
+          // Check if the response contains the literal template strings
+          if (planContent.includes('"string"') || planContent.includes('string: string')) {
+            console.warn('⚠️ AI returned template strings, using fallback plan')
+            throw new Error('Template strings in response')
+          }
+          
           const jsonMatch = planContent.match(/\{[\s\S]*\}/)
           if (jsonMatch) {
             const parsedPlan = JSON.parse(jsonMatch[0])
-            researchPlan = {
-              sections: parsedPlan.sections || [],
-              approved: false
+            // Validate that sections have actual content
+            if (parsedPlan.sections && 
+                parsedPlan.sections.length > 0 && 
+                parsedPlan.sections[0].title !== "string" &&
+                parsedPlan.sections[0].title !== "") {
+              researchPlan = {
+                sections: parsedPlan.sections,
+                approved: false
+              }
+            } else {
+              throw new Error('Invalid section data')
             }
           } else {
             throw new Error('No JSON found in response')
           }
         } catch (parseError) {
-          // Fallback to default research plan
-          researchPlan = {
-            sections: [
+          console.log('📋 Using intelligent fallback research plan for:', query, projectName)
+          // Create intelligent fallback based on the query context
+          const queryLower = query.toLowerCase()
+          const projectNameClean = projectName || 'the project'
+          
+          // Determine research focus based on query
+          let sections = []
+          
+          if (queryLower.includes('deal') || queryLower.includes('investment')) {
+            sections = [
+              {
+                title: "Investment Thesis",
+                description: "Core value proposition and investment rationale",
+                searchQueries: [`${projectNameClean} investment thesis`, `${projectNameClean} value proposition`, `${projectNameClean} growth potential`]
+              },
+              {
+                title: "Market Opportunity",
+                description: "Total addressable market and growth dynamics",
+                searchQueries: [`${projectNameClean} TAM market size`, `${projectNameClean} market growth`, `${projectNameClean} industry trends 2024`]
+              },
+              {
+                title: "Competitive Analysis",
+                description: "Competitive positioning and differentiation",
+                searchQueries: [`${projectNameClean} vs competitors`, `${projectNameClean} competitive advantage`, `${projectNameClean} market share`]
+              },
+              {
+                title: "Financial Metrics",
+                description: "Key financial indicators and valuation",
+                searchQueries: [`${projectNameClean} revenue valuation`, `${projectNameClean} funding history`, `${projectNameClean} financial performance`]
+              },
+              {
+                title: "Risk Assessment",
+                description: "Key risks and mitigation strategies",
+                searchQueries: [`${projectNameClean} business risks`, `${projectNameClean} challenges`, `${projectNameClean} risk factors`]
+              }
+            ]
+          } else if (queryLower.includes('company') || queryLower.includes('research')) {
+            sections = [
+              {
+                title: "Company Overview",
+                description: "Business model, products, and services",
+                searchQueries: [`${projectNameClean} company overview`, `${projectNameClean} business model`, `${projectNameClean} products services`]
+              },
+              {
+                title: "Market Position",
+                description: "Industry standing and market dynamics",
+                searchQueries: [`${projectNameClean} market position`, `${projectNameClean} industry analysis`, `${projectNameClean} market share 2024`]
+              },
+              {
+                title: "Technology & Innovation",
+                description: "Technical capabilities and innovation strategy",
+                searchQueries: [`${projectNameClean} technology stack`, `${projectNameClean} innovation`, `${projectNameClean} R&D capabilities`]
+              },
+              {
+                title: "Team & Leadership",
+                description: "Management team and organizational strength",
+                searchQueries: [`${projectNameClean} leadership team`, `${projectNameClean} founders executives`, `${projectNameClean} company culture`]
+              },
+              {
+                title: "Growth Strategy",
+                description: "Expansion plans and strategic initiatives",
+                searchQueries: [`${projectNameClean} growth strategy`, `${projectNameClean} expansion plans`, `${projectNameClean} strategic roadmap`]
+              }
+            ]
+          } else {
+            // Generic research structure
+            sections = [
+              {
+                title: "Executive Summary",
+                description: "Overview and key highlights",
+                searchQueries: [`${projectNameClean} overview`, `${projectNameClean} summary`, `${projectNameClean} key facts`]
+              },
               {
                 title: "Market Analysis",
-                description: "Current market conditions, size, and trends",
-                searchQueries: [`${projectName} market analysis`, `${projectName} industry trends`, `${projectName} market size`]
+                description: "Current market conditions and trends",
+                searchQueries: [`${projectNameClean} market analysis`, `${projectNameClean} industry trends`, `${projectNameClean} market size`]
               },
               {
                 title: "Competitive Landscape",
-                description: "Key competitors and competitive positioning",
-                searchQueries: [`${projectName} competitors`, `${projectName} competitive analysis`, `${projectName} market leaders`]
+                description: "Key competitors and positioning",
+                searchQueries: [`${projectNameClean} competitors`, `${projectNameClean} competitive analysis`, `${projectNameClean} market leaders`]
               },
               {
                 title: "Technical Assessment",
-                description: "Technology stack, innovation, and technical capabilities",
-                searchQueries: [`${projectName} technology`, `${projectName} technical analysis`, `${projectName} innovation`]
+                description: "Technology and capabilities",
+                searchQueries: [`${projectNameClean} technology`, `${projectNameClean} technical analysis`, `${projectNameClean} capabilities`]
               },
               {
-                title: "Financial Performance",
-                description: "Revenue, funding, valuation, and financial health",
-                searchQueries: [`${projectName} revenue`, `${projectName} funding`, `${projectName} valuation`]
-              },
-              {
-                title: "Risk Analysis",
-                description: "Potential risks, challenges, and mitigation strategies",
-                searchQueries: [`${projectName} risks`, `${projectName} challenges`, `${projectName} regulatory issues`]
+                title: "Strategic Outlook",
+                description: "Future prospects and recommendations",
+                searchQueries: [`${projectNameClean} future outlook`, `${projectNameClean} strategic plans`, `${projectNameClean} growth prospects`]
               }
-            ],
+            ]
+          }
+          
+          researchPlan = {
+            sections: sections,
             approved: false
           }
         }
@@ -606,8 +688,8 @@ Return ONLY a JSON object with this structure:
   const handleRejectResearchPlan = () => {
     setApprovalFlow({ isActive: false, proposedPlan: '', isExecuting: false })
     
-    const rejectionMessage: Message = {
-      id: Date.now().toString(),
+    const rejectionMessage: AIMessage = {
+      id: `rejection-${Date.now()}`,
       content: "I understand you'd like a different approach. Please let me know what specific research areas you'd like me to focus on instead.",
       sender: 'ai',
       timestamp: new Date(),
@@ -623,16 +705,16 @@ Return ONLY a JSON object with this structure:
   // Sidebar mode - before expansion
   if (!isExpanded) {
     return (
-      <div className="fixed right-4 bottom-4 z-40 w-96 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+      <div className="fixed right-4 bottom-4 z-40 w-96 bg-background rounded-lg shadow-2xl border border-border overflow-hidden">
+        <div className="p-4 border-b border-border bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
                 <Bot className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">AI Research Assistant</h3>
-                <p className="text-xs text-gray-600">
+                <h3 className="font-semibold text-foreground">AI Research Assistant</h3>
+                <p className="text-xs text-muted-foreground">
                   {projectName} | {currentChatId || 'Starting...'}
                 </p>
               </div>
@@ -654,14 +736,14 @@ Return ONLY a JSON object with this structure:
                 <div className={`max-w-[85%] ${
                   message.sender === 'user'
                     ? 'bg-blue-600 text-white rounded-2xl rounded-br-md'
-                    : 'bg-gray-100 text-gray-900 rounded-2xl rounded-bl-md'
+                    : 'bg-muted text-foreground rounded-2xl rounded-bl-md'
                 } px-4 py-2`}>
                   <p className="text-sm">{message.content}</p>
                 </div>
               </div>
             ))}
             {isTyping && (
-              <div className="flex items-center space-x-2 text-gray-500">
+              <div className="flex items-center space-x-2 text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-sm">AI is thinking...</span>
               </div>
@@ -678,7 +760,7 @@ Return ONLY a JSON object with this structure:
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask anything..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background"
               disabled={isTyping}
             />
             <Button 
@@ -696,16 +778,16 @@ Return ONLY a JSON object with this structure:
 
   // Expanded canvas mode
   return (
-    <div className="fixed inset-0 z-50 bg-white flex">
+    <div className="fixed inset-0 z-50 bg-background flex">
       {/* Left side - Research Canvas */}
-      <div className="w-1/2 bg-white overflow-y-auto border-r border-gray-200">
+      <div className="w-1/2 bg-background overflow-y-auto border-r border-border">
         <div className="p-6">
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+            <h3 className="text-lg font-semibold text-foreground flex items-center">
               <FileText className="w-5 h-5 mr-2" />
               Research Document
             </h3>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               {projectName} Analysis | Chat ID: {currentChatId}
             </p>
           </div>
@@ -713,11 +795,11 @@ Return ONLY a JSON object with this structure:
           {researchSections.length === 0 && !streamingContent && !isTyping && !approvalFlow.isActive ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center max-w-md">
-                <Search className="w-16 h-16 text-gray-300 mx-auto mb-6" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-3">
+                <Search className="w-16 h-16 text-muted-foreground mx-auto mb-6" />
+                <h3 className="text-xl font-semibold text-foreground mb-3">
                   Start by asking a research question
                 </h3>
-                <p className="text-gray-500 text-sm leading-relaxed">
+                <p className="text-muted-foreground text-sm leading-relaxed">
                   Ask detailed questions about {projectName} and I&apos;ll help you conduct comprehensive research and analysis.
                 </p>
               </div>
@@ -732,27 +814,27 @@ Return ONLY a JSON object with this structure:
                 fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif'
               }}
             >
-              {/* ANA-style Research Document Header */}
-              <div className="mb-8 p-6 bg-gradient-to-r from-slate-50 to-blue-50 border border-gray-200 rounded-lg shadow-sm">
+              {/* Research Document Header */}
+              <div className="mb-8 p-6 bg-gradient-to-r from-muted/50 to-blue-50 dark:from-muted/20 dark:to-blue-950/20 border border-border rounded-lg shadow-sm">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-3 flex items-center">
+                    <h1 className="text-2xl font-bold text-foreground mb-3 flex items-center">
                       📄 Research Document
                     </h1>
-                    <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                       <div className="space-y-2">
                         <div className="flex items-center">
-                          <span className="font-medium text-gray-700 w-20">Project:</span>
-                          <span className="font-mono text-blue-700 bg-blue-100 px-2 py-1 rounded text-xs">{projectName}</span>
+                          <span className="font-medium text-foreground w-20">Project:</span>
+                          <span className="font-mono text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 px-2 py-1 rounded text-xs">{projectName}</span>
                         </div>
                         <div className="flex items-center">
-                          <span className="font-medium text-gray-700 w-20">Query:</span>
+                          <span className="font-medium text-foreground w-20">Query:</span>
                           <span className="italic">{messages.filter(m => m.sender === 'user').pop()?.content || 'Analysis'}</span>
                         </div>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center">
-                          <span className="font-medium text-gray-700 w-16">Date:</span>
+                          <span className="font-medium text-foreground w-16">Date:</span>
                           <span className="font-mono text-xs">{new Date().toLocaleDateString('en-US', { 
                             year: 'numeric', 
                             month: 'short', 
@@ -762,8 +844,8 @@ Return ONLY a JSON object with this structure:
                           })}</span>
                         </div>
                         <div className="flex items-center">
-                          <span className="font-medium text-gray-700 w-16">Session:</span>
-                          <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{currentChatId}</span>
+                          <span className="font-medium text-foreground w-16">Session:</span>
+                          <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{currentChatId}</span>
                         </div>
                       </div>
                     </div>
@@ -785,29 +867,29 @@ Return ONLY a JSON object with this structure:
                     >
                       🔍-
                     </Button>
-                    <span className="text-xs text-gray-500 text-center">{documentZoom}%</span>
+                    <span className="text-xs text-muted-foreground text-center">{documentZoom}%</span>
                   </div>
                 </div>
               </div>
 
               {/* Show thinking indicator */}
               {(isTyping && !streamingContent) && (
-                <div className="mb-8 p-4 bg-gray-50 border-l-4 border-gray-400">
+                <div className="mb-8 p-4 bg-muted/50 border-l-4 border-muted-foreground/40">
                   <div className="flex items-center">
-                    <Loader2 className="w-4 h-4 text-gray-600 animate-spin mr-2" />
-                    <span className="font-medium text-gray-700">AI is thinking...</span>
+                    <Loader2 className="w-4 h-4 text-muted-foreground animate-spin mr-2" />
+                    <span className="font-medium text-foreground">AI is thinking...</span>
                   </div>
                 </div>
               )}
 
               {/* Show streaming content */}
               {streamingContent && (
-                <div className="mb-8 p-4 bg-blue-50 border-l-4 border-blue-400">
+                <div className="mb-8 p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400">
                   <div className="flex items-center mb-2">
                     <Loader2 className="w-4 h-4 text-blue-600 animate-spin mr-2" />
-                    <span className="font-medium text-blue-900">Research in Progress</span>
+                    <span className="font-medium text-blue-900 dark:text-blue-100">Research in Progress</span>
                   </div>
-                  <div className="prose prose-sm max-w-none text-blue-800">
+                  <div className="prose prose-sm max-w-none text-blue-800 dark:text-blue-200">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {streamingContent}
                     </ReactMarkdown>
@@ -815,19 +897,19 @@ Return ONLY a JSON object with this structure:
                 </div>
               )}
 
-              {/* ANA-style Research Plan Approval */}
+              {/* Research Plan Approval */}
               {approvalFlow.isActive && (
-                <div className="mb-8 bg-white border border-amber-200 rounded-lg shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200">
+                <div className="mb-8 bg-background border border-amber-200 dark:border-amber-800 rounded-lg shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/20 border-b border-amber-200 dark:border-amber-800">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                      <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center">
                         <span className="text-lg">📋</span>
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-amber-900">
+                        <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-100">
                           Research Plan Approval Required
                         </h3>
-                        <p className="text-sm text-amber-700 mt-1">
+                        <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
                           Review the proposed research structure below
                         </p>
                       </div>
@@ -835,17 +917,17 @@ Return ONLY a JSON object with this structure:
                   </div>
                   
                   <div className="p-6">
-                    <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+                    <div className="bg-background border border-border rounded-lg p-4 mb-4">
                       <div className="prose prose-sm max-w-none">
                         <ReactMarkdown 
                           remarkPlugins={[remarkGfm]}
                           components={{
-                            h1: ({ children }) => <h1 className="text-lg font-bold text-gray-900 mb-3">{children}</h1>,
-                            h2: ({ children }) => <h2 className="text-base font-semibold text-gray-800 mb-2">{children}</h2>,
-                            p: ({ children }) => <p className="mb-2 text-gray-700 leading-relaxed">{children}</p>,
+                            h1: ({ children }) => <h1 className="text-lg font-bold text-foreground mb-3">{children}</h1>,
+                            h2: ({ children }) => <h2 className="text-base font-semibold text-foreground mb-2">{children}</h2>,
+                            p: ({ children }) => <p className="mb-2 text-foreground leading-relaxed">{children}</p>,
                             ul: ({ children }) => <ul className="mb-2 pl-4 space-y-1">{children}</ul>,
-                            li: ({ children }) => <li className="text-gray-700 leading-relaxed">{children}</li>,
-                            strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>
+                            li: ({ children }) => <li className="text-foreground leading-relaxed">{children}</li>,
+                            strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>
                           }}
                         >
                           {approvalFlow.proposedPlan}
@@ -854,7 +936,7 @@ Return ONLY a JSON object with this structure:
                     </div>
                     
                     <div className="flex items-center justify-between">
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-muted-foreground">
                         This will create {approvalFlow.researchPlan?.sections.length || 5} research sections
                       </div>
                       <div className="flex gap-3">
@@ -862,7 +944,6 @@ Return ONLY a JSON object with this structure:
                           onClick={handleRejectResearchPlan}
                           size="sm"
                           variant="outline"
-                          className="border-gray-300 text-gray-700 hover:bg-gray-50"
                           disabled={approvalFlow.isExecuting}
                         >
                           <X className="w-4 h-4 mr-2" />
@@ -890,41 +971,41 @@ Return ONLY a JSON object with this structure:
                 </div>
               )}
 
-              {/* ANA-style Research Sections */}
+              {/* Research Sections */}
               {researchSections.length > 0 && (
                 <div className="space-y-6">
-                  <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                  <div className="mb-6 p-4 bg-background border border-border rounded-lg shadow-sm">
+                    <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center">
                       📑 Research Sections
                     </h2>
                     <div className="flex items-center space-x-6 text-sm">
                       <div className="flex items-center space-x-2">
                         <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span className="text-gray-600">{researchSections.length} sections total</span>
+                        <span className="text-muted-foreground">{researchSections.length} sections total</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span className="text-gray-600">{researchSections.filter(s => s.status === 'completed').length} completed</span>
+                        <span className="text-muted-foreground">{researchSections.filter(s => s.status === 'completed').length} completed</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                        <span className="text-gray-600">{researchSections.filter(s => s.approved).length} approved</span>
+                        <span className="text-muted-foreground">{researchSections.filter(s => s.approved).length} approved</span>
                       </div>
                     </div>
                   </div>
                   
                   {researchSections.map((section, index) => (
-                    <div key={section.id} className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                      {/* ANA-style Section Header */}
-                      <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-slate-50 border-b border-gray-200">
+                    <div key={section.id} className="bg-background border border-border rounded-lg shadow-sm overflow-hidden">
+                      {/* Section Header */}
+                      <div className="px-6 py-4 bg-gradient-to-r from-muted/50 to-slate-50 dark:from-muted/20 dark:to-slate-950/20 border-b border-border">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className="flex items-center space-x-2">
-                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                <span className="text-sm font-semibold text-blue-700">{index + 1}</span>
+                              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                                <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">{index + 1}</span>
                               </div>
                               <div>
-                                <h3 className="text-lg font-semibold text-gray-900">
+                                <h3 className="text-lg font-semibold text-foreground">
                                   {section.title}
                                 </h3>
                                 <div className="flex items-center space-x-2 mt-1">
@@ -932,10 +1013,10 @@ Return ONLY a JSON object with this structure:
                                     variant="outline" 
                                     className={`text-xs ${
                                       section.status === 'completed' 
-                                        ? 'bg-green-100 text-green-800 border-green-200' 
+                                        ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800' 
                                         : section.status === 'in_progress'
-                                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
-                                        : 'bg-gray-100 text-gray-600 border-gray-200'
+                                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800'
+                                        : 'bg-muted text-muted-foreground border-border'
                                     }`}
                                   >
                                     {section.status === 'completed' ? '✓ Complete' : 
@@ -943,7 +1024,7 @@ Return ONLY a JSON object with this structure:
                                      '⏸️ Pending'}
                                   </Badge>
                                   {section.timestamp && (
-                                    <span className="text-xs text-gray-500">
+                                    <span className="text-xs text-muted-foreground">
                                       {new Date(section.timestamp).toLocaleTimeString()}
                                     </span>
                                   )}
@@ -956,7 +1037,7 @@ Return ONLY a JSON object with this structure:
                               onClick={() => handleSaveMemo(section.content)}
                               size="sm"
                               variant="outline"
-                              className="text-blue-600 border-blue-200 hover:bg-blue-50 text-xs"
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/20 text-xs"
                             >
                               <Save className="w-3 h-3 mr-1" />
                               Save
@@ -965,96 +1046,50 @@ Return ONLY a JSON object with this structure:
                         </div>
                       </div>
 
-                      {/* ANA-style Section Content */}
+                      {/* Section Content */}
                       <div className="p-6">
-                        
-                        {/* ANA-style editable content section */}
                         <div className="mb-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h5 className="text-sm font-semibold text-gray-800">Research Content</h5>
-                            <Button
-                              onClick={() => {
-                                // Toggle edit mode for this section
-                                const isEditing = section.id.includes('editing')
-                                setResearchSections(prev => prev.map(s => 
-                                  s.id === section.id 
-                                    ? { ...s, id: isEditing ? s.id.replace('-editing', '') : s.id + '-editing' }
-                                    : s
-                                ))
-                              }}
-                              size="sm"
-                              variant="ghost"
-                              className="text-xs text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-md border border-blue-200"
-                            >
-                              {section.id.includes('editing') ? '✓ Save' : '✏️ Edit'}
-                            </Button>
+                          <div className="bg-background border border-border rounded-lg shadow-sm overflow-hidden">
+                            <div className="prose prose-gray max-w-none p-6" style={{
+                              fontSize: '14px',
+                              lineHeight: '1.6'
+                            }}>
+                              <div className="markdown-body">
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]}
+                                  components={{
+                                    h1: ({ children }) => <h1 className="text-xl font-bold text-foreground mb-4 pb-2 border-b border-border">{children}</h1>,
+                                    h2: ({ children }) => <h2 className="text-lg font-semibold text-foreground mb-3 mt-6">{children}</h2>,
+                                    h3: ({ children }) => <h3 className="text-base font-semibold text-foreground mb-2 mt-4">{children}</h3>,
+                                    p: ({ children }) => <p className="mb-3 text-foreground leading-relaxed">{children}</p>,
+                                    ul: ({ children }) => <ul className="mb-3 pl-4 space-y-1">{children}</ul>,
+                                    ol: ({ children }) => <ol className="mb-3 pl-4 space-y-1">{children}</ol>,
+                                    li: ({ children }) => <li className="text-foreground leading-relaxed">{children}</li>,
+                                    code: ({ children, className }) => {
+                                      const inline = !className
+                                      return inline ? (
+                                        <code className="px-1 py-0.5 bg-muted text-foreground rounded text-sm font-mono">{children}</code>
+                                      ) : (
+                                        <code className="block p-3 bg-muted text-foreground rounded-md text-sm font-mono overflow-x-auto">{children}</code>
+                                      )
+                                    },
+                                    blockquote: ({ children }) => <blockquote className="border-l-4 border-blue-200 dark:border-blue-800 pl-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-foreground italic mb-3">{children}</blockquote>,
+                                    strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                                    em: ({ children }) => <em className="italic text-foreground">{children}</em>,
+                                    a: ({ children, href }) => <a href={href} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">{children}</a>
+                                  }}
+                                >
+                                  {section.content}
+                                </ReactMarkdown>
+                              </div>
+                            </div>
                           </div>
-                          
-                          {section.id.includes('editing') ? (
-                            // Edit mode - ANA-style textarea
-                            <div className="border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm">
-                              <textarea
-                                value={section.content}
-                                onChange={(e) => {
-                                  setResearchSections(prev => prev.map(s => 
-                                    s.id === section.id 
-                                      ? { ...s, content: e.target.value }
-                                      : s
-                                  ))
-                                }}
-                                className="w-full h-80 p-4 border-0 focus:outline-none focus:ring-0 text-sm font-mono resize-none"
-                                placeholder="Edit your research content here..."
-                                style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
-                              />
-                              <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-                                Supports Markdown formatting
-                              </div>
-                            </div>
-                          ) : (
-                            // View mode - ANA-style rendered markdown with better typography
-                            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                              <div className="prose prose-gray max-w-none p-6" style={{
-                                fontSize: '14px',
-                                lineHeight: '1.6',
-                                color: '#374151'
-                              }}>
-                                <div className="markdown-body">
-                                  <ReactMarkdown 
-                                    remarkPlugins={[remarkGfm]}
-                                    components={{
-                                      h1: ({ children }) => <h1 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b border-gray-200">{children}</h1>,
-                                      h2: ({ children }) => <h2 className="text-lg font-semibold text-gray-800 mb-3 mt-6">{children}</h2>,
-                                      h3: ({ children }) => <h3 className="text-base font-semibold text-gray-800 mb-2 mt-4">{children}</h3>,
-                                      p: ({ children }) => <p className="mb-3 text-gray-700 leading-relaxed">{children}</p>,
-                                      ul: ({ children }) => <ul className="mb-3 pl-4 space-y-1">{children}</ul>,
-                                      ol: ({ children }) => <ol className="mb-3 pl-4 space-y-1">{children}</ol>,
-                                      li: ({ children }) => <li className="text-gray-700 leading-relaxed">{children}</li>,
-                                      code: ({ children, className }) => {
-                                        const inline = !className
-                                        return inline ? (
-                                          <code className="px-1 py-0.5 bg-gray-100 text-gray-800 rounded text-sm font-mono">{children}</code>
-                                        ) : (
-                                          <code className="block p-3 bg-gray-900 text-gray-100 rounded-md text-sm font-mono overflow-x-auto">{children}</code>
-                                        )
-                                      },
-                                      blockquote: ({ children }) => <blockquote className="border-l-4 border-blue-200 pl-4 py-2 bg-blue-50 text-gray-700 italic mb-3">{children}</blockquote>,
-                                      strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
-                                      em: ({ children }) => <em className="italic text-gray-700">{children}</em>,
-                                      a: ({ children, href }) => <a href={href} className="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">{children}</a>
-                                    }}
-                                  >
-                                    {section.content}
-                                  </ReactMarkdown>
-                                </div>
-                              </div>
-                            </div>
-                          )}
                         </div>
 
                         {/* Research metadata */}
                         {section.searchQueries && section.searchQueries.length > 0 && (
-                          <div className="mt-4 pt-4 border-t border-gray-100">
-                            <div className="text-xs text-gray-500 space-y-1">
+                          <div className="mt-4 pt-4 border-t border-border">
+                            <div className="text-xs text-muted-foreground space-y-1">
                               <div><strong>Research Queries:</strong> {section.searchQueries.join(', ')}</div>
                               <div><strong>Generated:</strong> {new Date(section.timestamp || Date.now()).toLocaleString()}</div>
                               {section.sources && (
@@ -1069,17 +1104,17 @@ Return ONLY a JSON object with this structure:
                 </div>
               )}
 
-              {/* ANA-style Research Summary */}
+              {/* Research Summary */}
               {researchSections.length > 0 && (
-                <div className="mt-12 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
+                <div className="mt-12 bg-background border border-border rounded-lg shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-b border-border">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <div className="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
                         <span className="text-lg">📊</span>
                       </div>
                       <div>
-                        <h2 className="text-lg font-semibold text-green-900">Research Summary</h2>
-                        <p className="text-sm text-green-700 mt-1">
+                        <h2 className="text-lg font-semibold text-green-900 dark:text-green-100">Research Summary</h2>
+                        <p className="text-sm text-green-700 dark:text-green-300 mt-1">
                           Complete analysis of {projectName}
                         </p>
                       </div>
@@ -1087,7 +1122,7 @@ Return ONLY a JSON object with this structure:
                   </div>
                   
                   <div className="p-6">
-                    <div className="prose prose-sm max-w-none text-gray-700 mb-6">
+                    <div className="prose prose-sm max-w-none text-foreground mb-6">
                       <p className="text-base leading-relaxed">
                         This research analysis provides comprehensive insights into <strong>{projectName}</strong> based on available data. 
                         The findings are organized into <strong>{researchSections.length} key sections</strong> covering various aspects 
@@ -1095,34 +1130,34 @@ Return ONLY a JSON object with this structure:
                       </p>
                     </div>
                     
-                    <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-lg p-4 border border-gray-200">
+                    <div className="bg-gradient-to-r from-muted/50 to-slate-50 dark:from-muted/20 dark:to-slate-950/20 rounded-lg p-4 border border-border">
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                        <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm">
+                        <div className="flex flex-col items-center p-3 bg-background rounded-lg shadow-sm">
                           <div className="text-2xl font-bold text-blue-600">{researchSections.length}</div>
-                          <div className="text-gray-600 text-center">Total Sections</div>
+                          <div className="text-muted-foreground text-center">Total Sections</div>
                         </div>
-                        <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm">
+                        <div className="flex flex-col items-center p-3 bg-background rounded-lg shadow-sm">
                           <div className="text-2xl font-bold text-green-600">
                             {researchSections.filter(s => s.status === 'completed').length}
                           </div>
-                          <div className="text-gray-600 text-center">Completed</div>
+                          <div className="text-muted-foreground text-center">Completed</div>
                         </div>
-                        <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm">
+                        <div className="flex flex-col items-center p-3 bg-background rounded-lg shadow-sm">
                           <div className="text-2xl font-bold text-purple-600">
                             {Math.round((researchSections.filter(s => s.status === 'completed').length / researchSections.length) * 100)}%
                           </div>
-                          <div className="text-gray-600 text-center">Progress</div>
+                          <div className="text-muted-foreground text-center">Progress</div>
                         </div>
-                        <div className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm">
-                          <div className="text-lg font-bold text-gray-600">
+                        <div className="flex flex-col items-center p-3 bg-background rounded-lg shadow-sm">
+                          <div className="text-lg font-bold text-muted-foreground">
                             {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </div>
-                          <div className="text-gray-600 text-center">Generated</div>
+                          <div className="text-muted-foreground text-center">Generated</div>
                         </div>
                       </div>
                       
-                      <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
-                        <div>Session ID: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{currentChatId}</span></div>
+                      <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                        <div>Session ID: <span className="font-mono bg-muted px-2 py-1 rounded">{currentChatId}</span></div>
                         <div>Last updated: {new Date().toLocaleTimeString()}</div>
                       </div>
                     </div>
@@ -1135,9 +1170,9 @@ Return ONLY a JSON object with this structure:
       </div>
 
       {/* Right side - Chat */}
-      <div className="w-1/2 bg-white flex flex-col">
+      <div className="w-1/2 bg-background flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-600">
+        <div className="p-4 border-b border-border bg-gradient-to-r from-blue-500 to-purple-600">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <MessageSquare className="w-5 h-5 text-white mr-2" />
@@ -1174,7 +1209,7 @@ Return ONLY a JSON object with this structure:
               <div className={`max-w-[85%] rounded-lg px-4 py-2 ${
                 message.sender === 'user' 
                   ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-900'
+                  : 'bg-muted text-foreground'
               }`}>
                 <div className="text-sm">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -1192,7 +1227,7 @@ Return ONLY a JSON object with this structure:
           
           {streamingContent && (
             <div className="flex justify-start">
-              <div className="max-w-[85%] rounded-lg px-4 py-2 bg-gray-100 text-gray-900">
+              <div className="max-w-[85%] rounded-lg px-4 py-2 bg-muted text-foreground">
                 <div className="flex items-center">
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   <span className="text-sm">Researching...</span>
@@ -1200,12 +1235,11 @@ Return ONLY a JSON object with this structure:
               </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
 
-        {/* Move approval to chat history only */}
-
         {/* Input */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-border">
           <div className="flex gap-2">
             <input
               type="text"
@@ -1213,7 +1247,7 @@ Return ONLY a JSON object with this structure:
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask me anything about this project..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent bg-background"
               disabled={isTyping}
             />
             <Button

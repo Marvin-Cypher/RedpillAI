@@ -1,3 +1,5 @@
+"use client"
+
 /**
  * Price Chart Widget
  * Interactive price chart with technical indicators
@@ -16,6 +18,7 @@ import {
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -23,11 +26,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, RefreshCw } from 'lucide-react';
 import { WidgetProps, PriceData } from '@/lib/widgets/types';
-import { format, parseISO } from 'date-fns';
 import { BaseWidget } from './BaseWidget';
-import { fetchWidgetData } from '@/lib/widgets/data';
+import { format, parseISO } from 'date-fns';
 
 interface PriceChartData {
   data: PriceData[];
@@ -46,25 +48,28 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
   onRefresh
 }) => {
   // Self-sufficient data fetching state (for WidgetGrid system)
-  const [selfData, setSelfData] = useState<any>(null);
+  const [selfData, setSelfData] = useState<PriceChartData | null>(null);
   const [selfLoading, setSelfLoading] = useState(false);
   const [selfError, setSelfError] = useState<string | null>(null);
 
   // Self-sufficient data fetching (when no data is provided)
   useEffect(() => {
     if (!data && !loading && companyId) {
-      console.log('🔄 PriceChartWidget: No data provided, fetching self-sufficiently');
+      console.log('📈 PriceChartWidget: No data provided, fetching self-sufficiently');
       setSelfLoading(true);
       setSelfError(null);
       
-      fetchWidgetData(widget, companyId)
+      // Import fetchWidgetData dynamically to avoid circular imports
+      import('@/lib/widgets/data').then(({ fetchWidgetData }) => {
+        return fetchWidgetData(widget, companyId);
+      })
         .then((fetchedData) => {
           console.log('✅ PriceChartWidget: Self-fetched data:', fetchedData);
           setSelfData(fetchedData);
         })
         .catch((fetchError) => {
           console.error('❌ PriceChartWidget: Self-fetch failed:', fetchError);
-          setSelfError(fetchError.message || 'Failed to fetch price data');
+          setSelfError(fetchError.message || 'Failed to fetch price chart data');
         })
         .finally(() => {
           setSelfLoading(false);
@@ -76,8 +81,7 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
   const actualData = data || selfData;
   const actualLoading = loading || selfLoading;
   const actualError = error || selfError;
-
-  // Create mock data for testing if no real data available
+  // Mock data for demonstration when no real data available
   const mockData = !actualData ? {
     data: Array.from({ length: 30 }, (_, i) => {
       const date = new Date();
@@ -205,27 +209,27 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white p-3 border rounded-lg shadow-lg">
-          <p className="font-medium text-sm">{format(parseISO(data.date), 'MMM dd, yyyy')}</p>
+        <div className="bg-background p-3 border border-border rounded-lg shadow-lg">
+          <p className="font-medium text-sm text-foreground">{format(parseISO(data.date), 'MMM dd, yyyy')}</p>
           <div className="space-y-1 mt-2">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Close:</span>
-              <span className="text-sm font-medium">${data.close.toFixed(2)}</span>
+              <span className="text-xs text-muted-foreground">Close:</span>
+              <span className="text-sm font-medium text-foreground">${data.close.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-600">Volume:</span>
-              <span className="text-sm">{(data.volume / 1000000).toFixed(1)}M</span>
+              <span className="text-xs text-muted-foreground">Volume:</span>
+              <span className="text-sm text-foreground">{(data.volume / 1000000).toFixed(1)}M</span>
             </div>
             {data.sma20 && (
               <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-600">SMA(20):</span>
-                <span className="text-sm">${data.sma20.toFixed(2)}</span>
+                <span className="text-xs text-muted-foreground">SMA(20):</span>
+                <span className="text-sm text-foreground">${data.sma20.toFixed(2)}</span>
               </div>
             )}
             {data.ema20 && (
               <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-600">EMA(20):</span>
-                <span className="text-sm">${data.ema20.toFixed(2)}</span>
+                <span className="text-xs text-muted-foreground">EMA(20):</span>
+                <span className="text-sm text-foreground">${data.ema20.toFixed(2)}</span>
               </div>
             )}
           </div>
@@ -236,24 +240,24 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
   };
 
   const renderContent = () => {
-    if (actualLoading) {
+    if (loading) {
       return (
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
-            <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
-            <p className="text-sm text-gray-600">Loading price data...</p>
+            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+            <p className="text-sm text-muted-foreground">Loading price data...</p>
           </div>
         </div>
       );
     }
 
-    if (actualError) {
+    if (error) {
       return (
         <div className="flex items-center justify-center h-full text-center">
-          <div className="text-red-600">
+          <div className="text-destructive">
             <TrendingDown className="w-8 h-8 mx-auto mb-2" />
             <p className="text-sm font-medium">Failed to load price data</p>
-            <p className="text-xs text-gray-600 mt-1">{actualError}</p>
+            <p className="text-xs text-muted-foreground mt-1">{error}</p>
           </div>
         </div>
       );
@@ -262,7 +266,7 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
     if (!chartData.length) {
       return (
         <div className="flex items-center justify-center h-full text-center">
-          <div className="text-gray-500">
+          <div className="text-muted-foreground">
             <DollarSign className="w-8 h-8 mx-auto mb-2" />
             <p className="text-sm">No price data available</p>
           </div>
@@ -277,7 +281,7 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
           <div className="flex items-center space-x-3">
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-lg font-bold">
+                <span className="text-lg font-bold text-foreground">
                   ${currentPrice?.close.toFixed(2) || '---'}
                 </span>
                 {priceChange !== 0 && (
@@ -296,8 +300,8 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
                   </div>
                 )}
               </div>
-              <div className="text-xs text-gray-600">
-                {widget.dataSource.ticker} • {selectedTimeframe}
+              <div className="text-xs text-muted-foreground">
+                {widget.dataSource?.ticker || 'TICKER'} • {selectedTimeframe}
               </div>
             </div>
           </div>
@@ -341,14 +345,14 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
         <div className="flex-1 min-h-0">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis 
                 dataKey="formattedDate" 
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                 interval="preserveStartEnd"
               />
               <YAxis 
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                 domain={['dataMin - 5', 'dataMax + 5']}
                 tickFormatter={(value) => `$${value.toFixed(0)}`}
               />
@@ -358,7 +362,7 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
               <Line
                 type="monotone"
                 dataKey="close"
-                stroke="#3B82F6"
+                stroke="hsl(var(--primary))"
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 4 }}
@@ -394,19 +398,19 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
         {selectedIndicators.length > 0 && (
           <div className="flex items-center justify-center space-x-4 mt-2 text-xs">
             <div className="flex items-center space-x-1">
-              <div className="w-3 h-0.5 bg-blue-500"></div>
-              <span>Price</span>
+              <div className="w-3 h-0.5 bg-primary"></div>
+              <span className="text-muted-foreground">Price</span>
             </div>
             {selectedIndicators.includes('SMA') && (
               <div className="flex items-center space-x-1">
                 <div className="w-3 h-0.5 bg-amber-500 border-dashed border-t"></div>
-                <span>SMA(20)</span>
+                <span className="text-muted-foreground">SMA(20)</span>
               </div>
             )}
             {selectedIndicators.includes('EMA') && (
               <div className="flex items-center space-x-1">
                 <div className="w-3 h-0.5 bg-green-500 border-dashed border-t"></div>
-                <span>EMA(20)</span>
+                <span className="text-muted-foreground">EMA(20)</span>
               </div>
             )}
           </div>
@@ -424,7 +428,15 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
       companyId={companyId}
       onRefresh={onRefresh}
     >
-      {renderContent()}
+      <div className="space-y-4">
+        {/* Ticker badge if available */}
+        {widget.dataSource?.ticker && (
+          <Badge variant="outline" className="text-xs">
+            {widget.dataSource.ticker.toUpperCase()}
+          </Badge>
+        )}
+        {renderContent()}
+      </div>
     </BaseWidget>
   );
 };

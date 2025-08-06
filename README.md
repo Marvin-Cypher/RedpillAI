@@ -48,11 +48,12 @@ Redpill VC is a secure, investor-focused AI platform engineered to elevate decis
 ## 🛠 Tech Stack
 
 ### Frontend
-- **Next.js 14** - React framework with App Router
-- **TypeScript** - Type-safe development
+- **Next.js 15.1.7** - Modern React framework with App Router
+- **TypeScript** - Type-safe development  
 - **Tailwind CSS** - Utility-first styling
-- **Shadcn/UI** - Modern component library
+- **Shadcn/UI** - Enhanced modern component library
 - **Lucide Icons** - Beautiful icon set
+- **React Markdown** - Full-screen memo rendering with remark-gfm
 
 ### Backend (Service-First Architecture)
 - **FastAPI** - Modern Python web framework with async-safe service layer

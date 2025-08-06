@@ -1,9 +1,12 @@
+"use client"
+
 /**
  * Key Metrics Widget
  * Shows key performance metrics for the portfolio company using real data API
  */
 
 import React, { useState, useEffect } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -16,10 +19,6 @@ import {
 } from 'lucide-react';
 import { WidgetProps } from '@/lib/widgets/types';
 import { BaseWidget } from './BaseWidget';
-import { fetchWidgetData } from '@/lib/widgets/data';
-// Removed useCachedCompanyData import - widget should use data passed via props
-
-// Removed unused MetricsData interface - now using dynamic data
 
 interface KeyMetricsWidgetProps extends WidgetProps {
   companyName?: string;
@@ -28,8 +27,8 @@ interface KeyMetricsWidgetProps extends WidgetProps {
 const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
   widget,
   data,
-  loading: externalLoading,
-  error: externalError,
+  loading,
+  error,
   isEditing,
   onUpdate,
   onRemove,
@@ -44,35 +43,33 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
 
   // Self-sufficient data fetching (when no data is provided)
   useEffect(() => {
-    if (!data && !externalLoading && companyId) {
-      console.log('🔄 KeyMetricsWidget: No data provided, fetching self-sufficiently');
+    if (!data && !loading && companyId) {
+      console.log('🔍 KeyMetricsWidget: No data provided, fetching self-sufficiently');
       setSelfLoading(true);
       setSelfError(null);
       
-      fetchWidgetData(widget, companyId)
+      // Import fetchWidgetData dynamically to avoid circular imports
+      import('@/lib/widgets/data').then(({ fetchWidgetData }) => {
+        return fetchWidgetData(widget, companyId);
+      })
         .then((fetchedData) => {
           console.log('✅ KeyMetricsWidget: Self-fetched data:', fetchedData);
           setSelfData(fetchedData);
         })
         .catch((fetchError) => {
           console.error('❌ KeyMetricsWidget: Self-fetch failed:', fetchError);
-          setSelfError(fetchError.message || 'Failed to fetch key metrics');
+          setSelfError(fetchError.message || 'Failed to fetch key metrics data');
         })
         .finally(() => {
           setSelfLoading(false);
         });
     }
-  }, [data, externalLoading, widget, companyId]);
+  }, [data, loading, widget, companyId]);
 
   // Determine which data/loading/error to use
   const actualData = data || selfData;
-  const actualLoading = externalLoading || selfLoading;
-  const actualError = externalError || selfError;
-
-  // Use actualData which handles both external and self-fetched data
-  const loading = actualLoading;
-  const realData = actualData;
-  const error = actualError;
+  const actualLoading = loading || selfLoading;
+  const actualError = error || selfError;
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { 
       style: 'currency', 
@@ -86,11 +83,10 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
     return `${value.toFixed(1)}%`;
   };
 
-
-  // Determine company type from data
-  const companyType = realData?.company_category || realData?.company_type || 'private';
+  // Determine company type from actual data
+  const companyType = actualData?.company_category || actualData?.company_type || 'private';
   
-  // Create appropriate mock data based on company type
+  // Create appropriate mock data based on company type (fallback only)
   const getMockData = () => {
     if (companyType === 'crypto') {
       return {
@@ -128,8 +124,8 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
     }
   };
 
-  const mockData = !realData ? getMockData() : null;
-  const finalData = realData || mockData;
+  const mockData = !actualData ? getMockData() : null;
+  const finalData = actualData || mockData;
 
   // Dynamic metric rendering based on company type
   const renderMetricCard = (label: string, value: any, icon: any, color: string, format: string) => {
@@ -156,12 +152,12 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
     }
     
     return (
-      <div className="bg-gray-50 rounded-lg p-3">
+      <div className="bg-muted rounded-lg p-3 hover:bg-accent transition-colors">
         <div className="flex items-center space-x-2 mb-1">
           <IconComponent className={`w-4 h-4 ${color}`} />
-          <span className="text-xs font-medium text-gray-600">{label}</span>
+          <span className="text-xs font-medium text-muted-foreground">{label}</span>
         </div>
-        <div className="text-lg font-bold text-gray-900">{formattedValue}</div>
+        <div className="text-lg font-bold text-foreground">{formattedValue}</div>
       </div>
     );
   };
@@ -204,8 +200,8 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
       return (
         <div className="flex items-center justify-center h-32">
           <div className="text-center">
-            <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2" />
-            <p className="text-sm text-gray-600">Loading metrics...</p>
+            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Loading metrics...</p>
           </div>
         </div>
       );
@@ -214,9 +210,9 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
     if (error) {
       return (
         <div className="flex flex-col items-center justify-center h-32 space-y-2">
-          <AlertTriangle className="w-8 h-8 text-red-500" />
-          <p className="text-red-600 text-sm">Failed to load metrics</p>
-          <p className="text-gray-500 text-xs">{error || 'Unknown error'}</p>
+          <AlertTriangle className="w-8 h-8 text-destructive" />
+          <p className="text-destructive text-sm">Failed to load metrics</p>
+          <p className="text-muted-foreground text-xs">{error || 'Unknown error'}</p>
         </div>
       );
     }
@@ -224,7 +220,7 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
     if (!finalData) {
       return (
         <div className="flex items-center justify-center h-32">
-          <p className="text-gray-500 text-sm">No metrics data available</p>
+          <p className="text-muted-foreground text-sm">No metrics data available</p>
         </div>
       );
     }
@@ -232,8 +228,10 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
     // Render different metrics based on company type
     return (
       <div className="h-full">
-        <div className="mb-2">
-          <div className="text-xs text-gray-500 capitalize">{companyType} Company Metrics</div>
+        <div className="mb-4">
+          <Badge variant="outline" className="text-xs capitalize">
+            {companyType} Company Metrics
+          </Badge>
         </div>
         {companyType === 'crypto' && renderCryptoMetrics()}
         {companyType === 'public' && renderPublicMetrics()}
@@ -251,7 +249,15 @@ const KeyMetricsWidget: React.FC<KeyMetricsWidgetProps> = ({
       companyId={companyId}
       onRefresh={onRefresh}
     >
-      {renderContent()}
+      <div className="space-y-4">
+        {/* Company name badge if provided */}
+        {companyName && (
+          <Badge variant="outline" className="text-xs">
+            {companyName}
+          </Badge>
+        )}
+        {renderContent()}
+      </div>
     </BaseWidget>
   );
 };

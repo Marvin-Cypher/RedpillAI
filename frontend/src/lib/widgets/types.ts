@@ -12,6 +12,7 @@ export enum WidgetType {
   PORTFOLIO_ALLOCATION = 'portfolio_allocation',
   INVESTMENT_SUMMARY = 'investment_summary',
   TOKEN_PRICE = 'token_price',
+  KEY_METRICS = 'key_metrics',
   STARTUP_METRICS = 'startup_metrics',
   OPERATIONAL_METRICS = 'operational_metrics',
   RUNWAY_BURN_RATE = 'runway_burn_rate',

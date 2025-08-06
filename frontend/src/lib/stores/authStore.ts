@@ -93,25 +93,29 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null })
 
         try {
-          // Simple approach: if we have a session from login, consider authenticated
-          // This works because login sets the HTTP-only cookies
-          const currentState = get()
-          
-          // If we already have a user from successful login, keep that state
-          if (currentState.user && currentState.isAuthenticated) {
-            set({ isLoading: false })
-            return
-          }
-
-          // For now, assume user needs to login (simplified approach)
-          // This prevents infinite auth check loops
-          set({ 
-            user: null, 
-            isAuthenticated: false, 
-            isLoading: false,
-            error: null
+          // Use proxy route to check authentication via HTTP-only cookie
+          const response = await fetch('/api/auth/me', {
+            credentials: 'include',
           })
+          
+          if (response.ok) {
+            const userData = await response.json()
+            set({ 
+              user: userData, 
+              isAuthenticated: true, 
+              isLoading: false 
+            })
+          } else {
+            // Not authenticated or token expired
+            set({ 
+              user: null, 
+              isAuthenticated: false, 
+              isLoading: false,
+              error: null
+            })
+          }
         } catch (error) {
+          // Network error or server down
           set({ 
             user: null, 
             isAuthenticated: false, 

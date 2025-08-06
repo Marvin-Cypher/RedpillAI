@@ -163,6 +163,11 @@ class WidgetRegistry {
       [WidgetType.INVESTMENT_SUMMARY]: {
         show_details: true,
         currency_format: 'USD'
+      },
+      [WidgetType.KEY_METRICS]: {
+        companyName: 'Unknown Company',
+        show_trends: true,
+        metric_period: 'monthly'
       }
     };
 
@@ -189,7 +194,8 @@ class WidgetRegistry {
       [WidgetType.CAP_TABLE_EVOLUTION]: 86400, // 24 hours
       [WidgetType.ESG_IMPACT_METRICS]: 86400, // 24 hours
       [WidgetType.TOKEN_PRICE]: 60, // 1 minute
-      [WidgetType.INVESTMENT_SUMMARY]: 3600 // 1 hour
+      [WidgetType.INVESTMENT_SUMMARY]: 3600, // 1 hour
+      [WidgetType.KEY_METRICS]: 1800 // 30 minutes
     };
 
     return refreshIntervals[type] || 300;

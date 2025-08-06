@@ -1,34 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || 'redpill_token'
-
 export async function POST(request: NextRequest) {
   try {
-    const response = NextResponse.json({ success: true })
-
     // Clear the HTTP-only cookie
-    response.cookies.set({
-      name: AUTH_COOKIE_NAME,
-      value: '',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: -1, // Expire immediately
-      path: '/',
-    })
+    const cookieStore = await cookies()
+    const token = cookieStore.get('access_token')?.value
+    cookieStore.delete('access_token')
 
-    return response
+    // Optionally proxy logout to backend to invalidate session
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000'
+    try {
+      await fetch(`${backendUrl}/api/v1/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token || ''}`,
+        },
+      })
+    } catch (error) {
+      // Log but don't fail if backend logout fails
+      console.warn('Backend logout failed:', error)
+    }
+
+    return NextResponse.json({ message: 'Logged out successfully' })
+
   } catch (error) {
-    console.error('Logout proxy error:', error)
+    console.error('Logout API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     )
   }
-}
-
-export async function GET(request: NextRequest) {
-  // Allow GET requests for convenience
-  return POST(request)
 }

@@ -1,10 +1,9 @@
-'use client'
+"use client"
 
 import { Button } from '@/components/ui/button'
 import { Brain, MessageSquare, Search, FileText, Zap, History } from 'lucide-react'
 import { useAI } from './UnifiedAISystem'
 import { useState } from 'react'
-import { ChatHistory } from './ChatHistory'
 
 interface AIButtonProps {
   variant?: 'default' | 'purple' | 'gradient' | 'outline'
@@ -37,7 +36,7 @@ export function AIButton({
       case 'purple':
         return 'bg-purple-600 hover:bg-purple-700 text-white'
       case 'outline':
-        return 'border-purple-300 hover:bg-purple-50 hover:border-purple-400 text-purple-700'
+        return 'border-purple-300 hover:bg-purple-50 hover:border-purple-400 text-purple-700 dark:border-purple-700 dark:hover:bg-purple-950/20 dark:hover:border-purple-600 dark:text-purple-400'
       default:
         return ''
     }
@@ -108,7 +107,7 @@ export function ChatWithAIButton({
       onClick={handleClick}
       variant="outline"
       size="sm"
-      className={`hover:bg-purple-50 hover:border-purple-300 ${className}`}
+      className={`hover:bg-purple-50 hover:border-purple-300 dark:hover:bg-purple-950/20 dark:hover:border-purple-700 ${className}`}
     >
       <MessageSquare className="w-4 h-4 mr-2" />
       Chat with AI
@@ -177,7 +176,7 @@ export function AIMemoButton({
       onClick={handleClick}
       variant="outline"
       size={size === 'lg' ? 'default' : 'sm'}
-      className={`hover:bg-gray-50 border-gray-300 ${className}`}
+      className={`hover:bg-muted border-border ${className}`}
     >
       <FileText className="w-4 h-4 mr-1" />
       Open with AI
@@ -217,7 +216,7 @@ export function QuickAIButton({
       onClick={handleClick}
       variant="outline"
       size={size === 'lg' ? 'default' : 'sm'}
-      className={`hover:bg-yellow-50 hover:border-yellow-300 text-yellow-700 border-yellow-200 ${className}`}
+      className={`hover:bg-yellow-50 hover:border-yellow-300 text-yellow-700 border-yellow-200 dark:hover:bg-yellow-950/20 dark:hover:border-yellow-700 dark:text-yellow-400 dark:border-yellow-800 ${className}`}
     >
       <Zap className="w-4 h-4 mr-1" />
       Quick AI
@@ -241,19 +240,24 @@ export function ChatHistoryButton({
         onClick={() => setIsHistoryOpen(true)}
         variant="outline"
         size={size === 'lg' ? 'default' : 'sm'}
-        className={`hover:bg-blue-50 hover:border-blue-300 text-blue-700 border-blue-200 ${className}`}
+        className={`hover:bg-blue-50 hover:border-blue-300 text-blue-700 border-blue-200 dark:hover:bg-blue-950/20 dark:hover:border-blue-700 dark:text-blue-400 dark:border-blue-800 ${className}`}
       >
         <History className="w-4 h-4 mr-1" />
         Chat History
       </Button>
       
-      <ChatHistory
-        projectId={projectId}
-        projectType={projectType}
-        projectName={projectName}
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
-      />
+      {/* TODO: Create ChatHistory component */}
+      {isHistoryOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+          <div className="bg-background p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Chat History</h3>
+            <p className="text-muted-foreground mb-4">Chat history feature coming soon...</p>
+            <Button onClick={() => setIsHistoryOpen(false)} variant="outline">
+              Close
+            </Button>
+          </div>
+        </div>
+      )}
     </>
   )
 }

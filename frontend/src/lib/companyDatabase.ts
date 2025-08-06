@@ -53,6 +53,8 @@ export interface Company {
 }
 
 const COMPANIES_STORAGE_KEY = 'redpill-companies'
+const COMPANIES_VERSION_KEY = 'redpill-companies-version'
+const CURRENT_VERSION = '2.0'
 
 // Helper functions for deal status assignment
 const getDealStatusForCompany = (companyName: string): string | null => {
@@ -76,342 +78,236 @@ const getDealStatusForCompany = (companyName: string): string | null => {
   }
 }
 
-const getRandomDealStatus = (companyName: string): 'sourcing' | 'screening' | 'due_diligence' | 'term_sheet' | 'invested' | 'passed' => {
-  // Assign realistic deal statuses based on company characteristics
-  const name = companyName.toLowerCase()
-  
-  // High-profile companies more likely to be in later stages
-  if (name.includes('amazon') || name.includes('nvidia') || name.includes('microsoft')) {
-    return 'invested'
-  }
-  
-  // Well-known crypto projects likely in due diligence or invested
-  if (name.includes('chainlink') || name.includes('polygon') || name.includes('solana')) {
-    return Math.random() > 0.5 ? 'due_diligence' : 'term_sheet'
-  }
-  
-  // Smaller/newer companies in earlier stages
-  if (name.includes('phala') || name.includes('aave') || name.includes('uniswap')) {
-    const statuses: Array<'sourcing' | 'screening' | 'due_diligence'> = ['sourcing', 'screening', 'due_diligence']
-    return statuses[Math.floor(Math.random() * statuses.length)]
-  }
-  
-  // Default distribution for unknown companies
-  const allStatuses: Array<'sourcing' | 'screening' | 'due_diligence' | 'term_sheet' | 'invested' | 'passed'> = 
-    ['sourcing', 'screening', 'due_diligence', 'term_sheet', 'invested', 'passed']
-  return allStatuses[Math.floor(Math.random() * allStatuses.length)]
-}
-
-const getPriorityForCompany = (companyName: string): 'high' | 'medium' | 'low' => {
-  const name = companyName.toLowerCase()
-  
-  // High priority for major companies and hot crypto projects
-  if (name.includes('nvidia') || name.includes('chainlink') || name.includes('polygon')) {
-    return 'high'
-  }
-  
-  // Medium priority for established projects
-  if (name.includes('amazon') || name.includes('phala') || name.includes('solana')) {
-    return 'medium'
-  }
-  
-  // Default to medium priority
-  return 'medium'
-}
-
 // Default companies data
 const DEFAULT_COMPANIES: Company[] = [
   {
-    id: 'amazon',
-    name: 'Amazon',
-    domain: 'amazon.com',
-    website: 'https://amazon.com',
-    ticker: 'AMZN',
+    id: '9b1e0492-0117-449b-93df-f8578b0c8e95',
+    name: 'NVIDIA',
+    domain: 'nvidia.com',
+    website: 'https://nvidia.com',
+    ticker: 'NVDA',
     company_type: 'public',
-    sector: 'E-commerce/Cloud',
+    sector: 'AI/Computing',
     stage: 'Public',
-    founded_year: 1994,
+    founded_year: 1993,
     headquarters: {
-      city: 'Seattle',
+      city: 'Santa Clara',
       country: 'USA'
     },
-    description: 'Amazon is a multinational technology company focusing on e-commerce, cloud computing, digital streaming, and artificial intelligence.',
-    employee_count: 1500000,
+    description: 'NVIDIA is a multinational technology company known for graphics processing units (GPUs) and AI computing platforms.',
+    employee_count: 26196,
     funding_total: 0,
     investment: {
       round_type: 'Public',
-      investment_amount: 0,
-      valuation: 1800000000000, // $1.8T market cap
-      ownership_percentage: 0,
-      investment_date: '1997-05-15',
-      lead_partner: 'Public Market'
+      investment_amount: 50000000,
+      valuation: 2000000000000, // $2T market cap
+      ownership_percentage: 0.0025,
+      investment_date: '2023-01-15',
+      lead_partner: 'RedPill VC'
     },
     metrics: {
-      revenue_current: 574780000000, // $574.78B annual revenue
-      revenue_growth: 9.4,
+      revenue_current: 60900000000, // $60.9B revenue
+      revenue_growth: 126,
       burn_rate: 0,
       runway_months: 999,
-      employees: 1500000,
-      customers: 300000000,
-      arr: 574780000000,
-      gross_margin: 47.1
+      employees: 26196,
+      customers: 40000,
+      arr: 60900000000,
+      gross_margin: 0.73
     },
     deal_status: 'invested',
     priority: 'high',
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2025-01-25T00:00:00Z'
+    created_at: '2023-01-15T00:00:00Z',
+    updated_at: '2024-12-01T00:00:00Z'
   },
   {
-    id: 'quantum-ai',
-    name: 'Quantum AI Solutions',
-    domain: 'quantumai.com',
-    website: 'https://quantumai.com',
-    sector: 'AI/ML',
-    stage: 'Series A',
-    founded_year: 2022,
+    id: 'c06fc5fc-e0b7-4ddf-a5f4-e5db44d6b0ef',
+    name: 'Chainlink',
+    domain: 'chain.link',
+    website: 'https://chain.link',
+    ticker: 'LINK',
+    company_type: 'crypto',
+    sector: 'Blockchain Infrastructure',
+    stage: 'Growth',
+    founded_year: 2017,
     headquarters: {
       city: 'San Francisco',
       country: 'USA'
     },
-    description: 'Quantum AI Solutions is building the next generation of quantum-enhanced machine learning algorithms for enterprise applications.',
-    employee_count: 18,
-    funding_total: 2000000,
+    description: 'Chainlink is a decentralized oracle network that enables smart contracts to securely access off-chain data feeds.',
+    employee_count: 150,
+    funding_total: 32000000,
     investment: {
       round_type: 'Series A',
-      investment_amount: 2000000,
-      valuation: 20000000,
-      ownership_percentage: 10.0,
-      investment_date: '2024-03-15',
-      lead_partner: 'Sarah Chen'
+      investment_amount: 15000000,
+      valuation: 2000000000,
+      ownership_percentage: 0.75,
+      investment_date: '2021-09-15',
+      lead_partner: 'RedPill VC'
     },
     metrics: {
-      revenue_current: 180000,
-      revenue_growth: 23.5,
-      burn_rate: 180000,
-      runway_months: 14,
-      employees: 18,
-      customers: 12,
-      arr: 2160000,
-      gross_margin: 82.5
+      revenue_current: 45000000,
+      revenue_growth: 89,
+      burn_rate: 3500000,
+      runway_months: 24,
+      employees: 150,
+      customers: 1500,
+      arr: 45000000,
+      gross_margin: 0.85
     },
-    deal_status: 'due_diligence',
+    deal_status: 'invested',
     priority: 'high',
-    created_at: '2024-01-15T00:00:00Z',
-    updated_at: '2025-01-25T00:00:00Z'
+    created_at: '2021-09-15T00:00:00Z',
+    updated_at: '2024-12-01T00:00:00Z'
   },
   {
-    id: 'greentech-solutions',
-    name: 'GreenTech Solutions',
-    domain: 'greentech-solutions.com',
-    website: 'https://greentech-solutions.com',
-    company_type: 'public',
-    sector: 'CleanTech',
-    stage: 'Seed',
-    founded_year: 2023,
-    headquarters: {
-      city: 'Berlin',
-      country: 'Germany'
-    },
-    description: 'GreenTech Solutions develops innovative solar panel technology for residential and commercial applications.',
-    employee_count: 8,
-    funding_total: 500000,
-    investment: {
-      round_type: 'Seed',
-      investment_amount: 500000,
-      valuation: 5000000,
-      ownership_percentage: 10.0,
-      investment_date: '2024-06-15',
-      lead_partner: 'Mike Johnson'
-    },
-    metrics: {
-      revenue_current: 45000,
-      revenue_growth: 15.2,
-      burn_rate: 85000,
-      runway_months: 18,
-      employees: 8,
-      customers: 25,
-      arr: 540000,
-      gross_margin: 65.0
-    },
-    deal_status: 'screening',
-    priority: 'medium',
-    created_at: '2024-05-01T00:00:00Z',
-    updated_at: '2025-01-20T00:00:00Z'
-  },
-  {
-    id: 'fintech-pro',
-    name: 'FinTech Pro',
-    domain: 'fintechpro.com',
-    website: 'https://fintechpro.com',
-    sector: 'FinTech',
-    stage: 'Series B',
+    id: '7b21930e-100f-4cbe-8561-d774e8f65453',
+    name: 'Anthropic',
+    domain: 'anthropic.com',
+    website: 'https://anthropic.com',
+    company_type: 'private',
+    sector: 'AI/ML',
+    stage: 'Growth',
     founded_year: 2021,
     headquarters: {
-      city: 'New York',
+      city: 'San Francisco',
       country: 'USA'
     },
-    description: 'FinTech Pro provides B2B payment solutions for enterprise clients with advanced fraud detection and compliance features.',
-    employee_count: 45,
-    funding_total: 10000000,
+    description: 'Anthropic is an AI safety company focused on building safe, beneficial AI systems.',
+    employee_count: 500,
+    funding_total: 7300000000,
     investment: {
-      round_type: 'Series B',
-      investment_amount: 10000000,
-      valuation: 80000000,
-      ownership_percentage: 12.5,
-      investment_date: '2024-09-20',
-      lead_partner: 'Sarah Chen'
+      round_type: 'Series C',
+      investment_amount: 25000000,
+      valuation: 18400000000,
+      ownership_percentage: 0.136,
+      investment_date: '2024-03-15',
+      lead_partner: 'RedPill VC'
     },
     metrics: {
-      revenue_current: 450000,
-      revenue_growth: 35.8,
-      burn_rate: 320000,
-      runway_months: 22,
-      employees: 45,
-      customers: 120,
-      arr: 5400000,
-      gross_margin: 88.5
+      revenue_current: 157000000,
+      revenue_growth: 245,
+      burn_rate: 45000000,
+      runway_months: 18,
+      employees: 500,
+      customers: 15000,
+      arr: 157000000,
+      gross_margin: 0.82
     },
     deal_status: 'term_sheet',
     priority: 'high',
-    created_at: '2024-08-01T00:00:00Z',
-    updated_at: '2025-01-22T00:00:00Z'
+    created_at: '2024-03-15T00:00:00Z',
+    updated_at: '2024-12-01T00:00:00Z'
   },
   {
-    id: 'healthtech-analytics',
-    name: 'HealthTech Analytics',
-    domain: 'healthtech-analytics.com',
-    website: 'https://healthtech-analytics.com',
-    sector: 'HealthTech',
-    stage: 'Series A',
-    founded_year: 2022,
+    id: 'bd97cbbf-655d-467b-b012-464ed6478ec5',
+    name: 'OpenAI',
+    domain: 'openai.com',
+    website: 'https://openai.com',
+    company_type: 'private',
+    sector: 'AI/ML',
+    stage: 'Growth',
+    founded_year: 2015,
     headquarters: {
-      city: 'Boston',
+      city: 'San Francisco',
       country: 'USA'
     },
-    description: 'HealthTech Analytics provides data analytics platform for healthcare providers to improve patient outcomes and operational efficiency.',
-    employee_count: 15,
-    funding_total: 3000000,
+    description: 'OpenAI is an AI research and deployment company focused on ensuring artificial general intelligence benefits humanity.',
+    employee_count: 1000,
+    funding_total: 11300000000,
     investment: {
-      round_type: 'Series A',
-      investment_amount: 3000000,
-      valuation: 25000000,
-      ownership_percentage: 12.0,
-      investment_date: '2024-11-10',
-      lead_partner: 'Alex Rodriguez'
+      round_type: 'Series C',
+      investment_amount: 0,
+      valuation: 157000000000,
+      ownership_percentage: 0,
+      investment_date: '2024-01-15',
+      lead_partner: 'N/A'
     },
     metrics: {
-      revenue_current: 95000,
-      revenue_growth: 18.3,
-      burn_rate: 150000,
-      runway_months: 16,
-      employees: 15,
-      customers: 8,
-      arr: 1140000,
-      gross_margin: 72.0
+      revenue_current: 3400000000,
+      revenue_growth: 1700,
+      burn_rate: 150000000,
+      runway_months: 36,
+      employees: 1000,
+      customers: 100000000,
+      arr: 3400000000,
+      gross_margin: 0.75
     },
-    deal_status: 'sourcing',
+    deal_status: 'passed',
+    priority: 'medium',
+    created_at: '2024-01-15T00:00:00Z',
+    updated_at: '2024-12-01T00:00:00Z'
+  },
+  {
+    id: '31fa433e-03e8-42e2-a4b3-335017e19f13',
+    name: 'Google',
+    domain: 'google.com',
+    website: 'https://google.com',
+    ticker: 'GOOGL',
+    company_type: 'public',
+    sector: 'Technology',
+    stage: 'Public',
+    founded_year: 1998,
+    headquarters: {
+      city: 'Mountain View',
+      country: 'USA'
+    },
+    description: 'Google is a multinational technology company specializing in Internet-related services and products.',
+    employee_count: 180895,
+    funding_total: 0,
+    investment: {
+      round_type: 'Public',
+      investment_amount: 0,
+      valuation: 2000000000000, // $2T market cap
+      ownership_percentage: 0,
+      investment_date: '2020-01-15',
+      lead_partner: 'N/A'
+    },
+    metrics: {
+      revenue_current: 307400000000, // $307.4B revenue
+      revenue_growth: 13.8,
+      burn_rate: 0,
+      runway_months: 999,
+      employees: 180895,
+      customers: 4000000000,
+      arr: 307400000000,
+      gross_margin: 0.56
+    },
+    deal_status: 'passed',
     priority: 'low',
-    created_at: '2024-10-01T00:00:00Z',
-    updated_at: '2025-01-18T00:00:00Z'
+    created_at: '2020-01-15T00:00:00Z',
+    updated_at: '2024-12-01T00:00:00Z'
   }
 ]
 
-// Debug function to clear localStorage
-export const clearCompanyCache = () => {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(COMPANIES_STORAGE_KEY)
-    console.log('🗑️ Cleared company localStorage cache')
-  }
-}
-
-// Get all companies from backend API with localStorage fallback
+// Storage functions
 export const getAllCompanies = async (): Promise<Company[]> => {
   if (typeof window === 'undefined') return DEFAULT_COMPANIES
-  
-  // TEMPORARY: Check localStorage first to recover original companies
+
   try {
+    const storedVersion = localStorage.getItem(COMPANIES_VERSION_KEY)
     const stored = localStorage.getItem(COMPANIES_STORAGE_KEY)
-    if (stored) {
-      const localCompanies = JSON.parse(stored)
-      console.log('🔍 Found companies in localStorage:', localCompanies.length, localCompanies.map((c: Company) => c.name))
-      return localCompanies
-    }
-  } catch (error) {
-    console.error('Error loading from localStorage:', error)
-  }
-  
-  try {
-    // Try to fetch from backend API first
-    const response = await fetch('http://localhost:8000/api/v1/companies/', {
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
     
-    console.log('🔍 Backend response status:', response.status, response.statusText)
-    
-    if (response.ok) {
-      const backendCompanies = await response.json()
-      console.log('✅ Fetched companies from backend:', backendCompanies.length)
-      
-      // Transform backend format to frontend format if needed
-      const transformedCompanies = backendCompanies.map((company: any) => ({
-        id: company.id,
-        name: company.name,
-        domain: company.website?.replace(/^https?:\/\//, ''),
-        website: company.website,
-        ticker: company.token_symbol,
-        company_type: company.company_type,
-        sector: company.sector,
-        stage: 'Series A', // Default stage
-        founded_year: company.founded_year || 2020,
-        headquarters: {
-          city: company.headquarters?.split(', ')[0] || 'Unknown',
-          country: company.headquarters?.split(', ')[1] || 'Unknown'
-        },
-        description: company.description || `${company.name} is an innovative company.`,
-        logo: company.logo_url,
-        employee_count: parseInt(company.employee_count?.replace(/[^0-9]/g, '') || '50'),
-        investment: {
-          round_type: 'Series A',
-          investment_amount: 5000000,
-          valuation: 50000000,
-          ownership_percentage: 10.0,
-          investment_date: '2024-01-15',
-          lead_partner: 'John Smith'
-        },
-        metrics: {
-          revenue_current: 500000,
-          revenue_growth: 15.0,
-          burn_rate: 150000,
-          runway_months: 18,
-          employees: parseInt(company.employee_count?.replace(/[^0-9]/g, '') || '50'),
-          customers: 100,
-          arr: 6000000,
-          gross_margin: 75.0
-        },
-        deal_status: getDealStatusForCompany(company.name) || getRandomDealStatus(company.name),
-        priority: getPriorityForCompany(company.name),
-        created_at: company.created_at || new Date().toISOString(),
-        updated_at: company.updated_at || new Date().toISOString()
-      }))
-      
-      // Cache in localStorage as backup
-      localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(transformedCompanies))
-      return transformedCompanies
-    }
-  } catch (error) {
-    console.warn('⚠️ Backend API unavailable, using localStorage fallback:', error)
-  }
-  
-  // Fallback to localStorage
-  try {
-    const stored = localStorage.getItem(COMPANIES_STORAGE_KEY)
-    if (stored) {
-      return JSON.parse(stored)
-    } else {
-      // Initialize with default data
+    // Check if we need to migrate or reset data
+    if (storedVersion !== CURRENT_VERSION) {
+      console.log('Migrating company data to version', CURRENT_VERSION)
+      // Clear old data and use new defaults with UUIDs
       localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(DEFAULT_COMPANIES))
+      localStorage.setItem(COMPANIES_VERSION_KEY, CURRENT_VERSION)
+      return DEFAULT_COMPANIES
+    }
+    
+    if (stored) {
+      const companies = JSON.parse(stored)
+      // Update deal statuses with any persisted changes
+      return companies.map((company: Company) => ({
+        ...company,
+        deal_status: getDealStatusForCompany(company.name) || company.deal_status
+      }))
+    } else {
+      // First time - save defaults
+      localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(DEFAULT_COMPANIES))
+      localStorage.setItem(COMPANIES_VERSION_KEY, CURRENT_VERSION)
       return DEFAULT_COMPANIES
     }
   } catch (error) {
@@ -420,348 +316,64 @@ export const getAllCompanies = async (): Promise<Company[]> => {
   }
 }
 
-// Get company by ID
 export const getCompanyById = async (id: string): Promise<Company | null> => {
-  try {
-    // Use the unified UUID-based API endpoint
-    const response = await fetch(`http://localhost:8000/api/v1/data/companies/${encodeURIComponent(id)}/profile`)
-    
-    if (response.ok) {
-      const apiData = await response.json()
-      const realData = apiData.data
-      
-      if (realData) {
-        // Transform API data to Company interface
-        return {
-          id: id,
-          name: realData.name || id,
-          website: realData.website,
-          sector: realData.industry || 'Technology',
-          stage: 'Series A', // Default stage
-          founded_year: realData.founded_year || 2020,
-          headquarters: {
-            city: realData.headquarters?.split(', ')[0] || 'San Francisco',
-            country: realData.headquarters?.split(', ')[1] || 'USA'
-          },
-          description: realData.description || `${realData.name || id} is an innovative technology company.`,
-          employee_count: parseInt(realData.employee_count?.replace(/[^0-9]/g, '') || '50'),
-          funding_total: realData.total_funding || 0,
-          investment: {
-            round_type: 'Series A',
-            investment_amount: 5000000,
-            valuation: 50000000,
-            ownership_percentage: 10.0,
-            investment_date: '2024-01-15',
-            lead_partner: 'John Smith'
-          },
-          metrics: {
-            revenue_current: realData.key_metrics?.revenue || 500000,
-            revenue_growth: realData.key_metrics?.revenue_growth || 15.0,
-            burn_rate: realData.key_metrics?.burn_rate || 150000,
-            runway_months: realData.key_metrics?.runway || 18,
-            employees: parseInt(realData.employee_count?.replace(/[^0-9]/g, '') || '50'),
-            customers: realData.key_metrics?.customers || 100,
-            arr: realData.key_metrics?.arr || 6000000,
-            gross_margin: realData.key_metrics?.gross_margin || 75.0
-          },
-          deal_status: 'invested',
-          priority: 'high',
-          created_at: '2024-01-15T00:00:00Z',
-          updated_at: new Date().toISOString()
-        }
-      }
-    }
-    
-    // Fallback to localStorage if API fails
-    const companies = await getAllCompanies()
-    return companies.find(company => company.id === id) || null
-    
-  } catch (error) {
-    console.error(`Error fetching company ${id}:`, error)
-    
-    // Fallback to localStorage on error
-    const companies = await getAllCompanies()
-    return companies.find(company => company.id === id) || null
-  }
-}
-
-// Add new company
-export const addCompany = async (company: Omit<Company, 'id' | 'created_at' | 'updated_at'>): Promise<Company> => {
-  const newCompany: Company = {
-    ...company,
-    id: company.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-  
-  try {
-    // Try to sync to backend database first
-    const response = await fetch('http://localhost:8000/api/v1/companies/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer fake-token', // TODO: Replace with real auth
-      },
-      body: JSON.stringify({
-        name: newCompany.name,
-        description: newCompany.description,
-        website: newCompany.website,
-        company_type: newCompany.company_type || 'traditional',
-        sector: newCompany.sector,
-        founded_year: newCompany.founded_year,
-        headquarters: `${newCompany.headquarters.city}, ${newCompany.headquarters.country}`,
-        employee_count: newCompany.employee_count?.toString() || '50'
-      })
-    })
-    
-    if (response.ok) {
-      console.log('✅ Company synced to backend database')
-    } else {
-      console.warn('⚠️ Failed to sync to backend, saving locally only')
-    }
-  } catch (error) {
-    console.warn('⚠️ Backend unavailable, saving locally only:', error)
-  }
-  
-  // Always save to localStorage as backup
   const companies = await getAllCompanies()
-  companies.push(newCompany)
-  
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(companies))
-  }
-  
-  return newCompany
+  return companies.find(c => c.id === id) || null
 }
 
-// Update company
-export const updateCompany = async (id: string, updates: Partial<Company>): Promise<Company | null> => {
-  const companies = await getAllCompanies()
-  const index = companies.findIndex(company => company.id === id)
-  
-  if (index === -1) return null
-  
-  companies[index] = {
-    ...companies[index],
-    ...updates,
-    updated_at: new Date().toISOString()
-  }
-  
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(companies))
-  }
-  
-  return companies[index]
+export interface PortfolioStats {
+  total_companies: number
+  invested_companies: number
+  active_deals: number
+  total_investment: number
+  total_valuation: number
+  total_arr: number
+  total_employees: number
+  average_ownership: number
+  sectors: string[]
 }
 
-// Delete company
-export const deleteCompany = async (id: string): Promise<boolean> => {
-  const companies = await getAllCompanies()
-  const index = companies.findIndex(company => company.id === id)
-  
-  if (index === -1) return false
-  
-  companies.splice(index, 1)
-  
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(companies))
-  }
-  
-  return true
-}
-
-// Get portfolio statistics
-export const getPortfolioStats = async () => {
+export const getPortfolioStats = async (): Promise<PortfolioStats> => {
   const companies = await getAllCompanies()
   
   return {
     total_companies: companies.length,
-    total_investment: companies.reduce((sum, company) => sum + company.investment.investment_amount, 0),
-    total_valuation: companies.reduce((sum, company) => sum + company.investment.valuation, 0),
-    active_deals: companies.filter(company => 
-      ['due_diligence', 'term_sheet', 'screening'].includes(company.deal_status)
-    ).length,
-    invested_companies: companies.filter(company => company.deal_status === 'invested').length,
-    sectors: Array.from(new Set(companies.map(company => company.sector))),
-    stages: Array.from(new Set(companies.map(company => company.stage))),
-    average_ownership: companies.reduce((sum, company) => sum + company.investment.ownership_percentage, 0) / companies.length,
-    total_arr: companies.reduce((sum, company) => sum + company.metrics.arr, 0),
-    total_employees: companies.reduce((sum, company) => sum + company.metrics.employees, 0)
+    invested_companies: companies.filter(c => c.deal_status === 'invested').length,
+    active_deals: companies.filter(c => ['due_diligence', 'term_sheet'].includes(c.deal_status)).length,
+    total_investment: companies.reduce((sum, c) => sum + c.investment.investment_amount, 0),
+    total_valuation: companies.reduce((sum, c) => sum + c.investment.valuation, 0),
+    total_arr: companies.reduce((sum, c) => sum + c.metrics.arr, 0),
+    total_employees: companies.reduce((sum, c) => sum + c.metrics.employees, 0),
+    average_ownership: companies.reduce((sum, c) => sum + c.investment.ownership_percentage, 0) / companies.length,
+    sectors: [...new Set(companies.map(c => c.sector))]
   }
 }
 
-// Search companies
-export const searchCompanies = async (query: string): Promise<Company[]> => {
+// Simple UUID generator
+const generateUUID = (): string => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
+export const addCompany = async (company: Omit<Company, 'id' | 'created_at' | 'updated_at'>): Promise<Company> => {
   const companies = await getAllCompanies()
-  const lowerQuery = query.toLowerCase()
+  const now = new Date().toISOString()
   
-  return companies.filter(company => 
-    company.name.toLowerCase().includes(lowerQuery) ||
-    company.sector.toLowerCase().includes(lowerQuery) ||
-    company.description.toLowerCase().includes(lowerQuery) ||
-    company.headquarters.city.toLowerCase().includes(lowerQuery)
-  )
-}
-
-// Smart ticker detection for companies
-export const getCompanyTicker = (company: Company): string | null => {
-  // Return explicit ticker if available
-  if (company.ticker) {
-    return company.ticker
+  const newCompany: Company = {
+    ...company,
+    id: generateUUID(),
+    created_at: now,
+    updated_at: now
   }
   
-  // Known company name to ticker mappings
-  const tickerMap: Record<string, string> = {
-    // Traditional stocks
-    'amazon': 'AMZN',
-    'apple': 'AAPL',
-    'microsoft': 'MSFT',
-    'google': 'GOOGL',
-    'alphabet': 'GOOGL',
-    'meta': 'META',
-    'facebook': 'META',
-    'tesla': 'TSLA',
-    'nvidia': 'NVDA',
-    'netflix': 'NFLX',
-    'adobe': 'ADBE',
-    'salesforce': 'CRM',
-    'oracle': 'ORCL',
-    'intel': 'INTC',
-    'ibm': 'IBM',
-    'cisco': 'CSCO',
-    'uber': 'UBER',
-    'airbnb': 'ABNB',
-    'zoom': 'ZM',
-    'slack': 'WORK',
-    'twitter': 'TWTR',
-    'linkedin': 'LNKD',
-    'paypal': 'PYPL',
-    'square': 'SQ',
-    'stripe': 'STRIPE', // Private company
-    
-    // Crypto/Blockchain companies and their tokens
-    'bitcoin': 'BTC',
-    'ethereum': 'ETH',
-    'chainlink': 'LINK',
-    'polygon': 'MATIC',
-    'solana': 'SOL',
-    'cardano': 'ADA',
-    'binance': 'BNB',
-    'avalanche': 'AVAX',
-    'polkadot': 'DOT',
-    'phala network': 'PHA',
-    'phala': 'PHA',
-    'uniswap': 'UNI',
-    'aave': 'AAVE',
-    'compound': 'COMP',
-    'maker': 'MKR',
-    'the graph': 'GRT',
-    'filecoin': 'FIL',
-    'cosmos': 'ATOM',
-    'tezos': 'XTZ',
-    'algorand': 'ALGO',
-    'near protocol': 'NEAR',
-    'fantom': 'FTM',
-    'harmony': 'ONE',
-    'helium': 'HNT',
-    'render token': 'RNDR',
-    'arbitrum': 'ARB',
-    'optimism': 'OP',
-    'immutable': 'IMX',
-    'loopring': 'LRC',
-    '1inch': '1INCH',
-    'synthetix': 'SNX',
-    'yearn finance': 'YFI',
-    'curve': 'CRV',
-    'convex': 'CVX',
-    'frax': 'FRAX',
-    'lido': 'LDO',
-    'rocket pool': 'RPL'
+  const updatedCompanies = [...companies, newCompany]
+  
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(COMPANIES_STORAGE_KEY, JSON.stringify(updatedCompanies))
   }
   
-  // Check company name variations
-  const companyName = company.name.toLowerCase()
-  if (tickerMap[companyName]) {
-    return tickerMap[companyName]
-  }
-  
-  // Check if company name contains known company names
-  for (const [name, ticker] of Object.entries(tickerMap)) {
-    if (companyName.includes(name) || name.includes(companyName)) {
-      return ticker
-    }
-  }
-  
-  // Check domain for known patterns
-  if (company.domain) {
-    const domain = company.domain.toLowerCase().replace(/\.(com|org|io|net)$/, '')
-    if (tickerMap[domain]) {
-      return tickerMap[domain]
-    }
-  }
-  
-  return null
-}
-
-// Determine if company should use crypto or equity data sources
-export type CompanyCategory = 'public' | 'crypto' | 'private';
-
-export const getCompanyCategory = (company: Company): CompanyCategory => {
-  // Check explicit company type first
-  if (company.company_type === 'crypto') {
-    return 'crypto'
-  }
-
-  // Check if it's a blockchain/crypto company by sector
-  const cryptoSectors = [
-    'blockchain', 'cryptocurrency', 'crypto', 'defi', 'web3', 'nft', 'metaverse', 'dao'
-  ]
-  
-  const sector = company.sector.toLowerCase()
-  if (cryptoSectors.some(cryptoSector => sector.includes(cryptoSector))) {
-    return 'crypto'
-  }
-  
-  // Check if ticker is a known crypto symbol
-  const ticker = getCompanyTicker(company)
-  if (ticker) {
-    const cryptoTickers = [
-      'BTC', 'ETH', 'LINK', 'MATIC', 'SOL', 'ADA', 'BNB', 'AVAX', 'DOT', 'UNI',
-      'AAVE', 'COMP', 'MKR', 'GRT', 'FIL', 'ATOM', 'XTZ', 'ALGO', 'NEAR', 'FTM',
-      'ONE', 'HNT', 'RNDR', 'ARB', 'OP', 'IMX', 'LRC', '1INCH', 'SNX', 'YFI',
-      'CRV', 'CVX', 'FRAX', 'LDO', 'RPL'
-    ]
-    
-    if (cryptoTickers.includes(ticker)) {
-      return 'crypto'
-    }
-  }
-
-  // Determine if public or private based on known indicators
-  if (company.company_type === 'public') {
-    // Known public companies (have stock tickers)
-    const publicTickers = ['NVDA', 'AMZN', 'MSFT', 'GOOGL', 'AAPL', 'TSLA', 'META', 'NFLX']
-    if (ticker && publicTickers.includes(ticker)) {
-      return 'public'
-    }
-    
-    // Large companies are likely public
-    if (company.employee_count && company.employee_count > 10000) {
-      return 'public'
-    }
-    
-    // High valuation traditional companies are likely public
-    if (company.metrics?.revenue_current && company.metrics.revenue_current > 1000000000) {
-      return 'public'
-    }
-  }
-  
-  // Default to private for startups, AI companies, etc.
-  return 'private'
-}
-
-// Keep backward compatibility
-export const getCompanyAssetType = (company: Company): 'crypto' | 'equity' => {
-  const category = getCompanyCategory(company)
-  return category === 'crypto' ? 'crypto' : 'equity'
+  return newCompany
 }

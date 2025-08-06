@@ -1,12 +1,14 @@
+"use client"
+
 /**
  * Widget Manager Component
  * Simple UI for adding/removing widgets and refreshing company data
  */
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import React, { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -14,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from '@/components/ui/alert-dialog'
 import {
   Plus,
   Trash2,
@@ -37,43 +39,42 @@ import {
   BarChart3,
   PieChart,
   Activity
-} from 'lucide-react';
-import { Widget, WidgetType } from '@/lib/widgets/types';
-import { companyDataService } from '@/lib/services/companyDataService';
+} from 'lucide-react'
+import { Widget, WidgetType } from '@/lib/widgets/types'
 
 interface WidgetManagerProps {
-  widgets: Widget[];
-  onAddWidget: (widget: Widget) => void;
-  onRemoveWidget: (widgetId: string) => void;
-  onRefreshAllWidgets?: () => void;
-  companyId: string;
-  companyName: string;
+  widgets: Widget[]
+  onAddWidget: (widget: Widget) => void
+  onRemoveWidget: (widgetId: string) => void
+  onRefreshAllWidgets?: () => void
+  companyId: string
+  companyName: string
 }
 
 interface WidgetTemplate {
-  id: string;
-  type: WidgetType;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  category: 'metrics' | 'financial' | 'market' | 'research';
+  id: string
+  type: WidgetType
+  title: string
+  description: string
+  icon: React.ReactNode
+  category: 'metrics' | 'financial' | 'market' | 'research'
 }
 
 const AVAILABLE_WIDGETS: WidgetTemplate[] = [
   {
-    id: 'startup-metrics',
-    type: WidgetType.STARTUP_METRICS,
-    title: 'Startup Metrics',
+    id: 'key-metrics',
+    type: WidgetType.KEY_METRICS,
+    title: 'Key Metrics',
     description: 'Revenue, growth, employees, and core business metrics',
     icon: <TrendingUp className="w-5 h-5" />,
     category: 'metrics'
   },
   {
-    id: 'investment-summary',
-    type: WidgetType.INVESTMENT_SUMMARY,
-    title: 'Investment Summary',
-    description: 'Investment amount, valuation, ownership details',
-    icon: <DollarSign className="w-5 h-5" />,
+    id: 'fundamentals',
+    type: WidgetType.FUNDAMENTALS,
+    title: 'Company Fundamentals',
+    description: 'Financial ratios and company fundamentals',
+    icon: <PieChart className="w-5 h-5" />,
     category: 'financial'
   },
   {
@@ -93,12 +94,12 @@ const AVAILABLE_WIDGETS: WidgetTemplate[] = [
     category: 'market'
   },
   {
-    id: 'fundamentals',
-    type: WidgetType.FUNDAMENTALS,
-    title: 'Company Fundamentals',
-    description: 'Financial ratios and company fundamentals',
-    icon: <PieChart className="w-5 h-5" />,
-    category: 'financial'
+    id: 'peer-comparison',
+    type: WidgetType.PEER_COMPARISON,
+    title: 'Peer Comparison',
+    description: 'Compare metrics with peer companies',
+    icon: <BarChart3 className="w-5 h-5" />,
+    category: 'market'
   },
   {
     id: 'news-feed',
@@ -108,7 +109,7 @@ const AVAILABLE_WIDGETS: WidgetTemplate[] = [
     icon: <FileText className="w-5 h-5" />,
     category: 'research'
   }
-];
+]
 
 export function WidgetManager({ 
   widgets, 
@@ -118,62 +119,51 @@ export function WidgetManager({
   companyId, 
   companyName 
 }: WidgetManagerProps) {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [refreshStatus, setRefreshStatus] = useState<string>('');
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [refreshStatus, setRefreshStatus] = useState<string>('')
 
   const handleRefreshCompanyData = async () => {
-    setIsRefreshing(true);
-    setRefreshStatus('🔄 Refreshing widget data from external APIs...');
+    setIsRefreshing(true)
+    setRefreshStatus('🔄 Refreshing widget data...')
 
     try {
-      const result = await companyDataService.refreshCompanyDataForWidgets(companyId, true);
+      console.log('🔄 Refreshing company data for widgets:', { companyId, companyName })
       
-      if (result.success) {
-        let successMessage = '✅ Widget data refreshed successfully!';
-        if (result.widgetMetricsGenerated) {
-          successMessage += ' 📊 Financial metrics generated for widgets.';
+      // Call the real API to refresh widget data
+      const response = await fetch(`/api/data/companies/${encodeURIComponent(companyId)}/refresh-for-widgets`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
         }
-        if (result.message) {
-          successMessage += ` ${result.message}`;
-        }
-        
-        setRefreshStatus(successMessage);
-        
-        // Clear widget data cache but preserve widget layout
-        if (typeof window !== 'undefined' && window.localStorage) {
-          // Clear only widget data cache, not widget configuration
-          const keysToRemove = [];
-          for (let i = 0; i < window.localStorage.length; i++) {
-            const key = window.localStorage.key(i);
-            if (key && (key.includes('widget_data_') || key.includes('company_data_'))) {
-              keysToRemove.push(key);
-            }
-          }
-          keysToRemove.forEach(key => window.localStorage.removeItem(key));
-        }
-        
-        // Trigger widget refresh without page reload
-        setTimeout(() => {
-          setRefreshStatus('✅ Widget data refreshed! Refreshing widgets now...');
-          if (onRefreshAllWidgets) {
-            onRefreshAllWidgets();
-          }
-        }, 1000);
-      } else {
-        setRefreshStatus(`❌ Failed to refresh widget data: ${result.error}`);
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to refresh data: ${response.status} ${response.statusText}`)
       }
-    } catch (error) {
-      setRefreshStatus(`❌ Error refreshing widgets: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      // Keep status visible longer for user feedback
+
+      const result = await response.json()
+      console.log('✅ Widget data refresh result:', result)
+
+      setRefreshStatus(`✅ ${result.message || 'Widget data refreshed!'} Refreshing widgets now...`)
+      
+      // Wait a moment then refresh all widgets
       setTimeout(() => {
-        setIsRefreshing(false);
-        if (!refreshStatus.includes('✅')) {
-          setRefreshStatus('');
+        if (onRefreshAllWidgets) {
+          onRefreshAllWidgets()
         }
-      }, 4000);
+        setRefreshStatus('✅ All widgets refreshed successfully!')
+      }, 500)
+      
+    } catch (error) {
+      console.error('❌ Widget refresh error:', error)
+      setRefreshStatus(`❌ Error refreshing widgets: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setTimeout(() => {
+        setIsRefreshing(false)
+        setRefreshStatus('')
+      }, 3000)
     }
-  };
+  }
 
   const handleAddWidget = (template: WidgetTemplate) => {
     const newWidget: Widget = {
@@ -191,31 +181,31 @@ export function WidgetManager({
         h: 4 
       },
       dataSource: {
-        asset_type: 'equity', // Default, will be determined by company type
+        asset_type: 'equity',
         ticker: companyName
       },
       isVisible: true
-    };
+    }
 
-    onAddWidget(newWidget);
-  };
+    onAddWidget(newWidget)
+  }
 
   const getWidgetIcon = (type: WidgetType) => {
-    const template = AVAILABLE_WIDGETS.find(w => w.type === type);
-    return template?.icon || <Settings className="w-4 h-4" />;
-  };
+    const template = AVAILABLE_WIDGETS.find(w => w.type === type)
+    return template?.icon || <Settings className="w-4 h-4" />
+  }
 
   const isWidgetAdded = (type: WidgetType) => {
-    return widgets.some(widget => widget.type === type);
-  };
+    return widgets.some(widget => widget.type === type)
+  }
 
   const groupedWidgets = AVAILABLE_WIDGETS.reduce((acc, widget) => {
     if (!acc[widget.category]) {
-      acc[widget.category] = [];
+      acc[widget.category] = []
     }
-    acc[widget.category].push(widget);
-    return acc;
-  }, {} as Record<string, WidgetTemplate[]>);
+    acc[widget.category].push(widget)
+    return acc
+  }, {} as Record<string, WidgetTemplate[]>)
 
   return (
     <Card>
@@ -226,7 +216,7 @@ export function WidgetManager({
               <Settings className="w-5 h-5" />
               Widget Management ({widgets.length} active)
             </CardTitle>
-            <p className="text-sm text-gray-600 mt-1">Manage your dashboard widgets and refresh data</p>
+            <p className="text-sm text-muted-foreground mt-1">Manage your dashboard widgets and refresh data</p>
           </div>
           
           <div className="flex items-center gap-2">
@@ -247,7 +237,7 @@ export function WidgetManager({
                   Add Widget
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-4xl">
+              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Widget Library</DialogTitle>
                   <DialogDescription>
@@ -255,52 +245,55 @@ export function WidgetManager({
                   </DialogDescription>
                 </DialogHeader>
                 
-                <div className="space-y-6">
+                <div className="mt-6 space-y-6">
                   {Object.entries(groupedWidgets).map(([category, categoryWidgets]) => (
                     <div key={category}>
-                      <h4 className="font-semibold text-sm uppercase tracking-wide text-gray-600 mb-3">
+                      <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mb-3">
                         {category}
                       </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {categoryWidgets.map((template) => (
-                          <Card 
-                            key={template.id} 
-                            className={`cursor-pointer transition-colors ${
-                              isWidgetAdded(template.type) 
-                                ? 'bg-gray-50 border-gray-300' 
-                                : 'hover:bg-blue-50 hover:border-blue-300'
-                            }`}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-start gap-3">
-                                <div className="text-blue-600">
+                      <div className="grid grid-cols-1 gap-3">
+                        {categoryWidgets.map((template) => {
+                          const added = isWidgetAdded(template.type)
+                          return (
+                            <div 
+                              key={template.id} 
+                              className={`rounded-lg border p-4 transition-colors ${
+                                added 
+                                  ? 'bg-muted/50 border-muted-foreground/20' 
+                                  : 'bg-card hover:bg-accent hover:border-accent-foreground/20'
+                              }`}
+                            >
+                              <div className="flex items-start gap-4">
+                                <div className={`flex-shrink-0 ${added ? 'text-muted-foreground' : 'text-primary'}`}>
                                   {template.icon}
                                 </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <h5 className="font-medium">{template.title}</h5>
-                                    {isWidgetAdded(template.type) && (
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h5 className="font-medium text-base">{template.title}</h5>
+                                    {added && (
                                       <Badge variant="secondary" className="text-xs">
                                         Added
                                       </Badge>
                                     )}
                                   </div>
-                                  <p className="text-sm text-gray-600 mb-3">
+                                  <p className="text-sm text-muted-foreground mb-3">
                                     {template.description}
                                   </p>
+                                </div>
+                                <div className="flex-shrink-0">
                                   <Button
                                     size="sm"
+                                    variant={added ? "secondary" : "default"}
                                     onClick={() => handleAddWidget(template)}
-                                    disabled={isWidgetAdded(template.type)}
-                                    className="w-full"
+                                    disabled={added}
                                   >
-                                    {isWidgetAdded(template.type) ? 'Already Added' : 'Add Widget'}
+                                    {added ? 'Added' : 'Add'}
                                   </Button>
                                 </div>
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
                   ))}
@@ -314,8 +307,8 @@ export function WidgetManager({
       <CardContent className="pt-0">
         {/* Refresh Status */}
         {refreshStatus && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">{refreshStatus}</p>
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/20 dark:border-blue-800">
+            <p className="text-sm text-blue-800 dark:text-blue-400">{refreshStatus}</p>
           </div>
         )}
 
@@ -325,7 +318,7 @@ export function WidgetManager({
             {widgets.map((widget) => (
               <div
                 key={widget.id}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-50 border rounded-lg"
+                className="flex items-center gap-2 px-3 py-2 bg-muted border rounded-lg"
               >
                 <div className="flex items-center gap-2">
                   {getWidgetIcon(widget.type)}
@@ -360,9 +353,9 @@ export function WidgetManager({
             ))}
           </div>
         ) : (
-          <p className="text-gray-500 text-center py-4 text-sm">No widgets added yet. Click &quot;Add Widget&quot; to get started.</p>
+          <p className="text-muted-foreground text-center py-4 text-sm">No widgets added yet. Click &quot;Add Widget&quot; to get started.</p>
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

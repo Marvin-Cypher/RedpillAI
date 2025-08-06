@@ -1,21 +1,21 @@
-import './globals.css'
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import { Providers } from './providers'
-// Toggle between old and new layout here
-// import AppLayout from '@/components/layout/AppLayout' // Old layout
-import AppLayout from '@/components/layout/AppLayoutShadcn' // New shadcn layout
+import type { Metadata } from "next"
+import { Hubot_Sans, Mona_Sans } from "next/font/google"
+import { Toaster } from "@/components/ui/toaster"
+import "./globals.css"
+import { Providers } from "./providers"
 import Script from 'next/script'
 
-const inter = Inter({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const hubot_sans = Hubot_Sans({
+  subsets: ['latin'],
+  weight: ['500'],
+  variable: '--display-family',
 })
 
-// Use system fonts for now until Geist is available
-const systemMono = {
-  variable: "--font-geist-mono"
-}
+const mona_sans = Mona_Sans({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--text-family',
+})
 
 export const metadata: Metadata = {
   title: 'RedPill VC - AI-Native Venture Capital Platform',
@@ -24,9 +24,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -46,12 +46,9 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={`${inter.variable} ${systemMono.variable} antialiased font-sans`}>
-        <Providers>
-          <AppLayout>
-            {children}
-          </AppLayout>
-        </Providers>
+      <body className={`${hubot_sans.variable} ${mona_sans.variable} antialiased font-text group/body`}>
+        <Providers>{children}</Providers>
+        <Toaster />
       </body>
     </html>
   )
