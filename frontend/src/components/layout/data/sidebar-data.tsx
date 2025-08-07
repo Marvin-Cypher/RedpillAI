@@ -100,6 +100,11 @@ export const sidebarData: SidebarData = {
           icon: Target,
         },
         {
+          title: "Memos & Notes",
+          url: "/notes",
+          icon: StickyNote,
+        },
+        {
           title: "Deal Flow Analytics",
           url: "/gp-dashboard?tab=deal-flow",
           icon: FileText,
@@ -159,11 +164,6 @@ export const sidebarData: SidebarData = {
     {
       title: "🛠️ System", 
       items: [
-        {
-          title: "AI Assistant",
-          url: "/notes",
-          icon: Bot,
-        },
         {
           title: "Data Sources",
           icon: Database,
