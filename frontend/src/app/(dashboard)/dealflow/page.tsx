@@ -122,14 +122,14 @@ export default function DealflowPage() {
         // Transform backend deals to frontend format
         const transformedDeals: Deal[] = backendDeals.map((deal: unknown) => {
           // Find company info
-          const company = companies.find((c: unknown) => (c as any).id === (deal as any).company_id) || {
+          const company = companies.find((c: unknown) => (c as { id: string }).id === (deal as { company_id: string }).company_id) || {
             name: 'Unknown Company',
             sector: 'Unknown',
             company_type: 'Unknown'
           }
           
           // Map backend deal status to frontend dealflow stage
-          const dealflowStage = DEALFLOW_STATUS_MAP[deal.status] || 'sourcing'
+          const dealflowStage = DEALFLOW_STATUS_MAP[deal.status as keyof typeof DEALFLOW_STATUS_MAP] || 'sourcing'
           
           return {
             id: deal.id,

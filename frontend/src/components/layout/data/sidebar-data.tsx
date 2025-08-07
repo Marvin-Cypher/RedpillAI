@@ -18,7 +18,18 @@ import {
   PieChart,
   MessageSquare,
   Database,
-  StickyNote
+  StickyNote,
+  BarChart3,
+  ArrowRightLeft,
+  TrendingDown,
+  Calculator,
+  Phone,
+  Send,
+  ClipboardList,
+  Bell,
+  Bot,
+  Shield,
+  Activity
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Logo } from "@/components/logo"
@@ -51,92 +62,107 @@ export const sidebarData: SidebarData = {
   ],
   navGroups: [
     {
-      title: "Core",
+      title: "📂 Core",
       items: [
         {
-          title: "Dashboard",
-          icon: IconLayoutDashboard,
-          items: [
-            {
-              title: "Overview",
-              url: "/",
-            },
-            {
-              title: "GP Dashboard",
-              url: "/gp-dashboard",
-            },
-            {
-              title: "Portfolio Analytics",
-              url: "/dashboard-portfolio",
-            },
-            {
-              title: "Fund Performance",
-              url: "/dashboard-fund",
-            },
-          ],
+          title: "GP Dashboard",
+          url: "/gp-dashboard",
+          icon: BarChart3,
         },
+      ],
+    },
+    {
+      title: "🗂️ Portfolio", 
+      items: [
         {
-          title: "Deal Flow",
-          url: "/dealflow",
-          icon: Target,
-        },
-        {
-          title: "Portfolio",
+          title: "Portfolio Overview",
           url: "/portfolio",
           icon: Building2,
         },
         {
           title: "Companies",
-          url: "/companies",
+          url: "/companies", 
           icon: Briefcase,
         },
         {
-          title: "Notes & Memos",
-          url: "/notes",
-          icon: StickyNote,
+          title: "Portfolio Analytics",
+          url: "/gp-dashboard?tab=portfolio-analytics",
+          icon: Activity,
         },
       ],
     },
     {
-      title: "Investment Management",
+      title: "🔄 Deal Flow",
       items: [
         {
-          title: "Due Diligence",
+          title: "Pipeline",
+          url: "/dealflow",
+          icon: Target,
+        },
+        {
+          title: "Deal Flow Analytics",
+          url: "/gp-dashboard?tab=deal-flow",
           icon: FileText,
-          items: [
-            {
-              title: "Active Reviews",
-              url: "/due-diligence/active",
-            },
-            {
-              title: "Templates",
-              url: "/due-diligence/templates",
-            },
-            {
-              title: "AI Research",
-              url: "/due-diligence/ai-research",
-            },
-          ],
         },
         {
           title: "Market Intelligence",
-          url: "/market-intelligence",
+          url: "/gp-dashboard?tab=market-intelligence",
           icon: TrendingUp,
-        },
-        {
-          title: "Fund Analytics",
-          url: "/fund-analytics",
-          icon: PieChart,
         },
       ],
     },
     {
-      title: "System",
+      title: "📈 Investments & LP",
+      items: [
+        {
+          title: "Fund Performance",
+          url: "/gp-dashboard?tab=fund-performance",
+          icon: PieChart,
+        },
+        {
+          title: "LP Reporting",
+          url: "/gp-dashboard?tab=lp-reporting", 
+          icon: Calculator,
+        },
+        {
+          title: "Risk & Compliance",
+          url: "/gp-dashboard?tab=risk-compliance",
+          icon: Shield,
+        },
+      ],
+    },
+    {
+      title: "⚙️ Operations",
+      items: [
+        {
+          title: "Operations & Compliance",
+          url: "/gp-dashboard?tab=operations",
+          icon: ClipboardList,
+        },
+        {
+          title: "Due Diligence",
+          url: "/due-diligence",
+          icon: FileText,
+        },
+        {
+          title: "Templates & Snippets",
+          url: "/templates",
+          icon: StickyNote,
+        },
+        {
+          title: "Notifications & Alerts",
+          url: "/notifications",
+          icon: Bell,
+        },
+      ],
+    },
+    {
+      title: "🛠️ System", 
       items: [
         {
           title: "AI Assistant",
-          url: "/ai-chat",
-          icon: MessageSquare,
+          url: "/notes",
+          icon: Bot,
         },
         {
           title: "Data Sources",
@@ -147,7 +173,7 @@ export const sidebarData: SidebarData = {
               url: "/data-sources/openbb",
             },
             {
-              title: "Market Data",
+              title: "Market Data", 
               url: "/data-sources/market",
             },
             {
@@ -155,6 +181,11 @@ export const sidebarData: SidebarData = {
               url: "/data-sources/news",
             },
           ],
+        },
+        {
+          title: "Team & Access",
+          url: "/settings/team",
+          icon: IconUsers,
         },
         {
           title: "Settings",
@@ -174,11 +205,6 @@ export const sidebarData: SidebarData = {
               title: "Fund Management",
               icon: IconCoin,
               url: "/settings/fund",
-            },
-            {
-              title: "Team & Access",
-              icon: IconUsers,
-              url: "/settings/team",
             },
             {
               title: "Notifications",

@@ -1,13 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { TabsContent } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { TrendingUp, TrendingDown, Users, Building2, Target, AlertTriangle, DollarSign, Activity, Calendar, FileText } from "lucide-react"
 
 import { 
@@ -77,7 +76,7 @@ export default function GPDashboard() {
   const [lpCalls, setLPCalls] = useState<{ calls: LPCall[], total_called: number, fund_size: number } | null>(null)
   const [lpDistributions, setLPDistributions] = useState<{ distributions: LPDistribution[], total_distributed: number, dpi: number } | null>(null)
   const [complianceData, setComplianceData] = useState<{ compliance_data: ComplianceData[], compliance_rate: number, overdue_companies: number } | null>(null)
-  const [gpActivity, setGPActivity] = useState<{ gp_activities: GPActivity[], team_summary: any } | null>(null)
+  const [gpActivity, setGPActivity] = useState<{ gp_activities: GPActivity[], team_summary: Record<string, unknown> } | null>(null)
   const [riskPositions, setRiskPositions] = useState<RiskPosition[]>([])
   const [riskMetrics, setRiskMetrics] = useState<RiskMetrics | null>(null)
   const [loading, setLoading] = useState(true)
@@ -88,22 +87,8 @@ export default function GPDashboard() {
       try {
         setLoading(true)
         
-        // Fetch data for all modules in parallel
-        const [
-          fundMetricsData,
-          companyMetricsData,
-          dealStagesData,
-          dealHistoryData,
-          marketFundingData,
-          marketExitsData,
-          sectorAllocationData,
-          lpCallsData,
-          lpDistributionsData,
-          complianceStatusData,
-          gpActivityData,
-          riskPositionsData,
-          riskMetricsData
-        ] = await Promise.all([
+        // Fetch data for all modules with individual error handling
+        const results = await Promise.allSettled([
           GPDashboardAPI.getFundMetrics(),
           GPDashboardAPI.getCompanyMetrics(),
           GPDashboardAPI.getDealStages(),
@@ -119,23 +104,36 @@ export default function GPDashboard() {
           GPDashboardAPI.getRiskMetrics()
         ])
 
-        // Set all state
-        setFundMetrics(fundMetricsData)
-        setCompanyMetrics(companyMetricsData)
-        setDealStages(dealStagesData)
-        setDealHistory(dealHistoryData)
-        setMarketFunding(marketFundingData.data)
-        setMarketExits(marketExitsData.data)
-        setSectorAllocation(sectorAllocationData.portfolio_allocation)
-        setLPCalls(lpCallsData)
-        setLPDistributions(lpDistributionsData)
-        setComplianceData(complianceStatusData)
-        setGPActivity(gpActivityData)
-        setRiskPositions(riskPositionsData)
-        setRiskMetrics(riskMetricsData)
+        // Set state with fallbacks for failed requests
+        setFundMetrics(results[0].status === 'fulfilled' ? results[0].value : null)
+        setCompanyMetrics(results[1].status === 'fulfilled' ? results[1].value : [])
+        setDealStages(results[2].status === 'fulfilled' ? results[2].value : [])
+        setDealHistory(results[3].status === 'fulfilled' ? results[3].value : [])
+        setMarketFunding(results[4].status === 'fulfilled' ? results[4].value?.data || [] : [])
+        setMarketExits(results[5].status === 'fulfilled' ? results[5].value?.data || [] : [])
+        setSectorAllocation(results[6].status === 'fulfilled' ? results[6].value?.portfolio_allocation || {} : {})
+        setLPCalls(results[7].status === 'fulfilled' ? results[7].value : null)
+        setLPDistributions(results[8].status === 'fulfilled' ? results[8].value : null)
+        setComplianceData(results[9].status === 'fulfilled' ? results[9].value : null)
+        setGPActivity(results[10].status === 'fulfilled' ? results[10].value : null)
+        setRiskPositions(results[11].status === 'fulfilled' ? results[11].value : [])
+        setRiskMetrics(results[12].status === 'fulfilled' ? results[12].value : null)
         
       } catch (error) {
-        console.error('Failed to fetch dashboard data:', error)
+        // Fallback error handling - set default values
+        setFundMetrics(null)
+        setCompanyMetrics([])
+        setDealStages([])
+        setDealHistory([])
+        setMarketFunding([])
+        setMarketExits([])
+        setSectorAllocation({})
+        setLPCalls(null)
+        setLPDistributions(null)
+        setComplianceData(null)
+        setGPActivity(null)
+        setRiskPositions([])
+        setRiskMetrics(null)
       } finally {
         setLoading(false)
       }
@@ -158,34 +156,7 @@ export default function GPDashboard() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-4 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">GP Dashboard</h2>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
-            Export Report
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            {new Date().toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </span>
-        </div>
-      </div>
-      
-      <Tabs defaultValue="fund-performance" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="fund-performance" className="text-xs">Fund Performance</TabsTrigger>
-          <TabsTrigger value="portfolio-analytics" className="text-xs">Portfolio Analytics</TabsTrigger>
-          <TabsTrigger value="deal-flow" className="text-xs">Deal Flow</TabsTrigger>
-          <TabsTrigger value="market-intelligence" className="text-xs">Market Intelligence</TabsTrigger>
-          <TabsTrigger value="lp-reporting" className="text-xs">LP Reporting</TabsTrigger>
-          <TabsTrigger value="operations" className="text-xs">Operations</TabsTrigger>
-          <TabsTrigger value="risk-compliance" className="text-xs">Risk & Compliance</TabsTrigger>
-        </TabsList>
+    <>
 
         {/* MODULE 1: FUND PERFORMANCE */}
         <TabsContent value="fund-performance" className="space-y-4">
@@ -844,7 +815,6 @@ export default function GPDashboard() {
             </Card>
           </div>
         </TabsContent>
-      </Tabs>
-    </div>
+    </>
   )
 }
