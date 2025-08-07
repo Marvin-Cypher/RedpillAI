@@ -1081,7 +1081,7 @@ export const widgetDataFetchers = {
         try {
           // Fetch REAL-TIME crypto price from market API
           console.log(`📈 Fetching real-time price for ${tokenSymbol}...`);
-          const priceResponse = await fetch(`${API_BASE}/market/crypto/${tokenSymbol}/price`);
+          const priceResponse = await fetch(`/api/market/crypto/${tokenSymbol}/price`);
           
           if (priceResponse.ok) {
             const realTimePrice = await priceResponse.json();

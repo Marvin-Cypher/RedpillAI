@@ -25,6 +25,8 @@ class InvestmentStage(str, Enum):
     SERIES_B = "series_b"
     SERIES_C = "series_c"
     SERIES_D_PLUS = "series_d_plus"
+    GROWTH = "growth"
+    PRE_IPO = "pre_ipo"
     PRE_TGE = "pre_tge"
     POST_TGE = "post_tge"
 
@@ -41,6 +43,13 @@ class DealBase(SQLModel):
     next_milestone: Optional[str] = None
     next_meeting_date: Optional[datetime] = None
     internal_notes: Optional[str] = None
+    # Additional investment terms
+    lead_partner: Optional[str] = Field(default=None, max_length=255)
+    co_investors: Optional[str] = None  # Comma-separated list or JSON
+    board_seat: Optional[bool] = Field(default=False)
+    pro_rata_rights: Optional[bool] = Field(default=True)
+    liquidation_preference: Optional[str] = Field(default="1x", max_length=50)  # e.g., "1x", "1x_participating", "2x"
+    anti_dilution: Optional[str] = Field(default="weighted_average", max_length=50)  # e.g., "weighted_average", "full_ratchet", "none"
 
 
 class Deal(DealBase, table=True):
@@ -83,6 +92,12 @@ class DealUpdate(SQLModel):
     next_milestone: Optional[str] = None
     next_meeting_date: Optional[datetime] = None
     internal_notes: Optional[str] = None
+    lead_partner: Optional[str] = None
+    co_investors: Optional[str] = None
+    board_seat: Optional[bool] = None
+    pro_rata_rights: Optional[bool] = None
+    liquidation_preference: Optional[str] = None
+    anti_dilution: Optional[str] = None
 
 
 class DealRead(DealBase):

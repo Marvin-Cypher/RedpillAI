@@ -106,20 +106,34 @@ async def get_current_active_user(
     db: Session = Depends(get_db)
 ) -> User:
     """Get the current active user."""
-    # In debug mode, create a mock user for development
+    # In debug mode, create and persist a demo user for development
     if settings.debug:
         from ..models.users import User
+        from sqlmodel import select
         import uuid
         
-        mock_user = User(
+        # Check if demo user already exists
+        demo_email = "demo@redpill.vc"
+        statement = select(User).where(User.email == demo_email)
+        existing_user = db.exec(statement).first()
+        
+        if existing_user:
+            return existing_user
+        
+        # Create and persist demo user
+        demo_user = User(
             id=str(uuid.uuid4()),
-            email="demo@redpill.vc",
+            email=demo_email,
             full_name="Demo User",
             role="partner",
             is_active=True,
-            hashed_password="mock-password"
+            hashed_password=get_password_hash("demo-password")
         )
-        return mock_user
+        
+        db.add(demo_user)
+        db.commit()
+        db.refresh(demo_user)
+        return demo_user
     
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
@@ -131,20 +145,34 @@ async def get_current_user_optional(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(lambda: None)
 ) -> Optional[User]:
     """Get the current user if authenticated, otherwise return None."""
-    # In debug mode, always return mock user
+    # In debug mode, always return demo user (create and persist if needed)
     if settings.debug:
         from ..models.users import User
+        from sqlmodel import select
         import uuid
         
-        mock_user = User(
+        # Check if demo user already exists
+        demo_email = "demo@redpill.vc"
+        statement = select(User).where(User.email == demo_email)
+        existing_user = db.exec(statement).first()
+        
+        if existing_user:
+            return existing_user
+        
+        # Create and persist demo user
+        demo_user = User(
             id=str(uuid.uuid4()),
-            email="demo@redpill.vc",
+            email=demo_email,
             full_name="Demo User",
             role="partner",
             is_active=True,
-            hashed_password="mock-password"
+            hashed_password=get_password_hash("demo-password")
         )
-        return mock_user
+        
+        db.add(demo_user)
+        db.commit()
+        db.refresh(demo_user)
+        return demo_user
     
     # If no credentials provided, return None
     if not credentials:

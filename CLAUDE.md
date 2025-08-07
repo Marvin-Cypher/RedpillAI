@@ -116,6 +116,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Enhanced error handling for missing or incomplete company data
   - Real-time data synchronization with existing MarketDataService
 
+### Portfolio System Complete (2025-08-06)
+- **Backend Integration Complete**: Portfolio page now fetches actual deals from backend API instead of mock data
+  - Only displays companies with active deals from database
+  - Real investment data, stages, and financial metrics shown
+  - Proper company-to-deal relationship mapping
+- **Deal Management System**: Complete CRUD operations for professional VC deals
+  - Comprehensive DealEditDialog with 4 tabs: Basic Info, Investment Terms, Legal Terms, Notes
+  - All professional VC fields: lead partner, co-investors, board seats, pro-rata rights, liquidation preference, anti-dilution
+  - Financial calculations: ownership percentage, post-money valuation
+  - Drag-and-drop deal status changes in dealflow page
+- **Smart URL Handling**: Portfolio detail pages handle both company IDs and legacy deal IDs
+  - Automatic detection of deal ID URLs and redirect to correct company ID
+  - Seamless backward compatibility with old bookmarks
+  - URL history replacement for clean navigation
+- **Database Migration**: Applied enum case sensitivity fixes for GROWTH investment stage
+- **Authentication**: Persistent demo user creation with JWT tokens for database operations
+
 ### Recent System State (2025-08-06)
 - **Service Architecture**: All blocking I/O operations now async-safe with proper error handling
 - **Widget System**: Dual compatibility - works in both CustomizableDashboard and WidgetGrid systems
@@ -123,6 +140,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **MarketDataService**: Operational with OpenBB connection + async crypto prices via executors
 - **AI Chat Service**: Consolidated and operational with unified debugging (chat_id system)
 - **API Routing**: All endpoints accessible with proper async patterns
+- **Portfolio Management**: Complete backend integration with smart URL handling and deal management
 - **Frontend Development**: 
   - **Single Frontend** (`frontend/`): Next.js 15.1.7 production-ready implementation with full feature set
   - **Legacy Removed**: Cleaned up v1 frontend to avoid confusion and maintenance overhead

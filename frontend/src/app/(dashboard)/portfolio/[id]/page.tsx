@@ -98,7 +98,7 @@ export default function CompanyDetailPage() {
           const enrichedData = enrichedResult.data
           
           // Transform enriched data to match the Company interface
-          setCompany({
+          const companyDetails = {
             id: companyId,
             name: enrichedData.name || 'Unknown Company',
             description: enrichedData.description || '',
@@ -112,14 +112,121 @@ export default function CompanyDetailPage() {
             twitter_handle: enrichedData.twitter_handle || enrichedData.twitter?.handle,
             github_repo: enrichedData.github_repo,
             token_symbol: enrichedData.token_symbol || enrichedData.crypto_data?.symbol
-          })
+          }
+          
+          setCompany(companyDetails)
+          
+          // Auto-add appropriate widgets based on company type if no widgets exist
+          const widgetKey = `widgets_${companyId}`
+          const savedWidgets = localStorage.getItem(widgetKey)
+          let shouldAddDefaultWidgets = false
+          
+          try {
+            if (!savedWidgets) {
+              shouldAddDefaultWidgets = true
+            } else {
+              const parsedWidgets = JSON.parse(savedWidgets)
+              shouldAddDefaultWidgets = !Array.isArray(parsedWidgets) || parsedWidgets.length === 0
+            }
+          } catch (parseError) {
+            console.warn('Failed to parse existing widgets, will add default widgets:', parseError)
+            shouldAddDefaultWidgets = true
+          }
+          
+          if (shouldAddDefaultWidgets) {
+            const defaultWidgets = []
+            
+            // Add token price widget for crypto companies
+            if (companyDetails.company_type === 'crypto') {
+              console.log(`🪙 Auto-adding token price widget for crypto company: ${companyDetails.name}`)
+              defaultWidgets.push({
+                id: `token_price_${Date.now()}`,
+                type: 'token_price',
+                title: `${companyDetails.name} Token Price`,
+                config: {
+                  companyName: companyDetails.name,
+                  timeframe: '1D',
+                  showDetails: true
+                },
+                dataSource: {
+                  ticker: companyDetails.token_symbol || 'AUTO',
+                  asset_type: 'crypto'
+                },
+                position: { x: 0, y: 0, width: 4, height: 3 }
+              })
+            }
+            
+            // Add key metrics widget for all companies
+            console.log(`📊 Auto-adding key metrics widget for: ${companyDetails.name}`)
+            defaultWidgets.push({
+              id: `key_metrics_${Date.now()}`,
+              type: 'key_metrics',
+              title: `${companyDetails.name} Key Metrics`,
+              config: {
+                companyName: companyDetails.name,
+                showGrowth: true
+              },
+              dataSource: {
+                ticker: companyDetails.token_symbol || companyDetails.name,
+                asset_type: companyDetails.company_type === 'crypto' ? 'crypto' : 'equity'
+              },
+              position: { x: companyDetails.company_type === 'crypto' ? 4 : 0, y: 0, width: 4, height: 3 }
+            })
+            
+            // Add news feed widget
+            console.log(`📰 Auto-adding news feed widget for: ${companyDetails.name}`)
+            defaultWidgets.push({
+              id: `news_feed_${Date.now()}`,
+              type: 'news_feed',
+              title: `${companyDetails.name} News`,
+              config: {
+                companyName: companyDetails.name,
+                max_items: 5
+              },
+              dataSource: {
+                ticker: companyDetails.token_symbol || companyDetails.name,
+                asset_type: companyDetails.company_type === 'crypto' ? 'crypto' : 'equity'
+              },
+              position: { x: 0, y: 3, width: 8, height: 4 }
+            })
+            
+            if (defaultWidgets.length > 0) {
+              console.log(`✨ Setting ${defaultWidgets.length} default widgets for ${companyDetails.name}`)
+              setWidgets(defaultWidgets)
+              localStorage.setItem(widgetKey, JSON.stringify(defaultWidgets))
+            }
+          }
         } else {
           // Fallback to basic company endpoint
           console.log('⚠️ Enriched data not available, falling back to basic company data')
           const response = await fetch(`/api/companies/${companyId}`)
           if (response.ok) {
             const data = await response.json()
-            setCompany({ ...data, id: companyId })
+            const companyDetails = { ...data, id: companyId }
+            setCompany(companyDetails)
+            
+            // Auto-add widgets for fallback path as well
+            const widgetKey = `widgets_${companyId}`
+            const savedWidgets = localStorage.getItem(widgetKey)
+            if (!savedWidgets || savedWidgets.length === 0) {
+              const defaultWidgets = []
+              
+              if (companyDetails.company_type === 'crypto') {
+                defaultWidgets.push({
+                  id: `token_price_${Date.now()}`,
+                  type: 'token_price',
+                  title: `${companyDetails.name} Token Price`,
+                  config: { companyName: companyDetails.name },
+                  dataSource: { ticker: 'AUTO', asset_type: 'crypto' },
+                  position: { x: 0, y: 0, width: 4, height: 3 }
+                })
+              }
+              
+              if (defaultWidgets.length > 0) {
+                setWidgets(defaultWidgets)
+                localStorage.setItem(widgetKey, JSON.stringify(defaultWidgets))
+              }
+            }
           } else {
             setError(`Failed to load company data (${response.status})`)
           }
