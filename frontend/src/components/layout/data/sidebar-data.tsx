@@ -62,6 +62,10 @@ export const sidebarData: SidebarData = {
               url: "/",
             },
             {
+              title: "GP Dashboard",
+              url: "/gp-dashboard",
+            },
+            {
               title: "Portfolio Analytics",
               url: "/dashboard-portfolio",
             },

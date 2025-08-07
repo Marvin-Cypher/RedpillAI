@@ -23,9 +23,9 @@ import {
   Globe,
   Calendar,
   Users,
-  ExternalLink,
-  Edit,
-  Archive,
+  // ExternalLink,
+  // Edit,
+  // Archive,
   MoreHorizontal,
   Eye,
   TrendingUp,
@@ -65,7 +65,7 @@ export default function CompaniesPage() {
   // Start deal process for a company
   const handleStartDeal = async (companyId: string) => {
     try {
-      console.log('Starting deal process for company:', companyId)
+      // console.log('Starting deal process for company:', companyId)
       
       // First, get the current company data
       const getResponse = await fetch(`/api/companies/${companyId}`)
@@ -89,7 +89,7 @@ export default function CompaniesPage() {
       }
       
       // Log what we're sending for debugging
-      console.log('Creating deal with data:', dealData)
+      // console.log('Creating deal with data:', dealData)
       
       // Create the deal
       const response = await fetch('/api/deals', {
@@ -102,7 +102,7 @@ export default function CompaniesPage() {
 
       if (response.ok) {
         const result = await response.json()
-        console.log('Deal started successfully:', result)
+        // console.log('Deal started successfully:', result)
         
         // Update local state to reflect the change
         setCompanies(prev => prev.map(c => 
@@ -120,11 +120,11 @@ export default function CompaniesPage() {
         }, 1000)
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
-        console.error('Failed to start deal process:', response.status, errorData)
+        // console.error('Failed to start deal process:', response.status, errorData)
         alert(`Failed to start deal process: ${errorData.message || response.statusText}`)
       }
     } catch (error) {
-      console.error('Error starting deal:', error)
+      // console.error('Error starting deal:', error)
       alert('Error starting deal process. Please check your connection and try again.')
     }
   }
@@ -140,7 +140,7 @@ export default function CompaniesPage() {
         } else {
           setError('Failed to load companies')
         }
-      } catch (err) {
+      } catch (_err) {
         setError('Network error loading companies')
       } finally {
         setLoading(false)
@@ -191,7 +191,7 @@ export default function CompaniesPage() {
     }
   }
 
-  const formatHeadquarters = (hq: string | { city?: string; country?: string } | undefined) => {
+  const _formatHeadquarters = (hq: string | { city?: string; country?: string } | undefined) => {
     if (!hq) return 'Not specified'
     if (typeof hq === 'string') return hq
     if (typeof hq === 'object') {

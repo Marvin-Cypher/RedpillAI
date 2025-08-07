@@ -102,19 +102,19 @@ export default function DealDetailPage() {
               const companyData = await companyResponse.json()
               setCompany(companyData)
             } else {
-              console.error('Failed to load company:', companyResponse.status)
+              // console.error('Failed to load company:', companyResponse.status)
               setCompany(null)
             }
           } else {
-            console.error('Deal not found:', dealId)
+            // console.error('Deal not found:', dealId)
             setDeal(null)
             setCompany(null)
           }
         } else {
-          console.error('Failed to load deals:', dealsResponse.status)
+          // console.error('Failed to load deals:', dealsResponse.status)
         }
       } catch (error) {
-        console.error('Error loading deal and company:', error)
+        // console.error('Error loading deal and company:', error)
         setDeal(null)
         setCompany(null)
       } finally {
@@ -131,15 +131,15 @@ export default function DealDetailPage() {
   useEffect(() => {
     const loadMemos = () => {
       if (company?.id) {
-        console.log('🔍 Loading memos for company:', company.id, 'Company name:', company?.name)
+        // console.log('🔍 Loading memos for company:', company.id, 'Company name:', company?.name)
         
         // Debug localStorage contents
         const allMemos = JSON.parse(localStorage.getItem('ai_memos') || '[]')
-        console.log('🗄️ All memos in localStorage:', allMemos)
+        // console.log('🗄️ All memos in localStorage:', allMemos)
 
         const { getMemosByProject } = useMemos()
         const projectMemos = getMemosByProject(company.id, 'deal')
-        console.log('📝 Found memos for deal (specific):', projectMemos)
+        // console.log('📝 Found memos for deal (specific):', projectMemos)
 
         // Try to get any memos with this company ID regardless of type
         const companyMemos = allMemos.filter((memo: any) => {
@@ -147,19 +147,19 @@ export default function DealDetailPage() {
           const matchesName = memo.projectName && company?.name && 
             memo.projectName.toLowerCase().includes(company.name.toLowerCase())
           
-          console.log('🔍 Checking memo:', memo.title, {
-            memoProjectId: memo.projectId,
-            memoProjectName: memo.projectName,
-            targetId: company.id,
-            targetName: company?.name,
-            matchesId,
-            matchesName
-          })
+          // console.log('🔍 Checking memo:', memo.title, {
+          //   memoProjectId: memo.projectId,
+          //   memoProjectName: memo.projectName,
+          //   targetId: company.id,
+          //   targetName: company?.name,
+          //   matchesId,
+          //   matchesName
+          // })
           
           return matchesId || matchesName
         })
         
-        console.log('📝 All company memos found:', companyMemos)
+        // console.log('📝 All company memos found:', companyMemos)
         setMemos(companyMemos.length > 0 ? companyMemos : projectMemos)
       }
     }
@@ -173,7 +173,7 @@ export default function DealDetailPage() {
   useEffect(() => {
     const handleMemoUpdate = () => {
       if (company?.id) {
-        console.log('🔄 Memo update event triggered')
+        // console.log('🔄 Memo update event triggered')
         const { getMemosByProject } = useMemos()
         const projectMemos = getMemosByProject(company.id, 'deal')
         setMemos(projectMemos)
@@ -969,7 +969,7 @@ export default function DealDetailPage() {
                 alert(`Failed to update deal: ${error.message || error.detail}`)
               }
             } catch (error) {
-              console.error('Error updating deal:', error)
+              // console.error('Error updating deal:', error)
               alert('Error updating deal. Please try again.')
             }
           }}

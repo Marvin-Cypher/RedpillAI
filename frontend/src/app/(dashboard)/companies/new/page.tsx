@@ -11,7 +11,7 @@ import {
   ArrowLeft,
   Building2,
   Globe,
-  Save,
+  // Save,
   Loader2,
   AlertCircle,
   Sparkles,
@@ -69,7 +69,7 @@ export default function NewCompanyPage() {
       })
 
       if (response.ok) {
-        const result = await response.json()
+        const _result = await response.json()
         setSuccess(true)
         setIsEnriching(false)
         
@@ -82,7 +82,7 @@ export default function NewCompanyPage() {
         setError(errorData.message || 'Failed to create company')
         setIsEnriching(false)
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Network error. Please try again.')
       setIsEnriching(false)
     } finally {

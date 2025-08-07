@@ -3,7 +3,7 @@
 import { HTMLAttributes, useState, useEffect } from "react"
 import { z } from "zod"
 import { useForm } from "react-hook-form"
-import { IconBrandFacebook, IconBrandGithub } from "@tabler/icons-react"
+// import { IconBrandFacebook, IconBrandGithub } from "@tabler/icons-react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -73,9 +73,9 @@ export function UserAuthForm({
     try {
       await login(data.email, data.password)
       // Redirect will happen via useEffect when isAuthenticated becomes true
-    } catch (error) {
+    } catch (_error) {
       // Error is handled by the store
-      console.error('Login failed:', error)
+      // console.error('Login failed:', error)
     } finally {
       setIsLoading(false)
     }
@@ -88,8 +88,8 @@ export function UserAuthForm({
     setIsLoading(true)
     try {
       await login('demo@redpillvc.com', 'demo123')
-    } catch (error) {
-      console.error('Demo login failed:', error)
+    } catch (_error) {
+      // console.error('Demo login failed:', error)
     } finally {
       setIsLoading(false)
     }

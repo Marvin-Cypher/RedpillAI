@@ -1,6 +1,5 @@
 "use client"
 
-import React from 'react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
@@ -29,10 +28,10 @@ import {
   Filter, 
   User,
   Clock,
-  MessageSquare,
+  // MessageSquare,
   Eye,
   Briefcase,
-  Building2
+  // Building2
 } from 'lucide-react'
 import { ChatWithAIButton } from '@/components/ai'
 import { DealEditDialog } from '@/components/deals/DealEditDialog'
@@ -91,16 +90,16 @@ const PIPELINE_STAGES = [
 ]
 
 export default function DealflowPage() {
-  const router = useRouter()
+  const _router = useRouter()
   const [deals, setDeals] = useState<Deal[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedFilter, setSelectedFilter] = useState<string>('all')
   const [draggedDeal, setDraggedDeal] = useState<Deal | null>(null)
   const [loading, setLoading] = useState(true)
   const [isAddDealDialogOpen, setIsAddDealDialogOpen] = useState(false)
-  const [availableCompanies, setAvailableCompanies] = useState<any[]>([])
+  const [availableCompanies, setAvailableCompanies] = useState<unknown[]>([])
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
-  const [selectedCompany, setSelectedCompany] = useState<any>(null)
+  const [selectedCompany, setSelectedCompany] = useState<unknown>(null)
   const [newCompanyForm, setNewCompanyForm] = useState({ name: '', domain: '' })
   const [createNewCompany, setCreateNewCompany] = useState(false)
 
@@ -117,13 +116,13 @@ export default function DealflowPage() {
         const companies = Array.isArray(companiesResponse) ? companiesResponse : companiesResponse.companies || []
         setAvailableCompanies(companies)
         
-        console.log('✅ Loaded deals from backend:', backendDeals)
-        console.log('✅ Loaded companies for enrichment:', companies)
+        // console.log('✅ Loaded deals from backend:', backendDeals)
+        // console.log('✅ Loaded companies for enrichment:', companies)
         
         // Transform backend deals to frontend format
-        const transformedDeals: Deal[] = backendDeals.map((deal: any) => {
+        const transformedDeals: Deal[] = backendDeals.map((deal: unknown) => {
           // Find company info
-          const company = companies.find((c: any) => c.id === deal.company_id) || {
+          const company = companies.find((c: unknown) => (c as any).id === (deal as any).company_id) || {
             name: 'Unknown Company',
             sector: 'Unknown',
             company_type: 'Unknown'
@@ -158,7 +157,7 @@ export default function DealflowPage() {
         
         setDeals(transformedDeals)
       } catch (error) {
-        console.error('Error loading deals:', error)
+        // console.error('Error loading deals:', error)
       } finally {
         setLoading(false)
       }
@@ -228,7 +227,7 @@ export default function DealflowPage() {
       try {
         const backendStatus = STATUS_TO_BACKEND_MAP[targetStage]
         if (backendStatus) {
-          console.log(`🔄 Updating deal ${draggedDeal.id} from ${draggedDeal.stage} to ${targetStage} (backend: ${backendStatus})`)
+          // console.log(`🔄 Updating deal ${draggedDeal.id} from ${draggedDeal.stage} to ${targetStage} (backend: ${backendStatus})`)
           
           const response = await fetch(`/api/deals/${draggedDeal.id}`, {
             method: 'PUT',
@@ -237,11 +236,11 @@ export default function DealflowPage() {
           })
 
           if (response.ok) {
-            const updatedDeal = await response.json()
-            console.log('✅ Deal status updated successfully:', updatedDeal)
+            const _updatedDeal = await response.json()
+            // console.log('✅ Deal status updated successfully:', updatedDeal)
           } else {
             const errorData = await response.json().catch(() => ({ message: 'Failed to update deal' }))
-            console.error('❌ Failed to update deal status:', response.status, errorData)
+            // console.error('❌ Failed to update deal status:', response.status, errorData)
             
             // Revert local state on error
             setDeals(deals => deals.map(deal => 
@@ -254,7 +253,7 @@ export default function DealflowPage() {
           }
         }
       } catch (error) {
-        console.error('💥 Error updating deal status:', error)
+        // console.error('💥 Error updating deal status:', error)
         
         // Revert local state on error
         setDeals(deals => deals.map(deal => 
@@ -641,7 +640,7 @@ export default function DealflowPage() {
                     
                     if (companyResponse.ok) {
                       const newCompany = await companyResponse.json()
-                      console.log('Company created:', newCompany)
+                      // console.log('Company created:', newCompany)
                       
                       // Now create a deal for the new company
                       const dealData = {
@@ -664,8 +663,8 @@ export default function DealflowPage() {
                       })
                       
                       if (dealResponse.ok) {
-                        const newDeal = await dealResponse.json()
-                        console.log('Deal created:', newDeal)
+                        const _newDeal = await dealResponse.json()
+                        // console.log('Deal created:', newDeal)
                         setIsAddDealDialogOpen(false)
                         setNewCompanyForm({ name: '', domain: '' })
                         window.location.reload()
@@ -678,7 +677,7 @@ export default function DealflowPage() {
                       alert(`Failed to create company: ${companyError.message || companyError.detail}`)
                     }
                   } catch (error) {
-                    console.error('Error creating company:', error)
+                    // console.error('Error creating company:', error)
                     alert('Error creating company. Please try again.')
                   }
                 } else if (selectedCompanyId) {
@@ -687,7 +686,7 @@ export default function DealflowPage() {
                     const company = availableCompanies.find(c => c.id === selectedCompanyId)
                     if (!company) return
                     
-                    console.log('🏢 Selected company:', company)
+                    // console.log('🏢 Selected company:', company)
                     
                     // Create a new deal for this company
                     const dealData = {
@@ -703,7 +702,7 @@ export default function DealflowPage() {
                       internal_notes: `Deal started for ${company.name}`
                     }
                     
-                    console.log('💼 Creating deal with data:', dealData)
+                    // console.log('💼 Creating deal with data:', dealData)
                     
                     const response = await fetch('/api/deals', {
                       method: 'POST',
@@ -713,18 +712,18 @@ export default function DealflowPage() {
                     
                     if (response.ok) {
                       const result = await response.json()
-                      console.log('Deal created successfully:', result)
+                      // console.log('Deal created successfully:', result)
                       setIsAddDealDialogOpen(false)
                       setSelectedCompanyId('')
                       // Reload deals
                       window.location.reload()
                     } else {
                       const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
-                      console.error('Failed to create deal:', response.status, errorData)
+                      // console.error('Failed to create deal:', response.status, errorData)
                       alert(`Failed to start deal: ${errorData.message || errorData.detail || response.statusText}. Please try again.`)
                     }
                   } catch (error) {
-                    console.error('Error starting deal:', error)
+                    // console.error('Error starting deal:', error)
                     alert('Error starting deal. Please try again.')
                   }
                 }
@@ -765,7 +764,7 @@ export default function DealflowPage() {
                 alert(`Failed to create deal: ${errorData.message || errorData.detail}`)
               }
             } catch (error) {
-              console.error('Error creating deal:', error)
+              // console.error('Error creating deal:', error)
               alert('Error creating deal. Please try again.')
             }
           }}
