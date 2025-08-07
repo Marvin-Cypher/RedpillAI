@@ -85,7 +85,7 @@ async def root():
 
 
 # Import and include routers
-from .api import auth, companies, deals, ai_chat, market, portfolio, workflows, metrics
+from .api import auth, companies, deals, ai_chat, market, portfolio, workflows, metrics, dashboards, gp_dashboard
 from .api.v1 import data
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
@@ -97,6 +97,8 @@ app.include_router(portfolio.router, prefix="/api/v1/portfolio", tags=["portfoli
 app.include_router(workflows.router, prefix="/api/v1/workflows", tags=["workflows"])
 app.include_router(data.router, prefix="/api/v1/data", tags=["data-optimization"])
 app.include_router(metrics.router, prefix="/api/v1/metrics", tags=["metrics"])
+app.include_router(dashboards.router, prefix="/api/v1/dashboards", tags=["dashboards"])
+app.include_router(gp_dashboard.router, prefix="/api/v1/gp", tags=["gp-dashboard"])
 
 
 if __name__ == "__main__":
