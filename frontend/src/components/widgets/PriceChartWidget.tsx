@@ -7,12 +7,13 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-  LineChart,
+  Area,
+  AreaChart,
   Line,
+  LineChart,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
   ReferenceLine
 } from 'recharts';
@@ -26,6 +27,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart';
 import { TrendingUp, TrendingDown, DollarSign, RefreshCw } from 'lucide-react';
 import { WidgetProps, PriceData } from '@/lib/widgets/types';
 import { BaseWidget } from './BaseWidget';
@@ -343,29 +350,74 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
 
         {/* Chart */}
         <div className="flex-1 min-h-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <ChartContainer 
+            config={{
+              price: {
+                label: "Price",
+                color: priceChange >= 0 ? "hsl(142, 76%, 36%)" : "hsl(346, 87%, 43%)",
+              },
+              sma20: {
+                label: "SMA(20)",
+                color: "hsl(38, 92%, 50%)",
+              },
+              ema20: {
+                label: "EMA(20)",
+                color: "hsl(142, 76%, 36%)",
+              },
+            } as ChartConfig}
+            className="h-full w-full"
+          >
+            <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+              <defs>
+                <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                  <stop 
+                    offset="5%" 
+                    stopColor={priceChange >= 0 ? '#10b981' : '#ef4444'} 
+                    stopOpacity={0.3}
+                  />
+                  <stop 
+                    offset="95%" 
+                    stopColor={priceChange >= 0 ? '#10b981' : '#ef4444'} 
+                    stopOpacity={0}
+                  />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis 
                 dataKey="formattedDate" 
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                tick={{ fontSize: 10 }}
+                className="text-muted-foreground"
                 interval="preserveStartEnd"
               />
               <YAxis 
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                domain={['dataMin - 5', 'dataMax + 5']}
+                tick={{ fontSize: 10 }}
+                className="text-muted-foreground"
+                domain={['dataMin * 0.98', 'dataMax * 1.02']}
                 tickFormatter={(value) => `$${value.toFixed(0)}`}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value: any, name: string) => {
+                      const formattedValue = typeof value === 'number' ? `$${value.toFixed(2)}` : value;
+                      return (
+                        <div className="flex justify-between gap-2">
+                          <span>{name}:</span>
+                          <span className="font-medium">{formattedValue}</span>
+                        </div>
+                      );
+                    }}
+                  />
+                }
+              />
               
-              {/* Price Line */}
-              <Line
+              {/* Price Area */}
+              <Area
                 type="monotone"
                 dataKey="close"
-                stroke="hsl(var(--primary))"
+                stroke={priceChange >= 0 ? '#10b981' : '#ef4444'}
+                fill="url(#colorPrice)"
                 strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4 }}
               />
               
               {/* Technical Indicators */}
@@ -374,7 +426,7 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
                   type="monotone"
                   dataKey="sma20"
                   stroke="#F59E0B"
-                  strokeWidth={1}
+                  strokeWidth={1.5}
                   strokeDasharray="5 5"
                   dot={false}
                 />
@@ -385,13 +437,13 @@ const PriceChartWidget: React.FC<WidgetProps> = ({
                   type="monotone"
                   dataKey="ema20"
                   stroke="#10B981"
-                  strokeWidth={1}
+                  strokeWidth={1.5}
                   strokeDasharray="3 3"
                   dot={false}
                 />
               )}
-            </LineChart>
-          </ResponsiveContainer>
+            </AreaChart>
+          </ChartContainer>
         </div>
 
         {/* Legend */}

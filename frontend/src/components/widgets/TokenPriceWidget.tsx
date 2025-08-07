@@ -19,6 +19,16 @@ import {
 } from 'lucide-react';
 import { WidgetProps } from '@/lib/widgets/types';
 import { BaseWidget } from './BaseWidget';
+import {
+  Area,
+  AreaChart,
+  ResponsiveContainer,
+  YAxis
+} from 'recharts';
+import {
+  ChartContainer,
+  type ChartConfig,
+} from '@/components/ui/chart';
 
 interface TokenPriceData {
   symbol?: string;
@@ -51,6 +61,7 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
   const [selfData, setSelfData] = useState<TokenPriceData | null>(null);
   const [selfLoading, setSelfLoading] = useState(false);
   const [selfError, setSelfError] = useState<string | null>(null);
+  const [sparklineData, setSparklineData] = useState<any[]>([]);
 
   // Self-sufficient data fetching (when no data is provided)
   useEffect(() => {
@@ -76,6 +87,31 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
         });
     }
   }, [data, loading, widget, companyId]);
+
+  // Fetch sparkline data when we have token data
+  useEffect(() => {
+    const tokenData = data || selfData;
+    if (tokenData?.symbol && companyId) {
+      console.log('📈 Fetching sparkline data for:', tokenData.symbol);
+      
+      // Fetch 7-day historical data for sparkline
+      fetch(`/api/market/crypto/${tokenData.symbol}/historical?days=7`)
+        .then(res => res.json())
+        .then(result => {
+          if (result?.data && Array.isArray(result.data)) {
+            // Transform data for sparkline (simplified, just price)
+            const sparkline = result.data.map((item: any) => ({
+              price: item.close || item.price || 0
+            }));
+            setSparklineData(sparkline);
+            console.log('✅ Sparkline data loaded:', sparkline.length, 'points');
+          }
+        })
+        .catch(err => {
+          console.error('❌ Failed to fetch sparkline data:', err);
+        });
+    }
+  }, [data, selfData, companyId]);
 
   // Determine which data/loading/error to use
   const actualData = data || selfData;
@@ -219,6 +255,48 @@ const TokenPriceWidget: React.FC<WidgetProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Mini Price Chart (Sparkline) */}
+        {sparklineData.length > 0 && (
+          <div className="h-16 -mx-2 my-3">
+            <ChartContainer
+              config={{
+                price: {
+                  label: "Price",
+                  color: tokenData.price_change_percentage_24h >= 0 
+                    ? "hsl(142, 76%, 36%)" 
+                    : "hsl(346, 87%, 43%)",
+                },
+              } as ChartConfig}
+              className="h-full w-full"
+            >
+              <AreaChart data={sparklineData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                <defs>
+                  <linearGradient id="colorTokenPrice" x1="0" y1="0" x2="0" y2="1">
+                    <stop 
+                      offset="5%" 
+                      stopColor={tokenData.price_change_percentage_24h >= 0 ? '#10b981' : '#ef4444'} 
+                      stopOpacity={0.3}
+                    />
+                    <stop 
+                      offset="95%" 
+                      stopColor={tokenData.price_change_percentage_24h >= 0 ? '#10b981' : '#ef4444'} 
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
+                <YAxis hide domain={['dataMin * 0.99', 'dataMax * 1.01']} />
+                <Area
+                  type="monotone"
+                  dataKey="price"
+                  stroke={tokenData.price_change_percentage_24h >= 0 ? '#10b981' : '#ef4444'}
+                  fill="url(#colorTokenPrice)"
+                  strokeWidth={1.5}
+                />
+              </AreaChart>
+            </ChartContainer>
+          </div>
+        )}
 
         {/* Market Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
