@@ -20,7 +20,8 @@ export enum WidgetType {
   SEC_FILINGS_VIEWER = 'sec_filings_viewer',
   RISK_SENTIMENT_HEATMAP = 'risk_sentiment_heatmap',
   CAP_TABLE_EVOLUTION = 'cap_table_evolution',
-  ESG_IMPACT_METRICS = 'esg_impact_metrics'
+  ESG_IMPACT_METRICS = 'esg_impact_metrics',
+  FOUNDERS = 'founders'
 }
 
 export interface GridPosition {
@@ -60,7 +61,7 @@ export interface WidgetMetadata {
   defaultSize: GridPosition;
   configSchema: Record<string, any>;
   icon: string;
-  category: 'market' | 'analysis' | 'news' | 'portfolio' | 'company' | 'finance' | 'crypto' | 'regulatory' | 'risk' | 'ownership' | 'impact';
+  category: 'market' | 'analysis' | 'news' | 'portfolio' | 'company' | 'finance' | 'crypto' | 'regulatory' | 'risk' | 'ownership' | 'impact' | 'talent';
   compatibleAssetTypes?: Array<'private' | 'crypto' | 'public'>;
 }
 

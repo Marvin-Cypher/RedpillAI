@@ -38,9 +38,13 @@ import {
   FileText,
   BarChart3,
   PieChart,
-  Activity
+  Activity,
+  Users
 } from 'lucide-react'
 import { Widget, WidgetType } from '@/lib/widgets/types'
+import { widgetRegistry } from '@/lib/widgets/registry'
+// Import to ensure widgets are registered
+import '@/lib/widgets/registerWidgets'
 
 interface WidgetManagerProps {
   widgets: Widget[]
@@ -57,59 +61,33 @@ interface WidgetTemplate {
   title: string
   description: string
   icon: React.ReactNode
-  category: 'metrics' | 'financial' | 'market' | 'research'
+  category: string
 }
 
-const AVAILABLE_WIDGETS: WidgetTemplate[] = [
-  {
-    id: 'key-metrics',
-    type: WidgetType.KEY_METRICS,
-    title: 'Key Metrics',
-    description: 'Revenue, growth, employees, and core business metrics',
-    icon: <TrendingUp className="w-5 h-5" />,
-    category: 'metrics'
-  },
-  {
-    id: 'fundamentals',
-    type: WidgetType.FUNDAMENTALS,
-    title: 'Company Fundamentals',
-    description: 'Financial ratios and company fundamentals',
-    icon: <PieChart className="w-5 h-5" />,
-    category: 'financial'
-  },
-  {
-    id: 'price-chart',
-    type: WidgetType.PRICE_CHART,
-    title: 'Price Chart',
-    description: 'Historical price data and trends',
-    icon: <BarChart3 className="w-5 h-5" />,
-    category: 'market'
-  },
-  {
-    id: 'token-price',
-    type: WidgetType.TOKEN_PRICE,
-    title: 'Token Price',
-    description: 'Real-time token price and market data',
-    icon: <Activity className="w-5 h-5" />,
-    category: 'market'
-  },
-  {
-    id: 'peer-comparison',
-    type: WidgetType.PEER_COMPARISON,
-    title: 'Peer Comparison',
-    description: 'Compare metrics with peer companies',
-    icon: <BarChart3 className="w-5 h-5" />,
-    category: 'market'
-  },
-  {
-    id: 'news-feed',
-    type: WidgetType.NEWS_FEED,
-    title: 'Latest News',
-    description: 'Recent news and updates about the company',
-    icon: <FileText className="w-5 h-5" />,
-    category: 'research'
-  }
-]
+// Icon mapping for widget types
+const WIDGET_ICONS: Record<string, React.ReactNode> = {
+  'TrendingUp': <TrendingUp className="w-5 h-5" />,
+  'PieChart': <PieChart className="w-5 h-5" />,
+  'BarChart3': <BarChart3 className="w-5 h-5" />,
+  'Activity': <Activity className="w-5 h-5" />,
+  'FileText': <FileText className="w-5 h-5" />,
+  'Users': <Users className="w-5 h-5" />,
+}
+
+// Get available widgets from the registry
+const getAvailableWidgets = (): WidgetTemplate[] => {
+  const registryWidgets = widgetRegistry.getAvailableWidgets()
+  return registryWidgets.map((metadata) => ({
+    id: metadata.type.toLowerCase().replace('_', '-'),
+    type: metadata.type,
+    title: metadata.name,
+    description: metadata.description,
+    icon: WIDGET_ICONS[metadata.icon] || <Settings className="w-5 h-5" />,
+    category: metadata.category
+  }))
+}
+
+const AVAILABLE_WIDGETS = getAvailableWidgets()
 
 export function WidgetManager({ 
   widgets, 

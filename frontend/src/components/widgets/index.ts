@@ -11,6 +11,7 @@ export { default as PriceChartWidget } from './PriceChartWidget'
 export { default as TokenPriceWidget } from './TokenPriceWidget'
 export { default as KeyMetricsWidget } from './KeyMetricsWidget'
 export { default as BaseWidget } from './BaseWidget'
+export { FoundersWidget } from './FoundersWidget'
 
 // Widget management components
 export { WidgetManager } from './WidgetManager'

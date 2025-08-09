@@ -53,14 +53,14 @@ export const BaseWidget: React.FC<BaseWidgetProps & { children: React.ReactNode;
 
   // Auto-refresh functionality
   useEffect(() => {
-    if (!widget.refreshInterval || isEditing) return;
+    if (!widget?.refreshInterval || isEditing) return;
 
     const interval = setInterval(() => {
       handleRefresh();
-    }, widget.refreshInterval * 1000);
+    }, widget?.refreshInterval * 1000);
 
     return () => clearInterval(interval);
-  }, [widget.refreshInterval, isEditing]);
+  }, [widget?.refreshInterval, isEditing]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -81,7 +81,7 @@ export const BaseWidget: React.FC<BaseWidgetProps & { children: React.ReactNode;
 
   const handleConfigure = () => {
     if (onUpdate) {
-      onUpdate(widget.config);
+      onUpdate?.(widget?.config || {});
     }
   };
 
@@ -122,7 +122,7 @@ export const BaseWidget: React.FC<BaseWidgetProps & { children: React.ReactNode;
       <CardHeader className="flex flex-row items-center justify-between py-3 px-4 space-y-0">
         <div className="flex items-center space-x-2">
           <CardTitle className="text-sm font-medium text-gray-900">
-            {widget.title}
+            {widget?.title || 'Widget'}
           </CardTitle>
           
           {/* Status indicators */}
@@ -248,15 +248,15 @@ export const withWidgetData = <T extends object>(
 
     useEffect(() => {
       fetchData();
-    }, [props.widget.dataSource, props.companyId]);
+    }, [props.widget?.dataSource, props.companyId]);
 
     // Auto-refresh based on widget configuration
     useEffect(() => {
-      if (!props.widget.refreshInterval) return;
+      if (!props.widget?.refreshInterval) return;
 
-      const interval = setInterval(fetchData, props.widget.refreshInterval * 1000);
+      const interval = setInterval(fetchData, (props.widget?.refreshInterval || 300) * 1000);
       return () => clearInterval(interval);
-    }, [props.widget.refreshInterval]);
+    }, [props.widget?.refreshInterval]);
 
     return (
       <WrappedComponent

@@ -29,7 +29,9 @@ import {
   Bell,
   Bot,
   Shield,
-  Activity
+  Activity,
+  Sparkles,
+  Users
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Logo } from "@/components/logo"
@@ -65,6 +67,16 @@ export const sidebarData: SidebarData = {
       title: "📂 Core",
       items: [
         {
+          title: "AI Discovery",
+          url: "/discovery",
+          icon: Sparkles,
+        },
+        {
+          title: "Founder Radar",
+          url: "/discovery/people",
+          icon: Users,
+        },
+        {
           title: "GP Dashboard",
           url: "/gp-dashboard",
           icon: BarChart3,
@@ -98,6 +110,11 @@ export const sidebarData: SidebarData = {
           title: "Pipeline",
           url: "/dealflow",
           icon: Target,
+        },
+        {
+          title: "Talent Network",
+          url: "/talent",
+          icon: Users,
         },
         {
           title: "Memos & Notes",

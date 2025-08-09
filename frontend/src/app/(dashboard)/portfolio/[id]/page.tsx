@@ -190,6 +190,23 @@ export default function CompanyDetailPage() {
               position: { x: 0, y: 3, width: 8, height: 4 }
             })
             
+            // Add founders widget for all companies
+            console.log(`👥 Auto-adding founders widget for: ${companyDetails.name}`)
+            defaultWidgets.push({
+              id: `founders_${Date.now()}`,
+              type: 'founders',
+              title: `${companyDetails.name} Founders`,
+              config: {
+                companyName: companyDetails.name,
+                showTracking: true
+              },
+              dataSource: {
+                ticker: companyDetails.token_symbol || companyDetails.name,
+                asset_type: companyDetails.company_type === 'crypto' ? 'crypto' : 'equity'
+              },
+              position: { x: 8, y: 3, width: 4, height: 6 }
+            })
+            
             if (defaultWidgets.length > 0) {
               console.log(`✨ Setting ${defaultWidgets.length} default widgets for ${companyDetails.name}`)
               setWidgets(defaultWidgets)

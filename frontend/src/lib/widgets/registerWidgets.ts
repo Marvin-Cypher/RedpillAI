@@ -13,6 +13,7 @@ import PeerComparisonWidget from '@/components/widgets/PeerComparisonWidget'
 import PriceChartWidget from '@/components/widgets/PriceChartWidget'
 import TokenPriceWidget from '@/components/widgets/TokenPriceWidget'
 import KeyMetricsWidget from '@/components/widgets/KeyMetricsWidget'
+import { FoundersWidget } from '@/components/widgets/FoundersWidget'
 
 // Register all widgets with their metadata
 export function registerAllWidgets() {
@@ -108,6 +109,22 @@ export function registerAllWidgets() {
       configSchema: {},
       icon: 'FileText',
       category: 'research',
+      compatibleAssetTypes: ['private', 'public', 'crypto']
+    }
+  )
+
+  // Founders Widget
+  widgetRegistry.register(
+    WidgetType.FOUNDERS,
+    FoundersWidget,
+    {
+      type: WidgetType.FOUNDERS,
+      name: 'Founders & Team',
+      description: 'Company founders and key team members with tracking capabilities',
+      defaultSize: { x: 0, y: 0, w: 6, h: 6 },
+      configSchema: {},
+      icon: 'Users',
+      category: 'talent',
       compatibleAssetTypes: ['private', 'public', 'crypto']
     }
   )

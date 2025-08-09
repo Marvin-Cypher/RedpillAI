@@ -168,6 +168,10 @@ class WidgetRegistry {
         companyName: 'Unknown Company',
         show_trends: true,
         metric_period: 'monthly'
+      },
+      [WidgetType.FOUNDERS]: {
+        showTracking: true,
+        showSocial: true
       }
     };
 
@@ -195,7 +199,8 @@ class WidgetRegistry {
       [WidgetType.ESG_IMPACT_METRICS]: 86400, // 24 hours
       [WidgetType.TOKEN_PRICE]: 60, // 1 minute
       [WidgetType.INVESTMENT_SUMMARY]: 3600, // 1 hour
-      [WidgetType.KEY_METRICS]: 1800 // 30 minutes
+      [WidgetType.KEY_METRICS]: 1800, // 30 minutes
+      [WidgetType.FOUNDERS]: 3600 // 1 hour
     };
 
     return refreshIntervals[type] || 300;

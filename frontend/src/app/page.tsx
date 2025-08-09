@@ -14,8 +14,8 @@ export default function RootPage() {
     if (isLoading) return
 
     if (isAuthenticated) {
-      // Redirect to dashboard if authenticated
-      router.replace('/dashboard')
+      // Redirect to AI discovery if authenticated
+      router.replace('/discovery')
     } else {
       // Redirect to login if not authenticated
       router.replace('/login')
