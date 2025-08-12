@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     pinecone_index_name: str = "redpill-documents"
     
     # Redpill.ai Configuration
-    redpill_api_key: Optional[str] = None
+    REDPILL_API_KEY: Optional[str] = None
     redpill_api_url: str = "https://api.redpill.ai/v1"
     use_redpill_ai: bool = True  # Prefer redpill.ai over OpenAI when available
     
@@ -43,8 +43,16 @@ class Settings(BaseSettings):
     google_search_api_key: Optional[str] = "AIzaSyD5ZA1xwhdaaaxzueX1IzZRAhkz8Oa3XC4"
     google_search_cx_id: Optional[str] = "7459ee20295754f7f"
     
-    # Tavily API for company data enrichment
+    # Tavily API for company data enrichment (fallback)
     TAVILY_API_KEY: Optional[str] = None
+    
+    # Exa.ai API for advanced search and monitoring (primary)
+    EXA_API_KEY: Optional[str] = None
+    EXA_API_URL: str = "https://api.exa.ai/v1"
+    EXA_DEFAULT_WEBSET_COUNT: int = 20  # Default number of results per webset
+    EXA_MAX_WEBSET_COUNT: int = 100    # Maximum results per webset
+    EXA_TIMEOUT_SECONDS: int = 30      # Request timeout for Exa API
+    EXA_ENABLE_MONITORING: bool = True # Enable webset monitors for news tracking
     
     # OpenBB Platform API Keys
     fmp_api_key: Optional[str] = None

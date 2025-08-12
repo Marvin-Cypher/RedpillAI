@@ -1,0 +1,16 @@
+[
+  {
+    "company_id": "dc65d15c-d50e-4837-8503-ded3f38f4033",
+    "company_name": "Phala Network",
+    "founders": [
+      {
+        "person_id": "16338cfe-4c62-4c05-a612-8b98a684ff66",
+        "name": "Marvin Tong",
+        "title": "Founder",
+        "primary_role": "FOUNDER",
+        "confidence_score": 60,
+        "source": "text_pattern_matching"
+      }
+    ]
+  }
+]

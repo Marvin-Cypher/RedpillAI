@@ -4,13 +4,15 @@ from sqlmodel import Session, select
 from datetime import datetime
 
 from ..database import get_db
-from ..models.companies import Company, CompanyCreate, CompanyUpdate, CompanyRead, CompanySector, CompanyType
+from ..models.companies import Company, CompanyCreate, CompanyUpdate, CompanyRead, CompanyDetailed, CompanySector, CompanyType
 from ..models.users import User
 from ..core.auth import get_current_active_user
 from ..services.market_data_service import market_data_service
 from ..services.tavily_service import TavilyService
-from ..services.company_enrichment import company_enrichment_service
+from ..services.company_enrichment_exa import company_enrichment_service_exa as company_enrichment_service
 from ..services.company_service import company_service
+from ..services.enhanced_company_service import EnhancedCompanyService
+from ..services.unified_company_service import get_unified_company_service
 
 router = APIRouter()
 
@@ -71,70 +73,109 @@ async def create_company(
     db: Session = Depends(get_db)
     # current_user: User = Depends(get_current_active_user)  # Temporarily disabled for testing
 ):
-    """Create a new company with enriched data from Tavily + OpenBB."""
-    # Create company in database first
-    db_company = Company(**company.model_dump())
-    db.add(db_company)
-    db.commit()
-    db.refresh(db_company)
-    
-    # Enrich company data with external sources
+    """Create a new company with unified enrichment including founder extraction."""
     try:
-        enriched_company = await company_enrichment_service.enrich_company_data(db_company, force_refresh=True)
-        db.add(enriched_company)
-        db.commit()
-        db.refresh(enriched_company)
-        return enriched_company
+        # Use demo user ID for now since auth is temporarily disabled
+        demo_user_id = "c52f87cf-141e-4207-978f-f2b77e926f55"
+        
+        # Get unified company service
+        unified_service = get_unified_company_service(db)
+        
+        # Convert CompanyCreate to dict format for unified service
+        company_data = {
+            'name': company.name,
+            'website': company.website,
+            'description': company.description,
+            'company_type': company.company_type,
+            'sector': company.sector,
+            'founded_year': company.founded_year,
+            'headquarters': company.headquarters,
+            'employee_count': company.employee_count,
+            'token_symbol': company.token_symbol
+        }
+        
+        # Create company with unified process (includes founder extraction)
+        result = await unified_service.create_company_unified(
+            company_data=company_data,
+            current_user_id=demo_user_id,
+            source="manual"
+        )
+        
+        if result['status'] == 'exists':
+            # Return existing company
+            return result['company']
+        
+        # Log founder creation success
+        founders_count = len(result['founders'])
+        if founders_count > 0:
+            print(f"✅ Created company {company.name} with {founders_count} founders")
+        else:
+            print(f"✅ Created company {company.name} (no founders found)")
+        
+        return result['company']
+        
     except Exception as e:
-        # If enrichment fails, still return the company but log the error
-        print(f"Warning: Failed to enrich company data for {db_company.name}: {e}")
-        # Return the basic company without enrichment
+        print(f"❌ Failed to create company {company.name}: {e}")
+        # Fallback to basic company creation
+        db_company = Company(**company.model_dump())
+        db_company.created_by = "c52f87cf-141e-4207-978f-f2b77e926f55"
+        db.add(db_company)
+        db.commit()
+        db.refresh(db_company)
         return db_company
 
 
-@router.get("/", response_model=List[CompanyRead])
+@router.get("/", response_model=List[Dict[str, Any]])
 async def list_companies(
-    sector: Optional[CompanySector] = Query(None, description="Filter by sector"),
+    sector: Optional[str] = Query(None, description="Filter by sector"),
     search: Optional[str] = Query(None, description="Search by name"),
+    has_deals: Optional[bool] = Query(None, description="Filter companies with deals"),
+    is_talent_dense: Optional[bool] = Query(None, description="Filter talent-dense companies"),
     skip: int = Query(0, ge=0, description="Number of companies to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of companies to return"),
     db: Session = Depends(get_db)
     # current_user: User = Depends(get_current_active_user)  # Temporarily disabled for testing
 ):
-    """List companies with optional filtering."""
-    statement = select(Company)
+    """List companies with enhanced filtering and summary data."""
+    enhanced_service = EnhancedCompanyService(db)
     
-    # Apply filters
-    if sector:
-        statement = statement.where(Company.sector == sector)
+    companies = await enhanced_service.get_companies_list(
+        sector=sector,
+        search=search,
+        has_deals=has_deals,
+        is_talent_dense=is_talent_dense,
+        skip=skip,
+        limit=limit
+    )
     
-    if search:
-        statement = statement.where(Company.name.ilike(f"%{search}%"))
-    
-    # Add pagination
-    statement = statement.offset(skip).limit(limit)
-    
-    companies = db.exec(statement).all()
     return companies
 
 
-@router.get("/{company_id}", response_model=CompanyRead)
+@router.get("/{company_id}", response_model=Dict[str, Any])
 async def get_company(
     company_id: str,
+    include: str = Query(
+        "basic", 
+        description="Data inclusion level: basic, full, team, relationships, activities, intelligence"
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Get a specific company by ID."""
-    statement = select(Company).where(Company.id == company_id)
-    company = db.exec(statement).first()
+    """Get a specific company by ID with structured relationship data."""
+    enhanced_service = EnhancedCompanyService(db)
     
-    if not company:
+    company_data = await enhanced_service.get_company_detailed(
+        company_id=company_id,
+        include_level=include
+    )
+    
+    if not company_data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Company not found"
         )
     
-    return company
+    return company_data
 
 
 @router.put("/{company_id}", response_model=CompanyRead)
@@ -553,6 +594,142 @@ async def enrich_company_data(
             status_code=500,
             detail=f"Company enrichment failed: {str(e)}"
         )
+
+
+# Enhanced Company Relationship Management Endpoints
+
+@router.post("/{company_id}/founders", response_model=Dict[str, Any])
+async def add_company_founder(
+    company_id: str,
+    founder_data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Add a founder to a company."""
+    enhanced_service = EnhancedCompanyService(db)
+    
+    founder = await enhanced_service.add_founder_to_company(company_id, founder_data)
+    
+    if not founder:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company not found"
+        )
+    
+    return {
+        "status": "success",
+        "founder": founder,
+        "message": f"Added founder {founder['name']} to company"
+    }
+
+
+@router.get("/{company_id}/founders", response_model=List[Dict[str, Any]])
+async def get_company_founders(
+    company_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get all founders for a company."""
+    # Verify company exists
+    company = db.exec(select(Company).where(Company.id == company_id)).first()
+    if not company:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company not found"
+        )
+    
+    enhanced_service = EnhancedCompanyService(db)
+    company_data = await enhanced_service.get_company_detailed(company_id, "team")
+    
+    return company_data.get("founders", [])
+
+
+@router.get("/{company_id}/team", response_model=Dict[str, Any])
+async def get_company_team(
+    company_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get complete team information for a company."""
+    enhanced_service = EnhancedCompanyService(db)
+    company_data = await enhanced_service.get_company_detailed(company_id, "team")
+    
+    if not company_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company not found"
+        )
+    
+    return {
+        "founders": company_data.get("founders", []),
+        "key_people": company_data.get("key_people", []),
+        "talent_metrics": company_data.get("talent_metrics", {})
+    }
+
+
+@router.get("/{company_id}/deals", response_model=List[Dict[str, Any]])
+async def get_company_deals(
+    company_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get all deals for a company."""
+    # Verify company exists
+    company = db.exec(select(Company).where(Company.id == company_id)).first()
+    if not company:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company not found"
+        )
+    
+    enhanced_service = EnhancedCompanyService(db)
+    company_data = await enhanced_service.get_company_detailed(company_id, "relationships")
+    
+    return company_data.get("deals", [])
+
+
+@router.get("/{company_id}/activities", response_model=List[Dict[str, Any]])
+async def get_company_activities(
+    company_id: str,
+    limit: int = Query(20, le=100, description="Number of activities to return"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get recent activities for a company."""
+    enhanced_service = EnhancedCompanyService(db)
+    company_data = await enhanced_service.get_company_detailed(company_id, "activities")
+    
+    if not company_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company not found"
+        )
+    
+    activities = company_data.get("recent_activities", [])
+    return activities[:limit]
+
+
+@router.get("/{company_id}/intelligence", response_model=Dict[str, Any])
+async def get_company_intelligence(
+    company_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get talent intelligence and data source information for a company."""
+    enhanced_service = EnhancedCompanyService(db)
+    company_data = await enhanced_service.get_company_detailed(company_id, "intelligence")
+    
+    if not company_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company not found"
+        )
+    
+    return {
+        "talent_metrics": company_data.get("talent_metrics", {}),
+        "data_sources": company_data.get("data_sources", []),
+        "data_freshness": company_data.get("data_freshness", {})
+    }
 
 
 # NOTE: scrape_website_info moved to services/company_service.py for async-safe operation

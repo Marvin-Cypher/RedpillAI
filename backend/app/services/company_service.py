@@ -10,7 +10,7 @@ from typing import Optional, Dict, Any
 import logging
 
 from ..models.companies import Company
-from ..services.company_enrichment import company_enrichment_service
+from ..services.company_enrichment_exa import company_enrichment_service_exa as company_enrichment_service
 
 logger = logging.getLogger(__name__)
 

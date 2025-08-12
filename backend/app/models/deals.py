@@ -63,11 +63,13 @@ class Deal(DealBase, table=True):
     )
     company_id: str = Field(foreign_key="companies.id", index=True)
     created_by: str = Field(foreign_key="users.id")
+    contact_person_id: Optional[str] = Field(default=None, foreign_key="persons.id", index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Relationships
     company: "Company" = Relationship(back_populates="deals")
+    contact_person: Optional["Person"] = Relationship(back_populates="deals_as_contact")
     conversations: List["Conversation"] = Relationship(back_populates="deal")
     documents: List["Document"] = Relationship(back_populates="deal")
     meetings: List["Meeting"] = Relationship(back_populates="deal")

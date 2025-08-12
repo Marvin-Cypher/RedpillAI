@@ -13,17 +13,17 @@ class AIService:
     
     def __init__(self):
         # Support multiple AI providers
-        self.use_redpill = settings.redpill_api_key and settings.use_redpill_ai
+        self.use_redpill = settings.REDPILL_API_KEY and settings.use_redpill_ai
         
         if self.use_redpill:
             # Use OpenAI client with Redpill baseURL (more reliable)
-            self.api_key = settings.redpill_api_key
+            self.api_key = settings.REDPILL_API_KEY
             self.base_url = settings.redpill_api_url
             self.client = OpenAI(
                 base_url="https://api.redpill.ai/v1",
-                api_key=settings.redpill_api_key
+                api_key=settings.REDPILL_API_KEY
             )
-            self.default_model = "phala/deepseek-chat-v3-0324"
+            self.default_model = "phala/gpt-oss-120b"
             self.use_redpill = True
         else:
             # Fallback to OpenAI

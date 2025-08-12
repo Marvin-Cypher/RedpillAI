@@ -85,20 +85,33 @@ async def root():
 
 
 # Import and include routers
-from .api import auth, companies, deals, ai_chat, market, portfolio, workflows, metrics, dashboards, gp_dashboard
-from .api.v1 import data
+from .api import auth, companies, deals, ai_chat, market
+from .api.v1 import search
 
+# Temporarily disable routers with forward reference issues until we fix Pydantic models
+# from .api import portfolio, workflows, metrics, gp_dashboard, dashboards  
+# from .api.v1 import data, tags, ownership, activities, talent, persons
+
+# Essential routers for Exa.ai integration
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(companies.router, prefix="/api/v1/companies", tags=["companies"])
 app.include_router(deals.router, prefix="/api/v1/deals", tags=["deals"])
 app.include_router(ai_chat.router, prefix="/api/v1/chat", tags=["ai-chat"])
 app.include_router(market.router, prefix="/api/v1/market", tags=["market-data"])
-app.include_router(portfolio.router, prefix="/api/v1/portfolio", tags=["portfolio"])
-app.include_router(workflows.router, prefix="/api/v1/workflows", tags=["workflows"])
-app.include_router(data.router, prefix="/api/v1/data", tags=["data-optimization"])
-app.include_router(metrics.router, prefix="/api/v1/metrics", tags=["metrics"])
-app.include_router(dashboards.router, prefix="/api/v1/dashboards", tags=["dashboards"])
-app.include_router(gp_dashboard.router, prefix="/api/v1/gp", tags=["gp-dashboard"])
+app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
+
+# Temporarily disabled routers until Pydantic forward reference issues are fixed
+# app.include_router(portfolio.router, prefix="/api/v1/portfolio", tags=["portfolio"])
+# app.include_router(workflows.router, prefix="/api/v1/workflows", tags=["workflows"])
+# app.include_router(data.router, prefix="/api/v1/data", tags=["data-optimization"])
+# app.include_router(metrics.router, prefix="/api/v1/metrics", tags=["metrics"])
+# app.include_router(dashboards.router, prefix="/api/v1/dashboards", tags=["dashboards"])
+# app.include_router(gp_dashboard.router, prefix="/api/v1/gp", tags=["gp-dashboard"])
+# app.include_router(persons.router, prefix="/api/v1/persons", tags=["persons"])
+# app.include_router(tags.router, prefix="/api/v1/tags", tags=["tags"])
+# app.include_router(ownership.router, prefix="/api/v1/ownership", tags=["ownership"])
+# app.include_router(activities.router, prefix="/api/v1/activities", tags=["activities"])
+# app.include_router(talent.router, prefix="/api/v1/talent", tags=["talent-intelligence"])
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ from ...services.cost_optimized_data_service import CostOptimizedDataService
 from ...services.smart_cache_service import SmartCacheService
 from ...services.company_data_service import company_data_service
 from ...services.widget_data_enrichment import widget_data_enrichment_service
+from ...services.structured_widget_service import structured_widget_service
 # from ...services.tavily_service import TavilyService  # Disabled - removed fallback integration
 from ...models.cache import CacheResponse, BatchResponse
 from ...core.auth import get_current_user
@@ -60,7 +61,8 @@ def get_simple_cache_stats():
 async def get_company_profile_simple(
     company_id: str,
     website: Optional[str] = Query(None, description="Company website for better identification"),
-    force_refresh: bool = Query(False, description="Force API call even if cached data exists")
+    force_refresh: bool = Query(False, description="Force API call even if cached data exists"),
+    use_structured: bool = Query(False, description="Use structured data from relational tables")
 ):
     """
     Get company profile with intelligent caching.
@@ -68,21 +70,55 @@ async def get_company_profile_simple(
     - **Cache-first**: Returns cached data if available and fresh
     - **Budget-aware**: Checks API budget before expensive calls
     - **Fallback**: Uses expired cache if API fails or budget exceeded
+    - **NEW: Structured data**: Option to use relational tables instead of JSON
     
     Accepts either company UUID or company name for backward compatibility.
     """
     try:
-        # Generate realistic company data based on known companies or cache
-        company_data = await generate_realistic_company_data(company_id, website)
-        
-        return {
-            "data": company_data,
-            "source": "cache" if not force_refresh else "api",
-            "cached": not force_refresh,
-            "cost": 0.0 if not force_refresh else 0.008,
-            "expires_in": 2592000,  # 30 days
-            "confidence_score": 0.85
-        }
+        if use_structured:
+            # Use new structured widget service for profile data
+            logger.info(f"🏗️ Using structured data for company profile: {company_id}")
+            
+            widget_data = await structured_widget_service.get_widget_data(
+                company_id=company_id,
+                widget_types=["profile"],
+                include_level="detailed"
+            )
+            
+            # Extract profile data from widget structure
+            profile_widget = widget_data["widgets"].get("profile", {})
+            company_info = widget_data["company_info"]
+            
+            structured_profile = {
+                **company_info,
+                **profile_widget.get("data", {}),
+                "data_completeness_score": profile_widget.get("data", {}).get("social_proof", {}).get("data_completeness_score", 0),
+                "confidence_indicators": profile_widget.get("data", {}).get("social_proof", {}).get("confidence_indicators", [])
+            }
+            
+            return {
+                "data": structured_profile,
+                "source": "structured_database",
+                "cached": False,
+                "cost": 0.0,
+                "expires_in": 2592000,  # 30 days
+                "confidence_score": 0.95,  # Higher confidence for structured data
+                "data_type": "structured",
+                "widget_metadata": profile_widget.get("data_freshness", {})
+            }
+        else:
+            # Use legacy data generation method
+            company_data = await generate_realistic_company_data(company_id, website)
+            
+            return {
+                "data": company_data,
+                "source": "cache" if not force_refresh else "api",
+                "cached": not force_refresh,
+                "cost": 0.0 if not force_refresh else 0.008,
+                "expires_in": 2592000,  # 30 days
+                "confidence_score": 0.85,
+                "data_type": "legacy"
+            }
         
     except HTTPException:
         # Re-raise HTTPExceptions (like 404s) without converting to 500
@@ -926,6 +962,124 @@ async def cleanup_expired_cache(
         'status': 'cleanup_started',
         'message': 'Cache cleanup is running in the background'
     }
+
+
+@router.get("/companies/{company_id}/structured-widgets")
+async def get_structured_widget_data(
+    company_id: str,
+    widget_types: List[str] = Query(
+        ["profile", "team", "financial", "tags", "activity"], 
+        description="Widget types: profile, team, financial, tags, activity, ownership"
+    ),
+    include_level: str = Query(
+        "detailed", 
+        regex="^(basic|detailed|intelligence)$", 
+        description="Data detail level"
+    )
+):
+    """
+    **NEW: Structured Widget Data Endpoint**
+    
+    Get widget-ready data using structured database relationships instead of JSON fields.
+    This endpoint uses the new relational tables (Person, Tag, Ownership, Activity).
+    
+    **Features:**
+    - 🏗️ Uses structured Person, Tag, Ownership, Activity tables
+    - 🎯 Widget-specific data transformations
+    - 📊 Calculated metrics and insights from relationships
+    - 🔄 Backward compatible with legacy widgets
+    - ⚡ High performance with proper database joins
+    
+    **Widget Types:**
+    - `profile`: Company overview with data completeness scoring
+    - `team`: Founders and key people from Person table
+    - `financial`: Financial metrics enhanced with ownership data
+    - `tags`: Company tags with categorization and insights
+    - `activity`: Timeline of interactions and events
+    - `ownership`: Cap table and ownership structure
+    
+    **Include Levels:**
+    - `basic`: Essential data only
+    - `detailed`: Full widget data with metrics
+    - `intelligence`: Enhanced with insights and recommendations
+    """
+    try:
+        logger.info(f"🎨 Fetching structured widget data for company: {company_id}")
+        
+        # Get structured widget data
+        widget_data = await structured_widget_service.get_widget_data(
+            company_id=company_id,
+            widget_types=widget_types,
+            include_level=include_level
+        )
+        
+        logger.info(f"✅ Structured widget data prepared for {widget_data['company_info']['name']}")
+        
+        return {
+            "status": "success",
+            "message": f"Structured widget data retrieved successfully",
+            "company_id": company_id,
+            "widget_data": widget_data,
+            "data_source": "structured_relationships",
+            "widgets_requested": widget_types,
+            "include_level": include_level,
+            "generated_at": datetime.utcnow().isoformat()
+        }
+        
+    except ValueError as e:
+        # Company not found or invalid parameters
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"❌ Structured widget data failed for {company_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve structured widget data: {str(e)}"
+        )
+
+
+@router.get("/companies/{company_id}/legacy-compatible-widgets")
+async def get_legacy_compatible_widget_data(
+    company_id: str,
+    force_fallback: bool = Query(False, description="Force fallback to cached JSON data")
+):
+    """
+    **Legacy Compatibility Widget Endpoint**
+    
+    Get widget data in the legacy JSON format for backward compatibility.
+    This endpoint transforms structured data back to the original JSON format
+    that existing widgets expect during the migration period.
+    
+    **Migration Support:**
+    - ✅ Maintains existing widget compatibility
+    - 🔄 Uses structured data when available
+    - 📦 Falls back to cached JSON when needed
+    - 🔧 Smooth transition during data migration
+    """
+    try:
+        logger.info(f"📋 Fetching legacy-compatible data for company: {company_id}")
+        
+        # Get data in legacy format
+        legacy_data = await structured_widget_service.get_legacy_compatibility_data(
+            company_id=company_id,
+            force_fallback=force_fallback
+        )
+        
+        logger.info(f"✅ Legacy-compatible data prepared for {legacy_data.get('name', company_id)}")
+        
+        return {
+            "status": "success",
+            "data": legacy_data,
+            "compatibility_mode": "legacy_json",
+            "data_source": legacy_data.get("_meta", {}).get("source", "unknown"),
+            "generated_at": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Legacy compatibility data failed for {company_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve legacy-compatible data: {str(e)}"
+        )
 
 
 @router.post("/companies/{company_id}/refresh-for-widgets")

@@ -372,3 +372,7 @@ WIDGET_LIBRARY = [
         config_schema={}
     )
 ]
+
+# Rebuild models to resolve forward references
+DashboardLayoutRead.model_rebuild()
+WidgetConfigurationRead.model_rebuild()

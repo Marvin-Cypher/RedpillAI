@@ -2,11 +2,24 @@ from .deals import Deal, DealCreate, DealUpdate, DealStatus, InvestmentStage
 from .companies import Company, CompanyCreate, CompanyUpdate
 from .conversations import Conversation, ConversationCreate, Message, ConversationType
 from .users import User, UserCreate, UserUpdate
+from .persons import Person, PersonCreate, PersonUpdate, PersonRead, PersonReadWithCompany, PersonReadWithOwnerships, PERSON_ROLES
+from .tags import Tag, TagCreate, TagUpdate, TagRead, TagReadWithUsage, TAG_CATEGORIES, CompanyTag, DealTag, PersonTag
+from .ownership import Ownership, OwnershipCreate, OwnershipUpdate, OwnershipRead, OwnershipReadWithDetails, OWNERSHIP_TYPES
+from .activities import Activity, ActivityCreate, ActivityRead, ActivityReadWithDetails, ActivityFilter, ACTIVITY_TYPES
 from .dashboards import (
     DashboardLayout, DashboardLayoutCreate, DashboardLayoutUpdate, DashboardLayoutRead,
     WidgetConfiguration, WidgetConfigurationCreate, WidgetConfigurationUpdate, WidgetConfigurationRead,
     CompanyDataSource, CompanyDataSourceCreate, CompanyDataSourceUpdate, CompanyDataSourceRead,
     WidgetDataCache, WidgetType, AssetType, WIDGET_LIBRARY
+)
+from .talent import (
+    TalentProfile, TalentProfileCreate, TalentProfileUpdate, TalentProfileRead,
+    PersonProfessional, PersonProfessionalCreate, PersonProfessionalUpdate, PersonProfessionalRead,
+    Achievement, AchievementCreate, AchievementUpdate, AchievementRead,
+    PlatformProfile, PlatformProfileCreate, PlatformProfileUpdate, PlatformProfileRead,
+    DataSource, DataSourceCreate, DataSourceUpdate, DataSourceRead,
+    CompanyDataSourceTalent, PersonDataSource,
+    TALENT_CATEGORIES, ACHIEVEMENT_TYPES, PLATFORM_TYPES, VERIFICATION_STATUS
 )
 
 __all__ = [
@@ -24,6 +37,34 @@ __all__ = [
     "User",
     "UserCreate",
     "UserUpdate",
+    "Person",
+    "PersonCreate",
+    "PersonUpdate",
+    "PersonRead",
+    "PersonReadWithCompany",
+    "PersonReadWithOwnerships",
+    "PERSON_ROLES",
+    "Tag",
+    "TagCreate",
+    "TagUpdate", 
+    "TagRead",
+    "TagReadWithUsage",
+    "TAG_CATEGORIES",
+    "CompanyTag",
+    "DealTag",
+    "PersonTag",
+    "Ownership",
+    "OwnershipCreate",
+    "OwnershipUpdate",
+    "OwnershipRead",
+    "OwnershipReadWithDetails",
+    "OWNERSHIP_TYPES",
+    "Activity",
+    "ActivityCreate",
+    "ActivityRead",
+    "ActivityReadWithDetails",
+    "ActivityFilter",
+    "ACTIVITY_TYPES",
     "DashboardLayout",
     "DashboardLayoutCreate",
     "DashboardLayoutUpdate", 
@@ -39,5 +80,31 @@ __all__ = [
     "WidgetDataCache",
     "WidgetType",
     "AssetType",
-    "WIDGET_LIBRARY"
+    "WIDGET_LIBRARY",
+    "TalentProfile",
+    "TalentProfileCreate",
+    "TalentProfileUpdate",
+    "TalentProfileRead",
+    "PersonProfessional",
+    "PersonProfessionalCreate",
+    "PersonProfessionalUpdate",
+    "PersonProfessionalRead",
+    "Achievement",
+    "AchievementCreate",
+    "AchievementUpdate",
+    "AchievementRead",
+    "PlatformProfile",
+    "PlatformProfileCreate",
+    "PlatformProfileUpdate",
+    "PlatformProfileRead",
+    "DataSource",
+    "DataSourceCreate",
+    "DataSourceUpdate",
+    "DataSourceRead",
+    "CompanyDataSourceTalent",
+    "PersonDataSource",
+    "TALENT_CATEGORIES",
+    "ACHIEVEMENT_TYPES",
+    "PLATFORM_TYPES",
+    "VERIFICATION_STATUS"
 ]

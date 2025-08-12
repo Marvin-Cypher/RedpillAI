@@ -7,7 +7,12 @@ import pandas as pd
 import asyncio
 import functools
 import os
-from openbb import obb
+try:
+    from openbb import obb
+    OPENBB_AVAILABLE = True
+except ImportError:
+    obb = None
+    OPENBB_AVAILABLE = False
 from pydantic import BaseModel
 from ..config import settings
 

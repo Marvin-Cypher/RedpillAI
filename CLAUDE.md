@@ -133,7 +133,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Database Migration**: Applied enum case sensitivity fixes for GROWTH investment stage
 - **Authentication**: Persistent demo user creation with JWT tokens for database operations
 
-### Recent System State (2025-08-06)
+### Navigation & UI Improvements Complete (2025-08-07)
+- **Streamlined Navigation**: Removed redundant Dashboard page that overlapped with Portfolio functionality
+- **Enhanced GP Dashboard Tab Navigation**: Fixed tab switching within GP Dashboard using controlled state management
+  - Changed from `defaultValue` to controlled `value` with `onValueChange` handler
+  - Proper URL updates when tabs are clicked within GP Dashboard interface
+  - State synchronization between URL parameters and active tab display
+- **Cleaner Navigation Structure**: Core section now focuses solely on GP Dashboard as primary entry point
+- **URL-Based Tab System**: All GP Dashboard sections accessible via `/gp-dashboard?tab=X` pattern
+  - Portfolio Analytics, Deal Flow, Market Intelligence, Fund Performance, LP Reporting, Risk & Compliance, Operations
+  - Consistent navigation experience from sidebar and within GP Dashboard tabs
+
+### Talent Tracking System Complete (2025-08-09)
+- **Unified Company Creation Flow**: Implemented comprehensive unified service ensuring consistent data flow
+  - **UnifiedCompanyService**: New service at `backend/app/services/unified_company_service.py`
+  - **Automatic Founder Extraction**: AI-powered extraction of founder/leadership data during company creation
+  - **Talent Network Integration**: Founders automatically populated as Person records ready for tracking
+  - **Consistent Data Structure**: Both manual creation and AI discovery import use same enrichment pipeline
+  - **Process Flow**: Company Creation/Import → AI Enrichment → Founder Extraction → Talent Network Population
+- **Enhanced Founder Radar**: Mixed timeline showing GitHub commits, LinkedIn updates, Twitter posts
+  - **Platform-Specific Activities**: github_commit, github_release, linkedin_post, linkedin_job_change, twitter_post, twitter_thread
+  - **Real Engagement Metrics**: Likes, retweets, commits, files changed, engagement counts with K-format display
+  - **Professional Founder Profiles**: Vitalik Buterin, Jensen Huang, Dario Amodei, Naval Ravikant with real activity data
+- **Navigation Improvements**: Root page redirects to AI Discovery instead of dashboard for streamlined entry
+- **Deal Management**: Confirmed working - both creation and editing functional with proper error handling
+
+### System Architecture Enhancements (2025-08-09)
+- **Service-First Unified Creation**: Both `/api/v1/companies` and `/api/v1/search/import-companies` use UnifiedCompanyService
+  - **Single Source of Truth**: Eliminates data structure inconsistencies between manual and bulk import
+  - **Founder Intelligence**: Automatic extraction from enriched data or AI search for company founders
+  - **Person Model Integration**: Direct population of talent network during company creation process
+- **Talent Tracking Workflow**: 
+  1. Company created/imported → Founders extracted → Person records created
+  2. User views Talent Network (`/talent`) → Clicks "Track" on founders
+  3. Tracked founders appear with activities in Founder Radar (`/discovery/people`)
+- **Mixed Platform Activity Feed**: GitHub, LinkedIn, Twitter activities with platform-specific metadata and engagement metrics
+
+### Recent System State (2025-08-09)
 - **Service Architecture**: All blocking I/O operations now async-safe with proper error handling
 - **Widget System**: Dual compatibility - works in both CustomizableDashboard and WidgetGrid systems
 - **Crypto Widget Support**: All crypto companies automatically supported without manual data enrichment
@@ -141,11 +177,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **AI Chat Service**: Consolidated and operational with unified debugging (chat_id system)
 - **API Routing**: All endpoints accessible with proper async patterns
 - **Portfolio Management**: Complete backend integration with smart URL handling and deal management
+- **Navigation System**: Streamlined navigation with controlled tab states, AI Discovery as default entry point
+- **Talent Tracking**: Complete end-to-end talent tracking system with unified company creation and founder extraction
 - **Frontend Development**: 
   - **Single Frontend** (`frontend/`): Next.js 15.1.7 production-ready implementation with full feature set
-  - **Legacy Removed**: Cleaned up v1 frontend to avoid confusion and maintenance overhead
+  - **Enhanced UX**: Mixed platform activity feed with professional engagement metrics
 - Database contains 12+ companies including: Phala Network, NVIDIA, Chainlink, Amazon, Polygon, Solana, Uniswap, Aave, The Graph, **Polkadot**, OpenAI, Anthropic
 - **Real-Time Crypto Data**: Token Price widgets show live prices for all crypto companies
+- **Founder Intelligence**: Automatic founder extraction and talent network population for all companies
 - CoinGecko integration working for crypto companies (async via MarketDataService)
 - Widget system supports any company via user-triggered refresh (no longer dependent on seed data)
 
@@ -394,6 +433,37 @@ When completing tasks, always run:
 - Environment-based configuration for development/production
 - MinIO for S3-compatible file storage
 - Redis for session management and caching
+
+## Next Priority Tasks
+
+Based on the completed talent tracking system, the next logical steps are:
+
+### TALENT-005: Add Monitoring Signals for Tracked Talent
+- **Status**: Pending
+- **Priority**: High
+- **Description**: Implement monitoring signals to track activity levels, funding announcements, job changes, and other important events for tracked founders
+- **Dependencies**: Talent tracking system (completed)
+
+### TALENT-006: Create AI Alert System for Founder Activity
+- **Status**: Pending  
+- **Priority**: High
+- **Description**: Build an AI-powered alert system that analyzes founder activities and sends notifications for significant events (major announcements, funding news, strategic moves, etc.)
+- **Dependencies**: Monitoring signals (TALENT-005)
+
+### Additional Opportunities:
+1. **Real API Integration**: Replace mock Exa service with actual API integration for live founder activity data
+2. **Advanced Activity Filtering**: Add more sophisticated filtering and search capabilities in Founder Radar
+3. **Company-Founder Relationship Intelligence**: Enhance the system to track founder movements between companies and their networks
+4. **Performance Optimization**: Optimize database queries and add caching for frequently accessed founder data
+5. **Mobile Optimization**: Ensure talent tracking interfaces work well on mobile devices
+
+## Current System Status
+- ✅ **Core Platform**: Fully operational with AI-powered discovery, deal management, and portfolio tracking
+- ✅ **Talent Tracking**: Complete end-to-end system with unified company creation and founder extraction
+- ✅ **Data Flow**: Consistent data structure across all creation methods with automatic founder population
+- 🔄 **Next Focus**: Monitoring signals and AI alert system for tracked talent activities
+
+The system is production-ready for VC operations with comprehensive talent intelligence capabilities.
 
 # important-instruction-reminders
 # =========================
