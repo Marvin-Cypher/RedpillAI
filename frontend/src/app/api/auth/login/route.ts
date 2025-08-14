@@ -13,9 +13,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Proxy request to backend
+    // Proxy request to backend - use the JSON login endpoint
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000'
-    const response = await fetch(`${backendUrl}/api/v1/auth/login`, {
+    const response = await fetch(`${backendUrl}/api/v1/auth/login/json`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

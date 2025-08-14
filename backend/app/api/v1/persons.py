@@ -5,7 +5,7 @@ from datetime import datetime
 
 from ...database import get_session
 from ...models import (
-    Person, PersonCreate, PersonUpdate, PersonRead, PersonReadWithCompany, 
+    Person, PersonCreate, PersonUpdate, PersonRead,
     PERSON_ROLES, Company
 )
 from ...core.auth import get_current_user_optional
@@ -44,7 +44,7 @@ def get_person_roles():
     return {"roles": PERSON_ROLES}
 
 
-@router.get("/{person_id}", response_model=PersonReadWithCompany)
+@router.get("/{person_id}", response_model=PersonRead)
 def get_person(
     *,
     session: Session = Depends(get_session),
@@ -58,16 +58,7 @@ def get_person(
     if not person:
         raise HTTPException(status_code=404, detail="Person not found")
     
-    # Load company if exists
-    company = None
-    if person.company_id:
-        company = session.get(Company, person.company_id)
-    
-    person_dict = person.dict()
-    if company:
-        person_dict["company"] = company.dict()
-    
-    return PersonReadWithCompany(**person_dict)
+    return person
 
 
 @router.post("/", response_model=PersonRead)

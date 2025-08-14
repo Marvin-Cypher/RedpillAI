@@ -34,10 +34,10 @@ export async function GET(request: NextRequest) {
     let dealsData = []
     try {
       // Use internal API route which handles auth properly
-      const dealsResponse = await fetch(`http://localhost:3000/api/deals`, {
+      const dealsResponse = await fetch(`${API_BASE_URL}/api/v1/deals`, {
         headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
           'Content-Type': 'application/json',
-          'Cookie': request.headers.get('cookie') || '',
         },
       })
       

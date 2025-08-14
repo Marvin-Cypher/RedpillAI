@@ -366,40 +366,40 @@ export default function DiscoveryPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-gray-900">{company.enriched_data.headquarters}</div>
+                          <div className="text-sm text-gray-900">{company.enriched_data?.headquarters || 'N/A'}</div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-gray-900 font-medium">{company.enriched_data.company_stage}</div>
-                          <div className="text-xs text-gray-500">{company.enriched_data.latest_round}</div>
+                          <div className="text-sm text-gray-900 font-medium">{company.enriched_data?.company_stage || 'N/A'}</div>
+                          <div className="text-xs text-gray-500">{company.enriched_data?.latest_round || ''}</div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-gray-900 font-medium">{formatCurrency(company.enriched_data.post_money_valuation || company.enriched_data.total_funding)}</div>
+                          <div className="text-sm text-gray-900 font-medium">{formatCurrency(company.enriched_data?.post_money_valuation || company.enriched_data?.total_funding || 0)}</div>
                           <div className="text-xs text-gray-500">Post-money</div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-gray-900 font-medium">{formatCurrency(company.enriched_data.arr || company.enriched_data.revenue)}</div>
-                          <div className="text-xs text-gray-500">{company.enriched_data.arr ? 'ARR' : 'Revenue'}</div>
+                          <div className="text-sm text-gray-900 font-medium">{formatCurrency(company.enriched_data?.arr || company.enriched_data?.revenue || 0)}</div>
+                          <div className="text-xs text-gray-500">{company.enriched_data?.arr ? 'ARR' : 'Revenue'}</div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-gray-900 font-medium">{company.enriched_data.growth_rate ? (company.enriched_data.growth_rate * 100).toFixed(0) + '%' : 'N/A'}</div>
+                          <div className="text-sm text-gray-900 font-medium">{company.enriched_data?.growth_rate ? (company.enriched_data.growth_rate * 100).toFixed(0) + '%' : 'N/A'}</div>
                           <div className="text-xs text-gray-500">MoM Growth</div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-gray-900">{company.enriched_data.runway_months}mo</div>
-                          <div className="text-xs text-gray-500">{formatCurrency(company.enriched_data.burn_rate)}/mo</div>
+                          <div className="text-sm text-gray-900">{company.enriched_data?.runway_months ? `${company.enriched_data.runway_months}mo` : 'N/A'}</div>
+                          <div className="text-xs text-gray-500">{company.enriched_data?.burn_rate ? `${formatCurrency(company.enriched_data.burn_rate)}/mo` : ''}</div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-gray-900 font-medium">{company.enriched_data.ltv_cac_ratio ? company.enriched_data.ltv_cac_ratio.toFixed(1) : 'N/A'}</div>
+                          <div className="text-sm text-gray-900 font-medium">{company.enriched_data?.ltv_cac_ratio ? company.enriched_data.ltv_cac_ratio.toFixed(1) : 'N/A'}</div>
                           <div className="text-xs text-gray-500">Ratio</div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-gray-900">{company.enriched_data.team_size || company.enriched_data.employee_count}</div>
-                          <div className="text-xs text-gray-500">{company.enriched_data.engineering_ratio ? (company.enriched_data.engineering_ratio * 100).toFixed(0) + '% Eng' : 'Employees'}</div>
+                          <div className="text-sm text-gray-900">{company.enriched_data?.team_size || company.enriched_data?.employee_count || 'N/A'}</div>
+                          <div className="text-xs text-gray-500">{company.enriched_data?.engineering_ratio ? (company.enriched_data.engineering_ratio * 100).toFixed(0) + '% Eng' : 'Employees'}</div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-gray-900 font-medium">{company.enriched_data.lead_investor || (company.enriched_data.investors && company.enriched_data.investors[0])}</div>
+                          <div className="text-sm text-gray-900 font-medium">{company.enriched_data?.lead_investor || (company.enriched_data?.investors && company.enriched_data.investors[0]) || 'N/A'}</div>
                           <div className="text-xs text-gray-500">
-                            {company.enriched_data.investors && company.enriched_data.investors.length > 1 && `+${company.enriched_data.investors.length - 1} more`}
+                            {company.enriched_data?.investors && company.enriched_data.investors.length > 1 && `+${company.enriched_data.investors.length - 1} more`}
                           </div>
                         </TableCell>
                       </TableRow>

@@ -11,8 +11,8 @@ export async function GET(
     const url = new URL(request.url)
     const searchParams = url.searchParams
     
-    // Build backend URL with query parameters
-    const backendUrl = `${BACKEND_URL}/api/v1/data/companies/${encodeURIComponent(id)}/profile`
+    // Build backend URL with query parameters - use the companies endpoint
+    const backendUrl = `${BACKEND_URL}/api/v1/companies/${encodeURIComponent(id)}`
     const backendUrlWithParams = new URL(backendUrl)
     
     // Forward query parameters
@@ -44,9 +44,10 @@ export async function GET(
 
     const data = await response.json()
     
-    console.log(`[API] Company profile data fetched for: ${data?.data?.name || id}`)
+    console.log(`[API] Company profile data fetched for: ${data?.name || id}`)
 
-    return NextResponse.json(data)
+    // Wrap the response in a data field to match expected format
+    return NextResponse.json({ data })
 
   } catch (error) {
     console.error('[API] Company profile proxy error:', error)

@@ -90,7 +90,8 @@ from .api.v1 import search
 
 # Temporarily disable routers with forward reference issues until we fix Pydantic models
 # from .api import portfolio, workflows, metrics, gp_dashboard, dashboards  
-# from .api.v1 import data, tags, ownership, activities, talent, persons
+# from .api.v1 import data, tags, ownership, activities, talent
+from .api.v1 import persons
 
 # Essential routers for Exa.ai integration
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
@@ -107,7 +108,7 @@ app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
 # app.include_router(metrics.router, prefix="/api/v1/metrics", tags=["metrics"])
 # app.include_router(dashboards.router, prefix="/api/v1/dashboards", tags=["dashboards"])
 # app.include_router(gp_dashboard.router, prefix="/api/v1/gp", tags=["gp-dashboard"])
-# app.include_router(persons.router, prefix="/api/v1/persons", tags=["persons"])
+app.include_router(persons.router, prefix="/api/v1/persons", tags=["persons"])
 # app.include_router(tags.router, prefix="/api/v1/tags", tags=["tags"])
 # app.include_router(ownership.router, prefix="/api/v1/ownership", tags=["ownership"])
 # app.include_router(activities.router, prefix="/api/v1/activities", tags=["activities"])
