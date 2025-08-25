@@ -1,21 +1,36 @@
-# RedpillAI - Your Secret Intelligence For Investment
+# RedpillAI - AI-Driven Investment Terminal
 
-Redpill VC is a secure, investor-focused AI platform engineered to elevate decision-making and streamline the workflows of venture capital professionals. It seamlessly blends traditional VC processes with cutting-edge artificial intelligence, serving as an AI co-pilot for fund managers and analysts
+RedpillAI is an AI-powered command-line interface for investment professionals, designed to revolutionize how VCs and investors interact with financial data and make decisions. At its core is a natural language terminal that understands ANY investment request and executes it through AI-driven automation, with an optional web UI for visualization and portfolio management.
 
 <img width="1606" height="1088" alt="Screenshot 2025-07-29 at 21 33 23" src="https://github.com/user-attachments/assets/39480e4e-1a1c-419d-974f-d38919811d3c" />
 
-## 🚀 Features
+## 🚀 Core Features
 
-### 🎯 **Deal Pipeline Management**
-- **Visual Pipeline**: Intuitive Kanban-style deal tracking across stages (Planned, Research, Meeting, Due Diligence, Decision)
-- **Project Details**: Comprehensive project profiles with team info, metrics, and investment data
-- **Status Management**: Easy drag-and-drop or dropdown status updates
+### 🤖 **AI-Driven Terminal Interface (Primary)**
+- **Natural Language Commands**: Type anything - "analyze Tesla fundamentals", "crypto market overview", "track Chainlink founders"  
+- **Claude Code-Level Intelligence**: Understands complex multi-step requests and executes them autonomously
+- **Multi-Provider AI**: Redpill AI primary, OpenAI fallback, with specialized VC prompts
+- **OpenBB Integration**: Direct access to 350+ financial data providers through natural language
+- **Real-Time Processing**: Live crypto prices, stock data, news, and market intelligence
+- **Setup Wizard**: Comprehensive API key management with guided configuration
 
-### 🤖 **AI-Powered Research Assistant**
-- **Multi-Model Support**: Integrated with Redpill AI router (DeepSeek R1, GPT-4, Claude, etc.)
-- **Crypto-Specialized**: Pre-trained on venture capital and crypto investment workflows
-- **Research Automation**: Automated due diligence, competitive analysis, and market research
-- **Reasoning Models**: Advanced reasoning capabilities with step-by-step analysis
+### 💻 **Command-Line First Architecture**
+```bash
+npm install -g redpill-terminal
+redpill
+
+❯ what's the price of PHA token?
+❯ compare Tesla vs Apple performance 
+❯ show me crypto market overview
+❯ analyze NVIDIA fundamentals
+❯ research AI companies in healthcare
+```
+
+### 🌐 **Web UI (Assistant Interface)**
+- **Portfolio Visualization**: Interactive dashboards and widgets for visual analysis
+- **Deal Flow Management**: Visual pipeline for investment tracking and decision-making
+- **Document Management**: Upload and AI analysis of pitch decks, whitepapers, financial documents
+- **Collaborative Tools**: Team-based investment memo creation and sharing
 
 ### 📊 **Enhanced Widget & Market Intelligence**
 - **User-Triggered Widget Refresh**: Click refresh to generate complete financial metrics for any company
@@ -47,100 +62,95 @@ Redpill VC is a secure, investor-focused AI platform engineered to elevate decis
 
 ## 🛠 Tech Stack
 
-### Frontend
-- **Next.js 15.1.7** - Modern React framework with App Router
-- **TypeScript** - Type-safe development  
-- **Tailwind CSS** - Utility-first styling
-- **Shadcn/UI** - Enhanced modern component library
-- **Lucide Icons** - Beautiful icon set
-- **React Markdown** - Full-screen memo rendering with remark-gfm
+### CLI Terminal (Primary Interface)
+- **Node.js 18+** - JavaScript runtime for CLI 
+- **TypeScript** - Type-safe development
+- **Commander.js** - CLI framework with argument parsing
+- **Inquirer.js** - Interactive command-line prompts
+- **Chalk** - Terminal string styling and colors
+- **Axios** - HTTP client for API integration
+- **OpenAI/Redpill AI** - Natural language understanding
 
-### Backend (Service-First Architecture)
+### Backend (AI & Data Processing)
 - **FastAPI** - Modern Python web framework with async-safe service layer
 - **SQLModel** - Type-safe database operations
-- **PostgreSQL** - Production database
-- **Pydantic** - Data validation and serialization
-- **AsyncIO** - Non-blocking I/O with ThreadPoolExecutor for legacy APIs
-- **httpx** - Async HTTP client replacing requests for external APIs
-
-### AI & Integrations (Async-Safe)
-- **CopilotKit AI** - Modern AI interface with unified system integration
-- **MarketDataService** - Async wrappers for OpenBB Platform (350+ providers)
+- **PostgreSQL** - Production database  
+- **OpenBB Platform** - 350+ financial data providers
+- **MarketDataService** - Async wrappers for external APIs
 - **AsyncCoinGeckoClient** - Non-blocking crypto market data
-- **Consolidated Chat System** - Single AI chat service with debugging
-- **OpenProject API** - Portfolio and document management
-- **Three-Pillar Bridge** - Event-driven integration layer
+- **AI Service** - Multi-provider AI with conversation context
+
+### Web UI (Assistant Interface - Optional)
+- **Next.js 15.1.7** - Modern React framework with App Router
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Utility-first styling  
+- **Shadcn/UI** - Enhanced modern component library
+- **React Markdown** - Full-screen memo rendering
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Node.js 18+ and npm
+### Method 1: CLI Only (Recommended for Most Users)
+
+**Install the CLI globally:**
+```bash
+npm install -g redpill-terminal
+```
+
+**Run the setup wizard:**
+```bash
+redpill-setup
+# Or if no setup needed:
+redpill
+```
+
+**Start using natural language:**
+```bash
+❯ what's the price of bitcoin?
+❯ crypto market overview  
+❯ analyze Tesla stock fundamentals
+❯ research AI companies in healthcare
+❯ show me Chainlink token metrics
+```
+
+### Method 2: Full Development Setup (CLI + Web UI + Backend)
+
+**Prerequisites:**
+- Node.js 18+ and npm  
 - Python 3.8+
 - PostgreSQL (optional, SQLite works for development)
 
-### 1. Clone the Repository
+**1. Clone the Repository:**
 ```bash
 git clone https://github.com/Marvin-Cypher/RedpillAI.git
 cd RedpillAI
 ```
 
-### 2. Environment Setup
-Create `.env.local` files in both frontend and backend directories:
-
-**Frontend (`frontend/.env.local`):**
-```env
-NEXTAUTH_SECRET=your_nextauth_secret
-NEXTAUTH_URL=http://localhost:3000
-```
-
-**Backend (`backend/.env`):**
-```env
-DATABASE_URL=postgresql://user:password@localhost/redpillai
-OPENBB_PAT=your_openbb_token
-FMP_API_KEY=your_fmp_key
-POLYGON_API_KEY=your_polygon_key
-OPENPROJECT_URL=your_openproject_url
-OPENPROJECT_API_KEY=your_api_key
-```
-
-### 3. Install Dependencies
-
-**Frontend:**
+**2. Install CLI:**
 ```bash
-cd frontend
+cd cli-node
 npm install
+npm run build
+npm link  # Makes 'redpill' command available globally
 ```
 
-**Backend:**
+**3. Setup Backend (Optional - for full features):**
 ```bash
 cd backend
-pip install -r requirements.txt
+pip install -r requirements-minimal.txt
+uvicorn app.main:app --reload --port 8000
 ```
 
-### 4. Database Setup & Seeding
+**4. Setup Web UI (Optional - for visualization):**
 ```bash
-cd backend
-alembic upgrade head
-
-# CRITICAL: Seed the database with portfolio companies
-python3 seed_companies.py
+cd frontend  
+npm install
+npm run dev  # Visit http://localhost:3000
 ```
 
-### 5. Start Development Servers
-
-**Backend:**
+**5. Configure APIs:**
 ```bash
-cd backend
-uvicorn main:app --reload --port 8000
+redpill-setup  # Interactive API key configuration
 ```
-
-**Frontend:**
-```bash
-cd frontend
-npm run dev
-```
-
-Visit `http://localhost:3000` to access the application.
 
 ## 🛠️ Troubleshooting
 
@@ -209,31 +219,37 @@ The platform integrates three core systems:
 ### Project Structure
 ```
 RedpillAI/
-├── frontend/          # Next.js frontend application
+├── cli-node/          # Primary CLI interface (Node.js/TypeScript)
 │   ├── src/
-│   │   ├── app/       # Next.js 14 App Router
-│   │   ├── components/# React components
-│   │   ├── lib/       # Utilities and AI integration
-│   │   └── styles/    # Global styles
-├── backend/           # FastAPI backend application
-│   ├── models/        # Database models
-│   ├── api/          # API routes
-│   ├── services/     # Business logic
-│   └── utils/        # Utilities
-└── docs/             # Documentation
+│   │   ├── ai-terminal.ts    # Main AI-powered terminal
+│   │   ├── setup-wizard.ts   # Interactive API setup
+│   │   ├── simple.ts         # Lightweight version
+│   │   └── index.ts          # CLI entry point
+├── backend/           # AI & data processing backend (Python/FastAPI)
+│   ├── app/
+│   │   ├── api/              # REST API endpoints
+│   │   ├── services/         # AI and data services
+│   │   └── models/           # Database models
+├── frontend/          # Optional web UI assistant (Next.js)
+│   ├── src/
+│   │   ├── app/              # Next.js App Router
+│   │   ├── components/       # React components  
+│   │   └── lib/              # Utilities
+└── docs/              # Documentation
 ```
 
 ### Key Components
-- **UnifiedAISystem**: CopilotKit AI context provider
-- **OpenBBDataroom**: Financial data and analytics dashboard
-- **PortfolioManager**: OpenProject integration interface
-- **ThreePillarBridge**: Cross-system workflow coordination
+- **AI Terminal**: Natural language command interpreter with OpenAI/Redpill AI
+- **Setup Wizard**: Interactive API key configuration system  
+- **Terminal Interpreter**: Backend service that routes commands to appropriate handlers
+- **Market Data Service**: Async-safe wrappers for OpenBB Platform and CoinGecko
+- **Web UI Assistant**: Optional visualization layer for complex data analysis
 
-### Three-Pillar Architecture
-- **CopilotKit Integration**: Modern AI interface with context-aware sessions
-- **OpenBB Service**: Professional financial data access
-- **OpenProject Service**: Portfolio and document management
-- **Event-Driven Bridge**: Integrated workflow automation
+### CLI-First Architecture
+- **Primary Interface**: Command-line terminal with natural language processing
+- **AI Service**: Multi-provider AI with specialized VC prompts and context
+- **Backend Services**: FastAPI services for data processing and AI coordination  
+- **Web Assistant**: Optional React-based UI for portfolio visualization and team collaboration
 
 ## 🤝 Contributing
 

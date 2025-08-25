@@ -190,20 +190,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture Overview
 
-**RedPill VC CRM** - AI-powered venture capital platform with three-pillar architecture:
-1. **CopilotKit AI** - Modern AI interface with unified system integration
-2. **OpenBB Platform** - Professional financial data access
-3. **OpenProject** - Portfolio management and document workflow
+**RedPill AI Terminal** - AI-driven command-line interface for investment operations with optional web assistant:
+
+### Primary Architecture (CLI-First)
+1. **AI Terminal (CLI)** - Natural language command-line interface with OpenAI/Redpill AI
+2. **Backend Services** - FastAPI services for AI processing and data integration  
+3. **Web UI Assistant** - Optional visualization layer for portfolio management
 
 ### Technology Stack
-- **Backend**: FastAPI + SQLModel + PostgreSQL + Redis + MinIO
-- **Frontend**: Next.js 14 + TypeScript + Tailwind + Shadcn/UI
+- **CLI Terminal**: Node.js + TypeScript + Commander.js + Inquirer.js (Primary Interface)
+- **Backend**: FastAPI + SQLModel + PostgreSQL + OpenBB Platform (AI & Data Processing)
+- **Web UI**: Next.js 15 + TypeScript + Tailwind + Shadcn/UI (Optional Assistant)
 - **AI**: Dual provider (Redpill AI + OpenAI fallback) with specialized VC prompts
 - **Database**: SQLModel with type-safe operations, Alembic migrations
 
 ## Development Commands
 
-### Backend
+### CLI Terminal (Primary)
+```bash
+cd cli-node
+npm install
+npm run build
+npm run dev          # Development mode
+npm link            # Install globally for testing
+```
+
+### Backend (AI & Data Processing)
 ```bash
 cd backend
 pip install -r requirements-minimal.txt
@@ -211,8 +223,7 @@ uvicorn app.main:app --reload --port 8000
 alembic upgrade head  # Database migrations
 ```
 
-### Frontend
-
+### Web UI Assistant (Optional)
 ```bash
 cd frontend
 npm install
@@ -221,9 +232,16 @@ npm run build
 npm run lint
 ```
 
-### Full Stack
+### Full Development Stack
 ```bash
-docker-compose up -d  # PostgreSQL + Redis + MinIO + apps
+# Terminal 1: Backend
+cd backend && uvicorn app.main:app --reload --port 8000
+
+# Terminal 2: CLI (for testing)  
+cd cli-node && npm run dev
+
+# Terminal 3: Web UI (optional)
+cd frontend && npm run dev
 ```
 
 ## Common Development Issues & Solutions
