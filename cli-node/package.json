@@ -1,0 +1,64 @@
+{
+  "name": "redpill-terminal",
+  "version": "1.0.0",
+  "description": "AI-driven command-line interface for investment operations. Natural language terminal with Claude Code-level intelligence.",
+  "main": "dist/ai-terminal.js",
+  "bin": {
+    "redpill": "dist/ai-terminal.js",
+    "rp": "dist/ai-terminal.js", 
+    "redpill-setup": "dist/setup-wizard.js",
+    "redpill-simple": "dist/simple.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/ai-terminal.ts",
+    "dev:setup": "ts-node src/setup-wizard.ts",
+    "dev:simple": "ts-node src/simple.ts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ai",
+    "cli", 
+    "investment",
+    "finance",
+    "openbb",
+    "terminal",
+    "natural-language",
+    "claude-code",
+    "crypto",
+    "stocks",
+    "venture-capital",
+    "market-data"
+  ],
+  "author": "Redpill VC <hello@redpill.ai>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Marvin-Cypher/RedpillAI.git",
+    "directory": "cli-node"
+  },
+  "homepage": "https://github.com/Marvin-Cypher/RedpillAI#readme",
+  "bugs": {
+    "url": "https://github.com/Marvin-Cypher/RedpillAI/issues"
+  },
+  "dependencies": {
+    "@types/node": "^20.0.0",
+    "commander": "^11.1.0",
+    "inquirer": "^9.2.12",
+    "chalk": "^4.1.2",
+    "ora": "^5.4.1",
+    "boxen": "^5.1.2",
+    "axios": "^1.6.0",
+    "node-fetch": "^3.3.2",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "ts-node": "^10.9.1",
+    "@types/inquirer": "^9.0.7"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
