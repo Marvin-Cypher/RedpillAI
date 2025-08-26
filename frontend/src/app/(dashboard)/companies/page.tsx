@@ -154,14 +154,14 @@ export default function CompaniesPage() {
   const filteredCompanies = companies
     .filter(company => {
       const matchesSearch = company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           company.sector.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           company.description.toLowerCase().includes(searchTerm.toLowerCase())
+                           (company.sector || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (company.description || '').toLowerCase().includes(searchTerm.toLowerCase())
       
       if (selectedFilter === 'all') return matchesSearch
       if (selectedFilter === 'active') return matchesSearch && company.status === 'active'
       if (selectedFilter === 'prospect') return matchesSearch && company.status === 'prospect'
       if (selectedFilter === 'archived') return matchesSearch && company.status === 'archived'
-      return matchesSearch && company.company_type.toLowerCase() === selectedFilter.toLowerCase()
+      return matchesSearch && (company.company_type || '').toLowerCase() === selectedFilter.toLowerCase()
     })
     .sort((a, b) => {
       switch (sortBy) {

@@ -6,11 +6,13 @@ Replaces blocking HTTP calls from companies.py router with httpx.AsyncClient.
 
 import re
 import httpx
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import logging
+from sqlmodel import select
 
 from ..models.companies import Company
-from ..services.company_enrichment_exa import company_enrichment_service_exa as company_enrichment_service
+from ..database import get_session
+# Removed: company enrichment service
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +31,38 @@ class CompanyService:
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.http_client.aclose()
+    
+    async def get_all_companies(self) -> List[Dict[str, Any]]:
+        """Get all companies from the database"""
+        try:
+            from sqlmodel import Session
+            from ..database import engine
+            
+            # Use synchronous session since get_session() is not async
+            with Session(engine) as session:
+                # Get all companies
+                result = session.exec(select(Company))
+                companies = result.all()
+                
+                # Convert to dict format for terminal display
+                company_list = []
+                for company in companies:
+                    company_list.append({
+                        'id': str(company.id),
+                        'name': company.name,
+                        'company_type': str(company.company_type.value) if company.company_type else 'N/A',
+                        'sector': company.sector or 'N/A',
+                        'stage': getattr(company, 'stage', 'N/A'),
+                        'description': company.description or '',
+                        'website': company.website or '',
+                        'location': getattr(company, 'headquarters', 'N/A')
+                    })
+                
+                return company_list
+                
+        except Exception as e:
+            logger.error(f"Error getting companies from database: {e}")
+            return []
     
     async def scrape_website_info(self, domain: str) -> Optional[Dict[str, Any]]:
         """

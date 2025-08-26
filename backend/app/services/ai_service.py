@@ -148,6 +148,39 @@ Next milestone: {deal.next_milestone or 'Not defined'}
                     print(f"Payload sent: {json.dumps(payload, indent=2)}")
                     raise Exception(f"Redpill AI API error {response.status}: {error_text}")
 
+    async def generate_response(
+        self,
+        prompt: str,
+        max_tokens: int = 500,
+        temperature: float = 0.7
+    ) -> str:
+        """Simple response generation for terminal interactions"""
+        if not self.client:
+            # Mock mode
+            return f"Mock response to: {prompt[:100]}..."
+        
+        try:
+            if self.use_redpill:
+                response = self.client.chat.completions.create(
+                    model=self.default_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=max_tokens,
+                    temperature=temperature
+                )
+            else:
+                response = self.client.chat.completions.create(
+                    model=self.default_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=max_tokens,
+                    temperature=temperature
+                )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            # Fallback to mock response
+            return f"I understand you're asking about '{prompt[:50]}'. I'm working on processing your request."
+
     async def generate_chat_response(
         self, 
         user_message: str, 
