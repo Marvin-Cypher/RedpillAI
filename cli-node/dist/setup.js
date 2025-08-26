@@ -5,181 +5,131 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SetupWizard = void 0;
 const inquirer_1 = __importDefault(require("inquirer"));
-const chalk_1 = __importDefault(require("chalk"));
-const boxen_1 = __importDefault(require("boxen"));
 const fs_1 = require("fs");
 const path_1 = require("path");
+const chalk_1 = __importDefault(require("chalk"));
 class SetupWizard {
-    envPath;
     constructor() {
         this.envPath = (0, path_1.join)(process.cwd(), '.env');
     }
+    needsSetup() {
+        // Check if basic API keys are configured
+        const requiredKeys = ['OPENAI_API_KEY', 'REDPILL_API_KEY'];
+        for (const key of requiredKeys) {
+            if (process.env[key]) {
+                return false; // At least one key is configured
+            }
+        }
+        return true;
+    }
+    async askForAPIKeyGuide() {
+        console.log(chalk_1.default.yellow('⚠️  API keys not configured. Some features may be limited.'));
+        console.log(chalk_1.default.dim('You can set OPENAI_API_KEY or REDPILL_API_KEY environment variables.'));
+        console.log();
+        const { setupNow } = await inquirer_1.default.prompt([
+            {
+                type: 'confirm',
+                name: 'setupNow',
+                message: 'Would you like to configure API keys now?',
+                default: false
+            }
+        ]);
+        if (setupNow) {
+            await this.run();
+        }
+    }
     async run() {
-        console.clear();
-        const title = (0, boxen_1.default)(chalk_1.default.blue.bold('🔧 Redpill Terminal Setup') + '\n' +
-            chalk_1.default.dim('Let\'s configure your API keys for the best experience'), {
+        console.log(boxen(chalk_1.default.bold('🔧 Redpill Setup Wizard') + '\n' +
+            chalk_1.default.dim('Configure your API keys and settings'), {
             padding: 1,
             margin: 1,
             borderStyle: 'round',
             borderColor: 'blue'
-        });
-        console.log(title);
-        const answers = await this.askForKeys();
-        if (answers.skipSetup) {
-            console.log(chalk_1.default.yellow('⚠️  Setup skipped. Some features may be limited.'));
-            return false;
-        }
-        await this.saveConfiguration(answers);
-        this.showSuccess();
-        return true;
-    }
-    async askForKeys() {
-        console.log(chalk_1.default.bold('API Keys Setup:'));
-        console.log(chalk_1.default.dim('Don\'t worry - these are stored locally and never shared.\n'));
-        const questions = [
-            {
-                type: 'confirm',
-                name: 'setupKeys',
-                message: 'Would you like to configure API keys now?',
-                default: true
-            },
-            {
-                type: 'input',
-                name: 'openaiKey',
-                message: 'OpenAI API Key (required for natural language understanding):',
-                when: (answers) => answers.setupKeys,
-                validate: (input) => {
-                    if (!input.trim())
-                        return 'OpenAI API key is required for natural language features';
-                    if (!input.startsWith('sk-'))
-                        return 'OpenAI API keys start with "sk-"';
-                    if (input.length < 20)
-                        return 'API key seems too short';
-                    return true;
-                },
-                transformer: (input) => {
-                    // Show only first/last few characters for security
-                    if (input.length > 10) {
-                        return input.substring(0, 7) + '...' + input.substring(input.length - 4);
-                    }
-                    return input;
-                }
-            },
-            {
-                type: 'input',
-                name: 'openbbToken',
-                message: 'OpenBB Platform Token (optional - removes rate limits, adds premium data):',
-                when: (answers) => answers.setupKeys,
-                validate: (input) => {
-                    if (input.trim() && input.length < 10)
-                        return 'Token seems too short';
-                    return true;
-                }
-            },
-            {
-                type: 'input',
-                name: 'backendUrl',
-                message: 'Backend URL (leave empty for default):',
-                default: 'http://localhost:8000/api/v1',
-                when: (answers) => answers.setupKeys
-            },
-            {
-                type: 'confirm',
-                name: 'skipSetup',
-                message: 'Skip setup and continue with limited features?',
-                default: false,
-                when: (answers) => !answers.setupKeys
-            }
-        ];
-        return await inquirer_1.default.prompt(questions);
-    }
-    async saveConfiguration(answers) {
-        const envContent = this.buildEnvContent(answers);
-        try {
-            (0, fs_1.writeFileSync)(this.envPath, envContent);
-            console.log(chalk_1.default.green('✅ Configuration saved to .env file'));
-        }
-        catch (error) {
-            console.error(chalk_1.default.red('❌ Failed to save configuration:'), error);
-            console.log(chalk_1.default.yellow('You can manually create a .env file with:'));
-            console.log(chalk_1.default.dim(envContent));
-        }
-    }
-    buildEnvContent(answers) {
-        const lines = [
-            '# Redpill Terminal Configuration',
-            '# Generated by setup wizard',
-            ''
-        ];
-        if (answers.openaiKey) {
-            lines.push('# OpenAI API Key for natural language understanding');
-            lines.push(`OPENAI_API_KEY=${answers.openaiKey}`);
-            lines.push('');
-        }
-        if (answers.openbbToken && answers.openbbToken.trim()) {
-            lines.push('# OpenBB Platform Token for enhanced financial data');
-            lines.push(`OPENBB_TOKEN=${answers.openbbToken.trim()}`);
-            lines.push('');
-        }
-        if (answers.backendUrl) {
-            lines.push('# Backend URL for full OpenBB integration');
-            lines.push(`REDPILL_API_URL=${answers.backendUrl}`);
-            lines.push('');
-        }
-        return lines.join('\n');
-    }
-    showSuccess() {
-        const success = (0, boxen_1.default)(chalk_1.default.green.bold('🎉 Setup Complete!') + '\n\n' +
-            chalk_1.default.white('Your Redpill Terminal is now configured.') + '\n' +
-            chalk_1.default.dim('You can start using natural language commands immediately.'), {
-            padding: 1,
-            margin: 1,
-            borderStyle: 'round',
-            borderColor: 'green'
-        });
-        console.log(success);
-        console.log(chalk_1.default.bold('Try these commands:'));
-        console.log(chalk_1.default.dim('  • analyze Tesla\'s fundamentals'));
-        console.log(chalk_1.default.dim('  • what\'s Bitcoin\'s price?'));
-        console.log(chalk_1.default.dim('  • show me market news today'));
-        console.log();
-    }
-    needsSetup() {
-        // Only require setup if OpenAI API key is missing
-        // OpenBB works without authentication
-        return !process.env.OPENAI_API_KEY && !(0, fs_1.existsSync)(this.envPath);
-    }
-    async askForAPIKeyGuide() {
-        console.log((0, boxen_1.default)(chalk_1.default.yellow.bold('🔑 API Key Help') + '\n\n' +
-            chalk_1.default.white('To get the most out of Redpill Terminal, you\'ll need API keys:') + '\n\n' +
-            chalk_1.default.cyan('OpenAI API Key (Required):') + '\n' +
-            chalk_1.default.dim('• Visit https://platform.openai.com/api-keys') + '\n' +
-            chalk_1.default.dim('• Create a new API key (free tier available)') + '\n' +
-            chalk_1.default.dim('• Copy the key (starts with "sk-")') + '\n\n' +
-            chalk_1.default.yellow('OpenBB Platform Token (Optional):') + '\n' +
-            chalk_1.default.dim('• OpenBB works without authentication') + '\n' +
-            chalk_1.default.dim('• Token removes rate limits + adds premium data') + '\n' +
-            chalk_1.default.dim('• Visit https://my.openbb.co/app/platform/pat') + '\n\n' +
-            chalk_1.default.green('Only OpenAI key is required - OpenBB works without auth!'), {
-            padding: 1,
-            margin: 1,
-            borderStyle: 'round',
-            borderColor: 'yellow'
         }));
-        const { runSetup } = await inquirer_1.default.prompt([
+        // Read existing .env if it exists
+        let existingEnv = {};
+        if ((0, fs_1.existsSync)(this.envPath)) {
+            try {
+                const content = (0, fs_1.readFileSync)(this.envPath, 'utf8');
+                const lines = content.split('\n');
+                for (const line of lines) {
+                    const [key, ...valueParts] = line.split('=');
+                    if (key && valueParts.length > 0) {
+                        existingEnv[key.trim()] = valueParts.join('=').trim();
+                    }
+                }
+            }
+            catch (error) {
+                console.warn(chalk_1.default.yellow('Warning: Could not read existing .env file'));
+            }
+        }
+        // API Key configuration
+        const apiKeys = await this.configureAPIKeys(existingEnv);
+        // Save to .env file
+        await this.saveConfiguration({ ...existingEnv, ...apiKeys });
+        console.log(chalk_1.default.green('✅ Configuration saved successfully!'));
+        console.log(chalk_1.default.dim(`Configuration written to: ${this.envPath}`));
+    }
+    async configureAPIKeys(existing) {
+        console.log(chalk_1.default.blue('\n📋 API Key Configuration'));
+        console.log(chalk_1.default.dim('Leave blank to skip or keep existing values\n'));
+        const keys = {};
+        // OpenAI API Key
+        const { openaiKey } = await inquirer_1.default.prompt([
             {
-                type: 'confirm',
-                name: 'runSetup',
-                message: 'Ready to configure your API keys?',
-                default: true
+                type: 'password',
+                name: 'openaiKey',
+                message: `OpenAI API Key ${existing.OPENAI_API_KEY ? chalk_1.default.dim('(configured)') : ''}:`,
+                mask: '*'
             }
         ]);
-        if (runSetup) {
-            await this.run();
+        if (openaiKey)
+            keys.OPENAI_API_KEY = openaiKey;
+        // Redpill AI API Key
+        const { redpillKey } = await inquirer_1.default.prompt([
+            {
+                type: 'password',
+                name: 'redpillKey',
+                message: `Redpill AI API Key ${existing.REDPILL_API_KEY ? chalk_1.default.dim('(configured)') : ''}:`,
+                mask: '*'
+            }
+        ]);
+        if (redpillKey)
+            keys.REDPILL_API_KEY = redpillKey;
+        // CoinGecko API Key (optional)
+        const { coingeckoKey } = await inquirer_1.default.prompt([
+            {
+                type: 'password',
+                name: 'coingeckoKey',
+                message: `CoinGecko API Key ${existing.COINGECKO_API_KEY ? chalk_1.default.dim('(configured)') : ''} [Optional]:`,
+                mask: '*'
+            }
+        ]);
+        if (coingeckoKey)
+            keys.COINGECKO_API_KEY = coingeckoKey;
+        return keys;
+    }
+    async saveConfiguration(config) {
+        const lines = Object.entries(config)
+            .filter(([_, value]) => value) // Only include non-empty values
+            .map(([key, value]) => `${key}=${value}`);
+        try {
+            (0, fs_1.writeFileSync)(this.envPath, lines.join('\n') + '\n');
         }
-        else {
-            console.log(chalk_1.default.dim('You can run setup anytime with: redpill setup'));
+        catch (error) {
+            throw new Error(`Failed to write configuration file: ${error instanceof Error ? error.message : error}`);
         }
     }
 }
 exports.SetupWizard = SetupWizard;
+// Import boxen dynamically to avoid import issues
+function boxen(text, options) {
+    try {
+        const boxenModule = require('boxen');
+        return boxenModule(text, options);
+    }
+    catch {
+        return text; // Fallback if boxen is not available
+    }
+}
+//# sourceMappingURL=setup.js.map

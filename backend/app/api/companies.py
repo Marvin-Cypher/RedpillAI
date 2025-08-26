@@ -9,10 +9,10 @@ from ..models.users import User
 from ..core.auth import get_current_active_user
 from ..services.market_data_service import market_data_service
 from ..services.tavily_service import TavilyService
-from ..services.company_enrichment_exa import company_enrichment_service_exa as company_enrichment_service
+# Removed: company enrichment service
 from ..services.company_service import company_service
-from ..services.enhanced_company_service import EnhancedCompanyService
-from ..services.unified_company_service import get_unified_company_service
+# Removed: enhanced company service
+# Removed: unified company service
 
 router = APIRouter()
 

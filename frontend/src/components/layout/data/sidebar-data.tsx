@@ -31,7 +31,8 @@ import {
   Shield,
   Activity,
   Sparkles,
-  Users
+  Users,
+  Terminal
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Logo } from "@/components/logo"
@@ -66,6 +67,11 @@ export const sidebarData: SidebarData = {
     {
       title: "📂 Core",
       items: [
+        {
+          title: "Terminal",
+          url: "/terminal",
+          icon: Terminal,
+        },
         {
           title: "AI Discovery",
           url: "/discovery",

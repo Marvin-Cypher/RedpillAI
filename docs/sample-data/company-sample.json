@@ -1,0 +1,237 @@
+{
+  "id": "company_chainlink_001",
+  "name": "Chainlink",
+  "description": "Decentralized oracle network enabling smart contracts to securely access off-chain data feeds, web APIs, and traditional bank payments",
+  "website": "https://chain.link",
+  "logo_url": "https://assets.coingecko.com/coins/images/877/large/chainlink-new-logo.png",
+  "company_type": "CRYPTO",
+  "sector": "Blockchain Infrastructure",
+  "founded_date": "2017-06-01",
+  "employee_count": 180,
+  "headquarters": "New York, NY",
+  "created_at": "2024-12-15T10:30:00Z",
+  "updated_at": "2025-01-15T14:20:00Z",
+  "created_by": "user_001",
+  "owner_user_id": "user_001",
+  
+  "founders": [
+    {
+      "id": "person_sergey_nazarov",
+      "name": "Sergey Nazarov",
+      "primary_role": "CEO & Co-Founder",
+      "talent_score": 95,
+      "is_talent": true,
+      "current_company": "Chainlink",
+      "linkedin_url": "https://linkedin.com/in/sergeynazarov"
+    },
+    {
+      "id": "person_steve_ellis", 
+      "name": "Steve Ellis",
+      "primary_role": "CTO & Co-Founder",
+      "talent_score": 88,
+      "is_talent": true,
+      "current_company": "Chainlink",
+      "linkedin_url": "https://linkedin.com/in/stevellis"
+    }
+  ],
+  
+  "key_people": [
+    {
+      "id": "person_kemal_elpazar",
+      "name": "Kemal El Moujahid",
+      "primary_role": "COO",
+      "talent_score": 82,
+      "is_talent": true,
+      "current_company": "Chainlink",
+      "linkedin_url": "https://linkedin.com/in/kemalmou"
+    },
+    {
+      "id": "person_dan_kochis",
+      "name": "Dan Kochis",
+      "primary_role": "Head of Business Development",
+      "talent_score": 75,
+      "is_talent": false,
+      "current_company": "Chainlink"
+    }
+  ],
+  
+  "tags": [
+    {
+      "id": "tag_001",
+      "name": "DeFi",
+      "category": "SECTOR",
+      "color": "#FF6B35"
+    },
+    {
+      "id": "tag_002", 
+      "name": "Oracle",
+      "category": "TECHNOLOGY",
+      "color": "#4ECDC4"
+    },
+    {
+      "id": "tag_003",
+      "name": "Enterprise Adoption",
+      "category": "BUSINESS_MODEL",
+      "color": "#45B7D1"
+    }
+  ],
+  
+  "deals": [
+    {
+      "id": "deal_001",
+      "deal_status": "TRACKED",
+      "investment_stage": "SERIES_C",
+      "amount": 50000000,
+      "created_at": "2024-06-15T09:00:00Z",
+      "contact_person": {
+        "id": "person_sergey_nazarov",
+        "name": "Sergey Nazarov",
+        "primary_role": "CEO & Co-Founder"
+      }
+    }
+  ],
+  
+  "ownership_structure": [
+    {
+      "person": {
+        "id": "person_sergey_nazarov",
+        "name": "Sergey Nazarov",
+        "primary_role": "CEO & Co-Founder"
+      },
+      "ownership_type": "FOUNDER_EQUITY",
+      "percentage": 35.5,
+      "is_active": true,
+      "share_class": "Common"
+    },
+    {
+      "person": {
+        "id": "person_steve_ellis",
+        "name": "Steve Ellis",
+        "primary_role": "CTO & Co-Founder"
+      },
+      "ownership_type": "FOUNDER_EQUITY", 
+      "percentage": 32.8,
+      "is_active": true,
+      "share_class": "Common"
+    }
+  ],
+  
+  "recent_activities": [
+    {
+      "id": "activity_001",
+      "activity_type": "MEETING",
+      "occurred_at": "2025-01-10T15:30:00Z",
+      "performed_by": {
+        "id": "user_001",
+        "name": "Partner Smith"
+      },
+      "summary": "Technical due diligence call with CTO Steve Ellis"
+    },
+    {
+      "id": "activity_002",
+      "activity_type": "EMAIL",
+      "occurred_at": "2025-01-08T11:20:00Z", 
+      "performed_by": {
+        "id": "user_001",
+        "name": "Partner Smith"
+      },
+      "summary": "Sent term sheet draft for Series C discussion"
+    }
+  ],
+  
+  "data_sources": [
+    {
+      "source_name": "Exa.ai Company Intelligence",
+      "source_type": "EXA_AI",
+      "confidence_score": 0.94,
+      "last_updated": "2025-01-15T08:00:00Z",
+      "data_fields": ["description", "key_people", "recent_news", "funding_history"]
+    },
+    {
+      "source_name": "CoinGecko",
+      "source_type": "API",
+      "confidence_score": 0.98,
+      "last_updated": "2025-01-15T14:20:00Z",
+      "data_fields": ["market_data", "token_symbol", "price_data"]
+    },
+    {
+      "source_name": "Manual Entry",
+      "source_type": "MANUAL",
+      "confidence_score": 1.0,
+      "last_updated": "2025-01-12T16:45:00Z",
+      "data_fields": ["founders", "tags", "deal_status"]
+    }
+  ],
+  
+  "data_freshness": {
+    "profile_data": "2025-01-15T08:00:00Z",
+    "team_data": "2025-01-14T12:30:00Z", 
+    "financial_data": "2025-01-15T14:20:00Z",
+    "news_data": "2025-01-15T06:15:00Z"
+  },
+  
+  "market_data": {
+    "market_cap": 8500000000,
+    "last_funding_round": {
+      "round_type": "Series B",
+      "amount": 32000000,
+      "date": "2021-03-15",
+      "lead_investor": "Andreessen Horowitz",
+      "valuation": 500000000
+    },
+    "total_funding": 64000000,
+    "valuation": 8500000000,
+    "token_symbol": "LINK"
+  },
+  
+  "recent_news": [
+    {
+      "title": "Chainlink Announces Major Partnership with Swift for Cross-Chain Interoperability",
+      "source": "CoinDesk",
+      "published_at": "2025-01-14T16:30:00Z",
+      "url": "https://coindesk.com/chainlink-swift-partnership-2025",
+      "relevance_score": 0.95
+    },
+    {
+      "title": "Oracle Network Sees 40% Growth in Enterprise Adoption",
+      "source": "The Block",
+      "published_at": "2025-01-12T10:15:00Z", 
+      "url": "https://theblock.co/chainlink-enterprise-growth",
+      "relevance_score": 0.88
+    }
+  ],
+  
+  "talent_metrics": {
+    "total_talent_employees": 45,
+    "ex_faang_count": 12,
+    "technical_leadership_strength": 92,
+    "hiring_velocity": {
+      "last_30_days": 6,
+      "last_90_days": 18,
+      "year_over_year": 85
+    }
+  },
+  
+  "ai_insights": {
+    "company_stage_assessment": "Late-stage growth company with strong product-market fit and expanding enterprise adoption",
+    "growth_trajectory": "ACCELERATING",
+    "investment_signals": [
+      "Strong partnership momentum with traditional finance",
+      "Expanding beyond DeFi into enterprise use cases", 
+      "Technical moat in oracle infrastructure",
+      "Exceptional founding team with deep domain expertise"
+    ],
+    "risk_factors": [
+      "Competition from centralized oracle providers",
+      "Regulatory uncertainty in crypto sector",
+      "Dependence on overall DeFi ecosystem growth"
+    ],
+    "opportunity_score": 87
+  },
+  
+  "enriched_data": {
+    "legacy_team_data": "Preserved for backward compatibility",
+    "original_tavily_founders": ["Sergey Nazarov", "Steve Ellis"],
+    "migration_notes": "Extracted to structured Person records on 2025-01-15"
+  }
+}

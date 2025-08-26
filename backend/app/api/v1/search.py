@@ -10,8 +10,8 @@ from datetime import datetime
 import logging
 
 from ...services.exa_service import ExaService
-from ...services.company_enrichment_exa import company_enrichment_service_exa
-from ...services.unified_company_service import get_unified_company_service
+# Removed: company enrichment service
+# Removed: unified company service
 from ...models.users import User
 from ...core.auth import get_current_active_user, get_current_user_optional
 from ...database import get_session

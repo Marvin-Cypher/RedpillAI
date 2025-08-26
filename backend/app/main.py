@@ -85,7 +85,8 @@ async def root():
 
 
 # Import and include routers
-from .api import auth, companies, deals, ai_chat, market, terminal
+from .api import auth, companies, deals, ai_chat, market, config
+from .api import terminal  # AI-first terminal
 from .api.v1 import search
 
 # Temporarily disable routers with forward reference issues until we fix Pydantic models
@@ -101,6 +102,7 @@ app.include_router(ai_chat.router, prefix="/api/v1/chat", tags=["ai-chat"])
 app.include_router(market.router, prefix="/api/v1/market", tags=["market-data"])
 app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
 app.include_router(terminal.router, prefix="/api/v1/terminal", tags=["terminal"])
+app.include_router(config.router, prefix="/api/v1/config", tags=["configuration"])
 
 # Temporarily disabled routers until Pydantic forward reference issues are fixed
 # app.include_router(portfolio.router, prefix="/api/v1/portfolio", tags=["portfolio"])

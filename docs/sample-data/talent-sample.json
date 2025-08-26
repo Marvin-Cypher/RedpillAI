@@ -1,0 +1,408 @@
+{
+  "id": "person_sergey_nazarov",
+  "name": "Sergey Nazarov",
+  "email": "sergey@chain.link",
+  "phone": "+1-555-0123",
+  "primary_role": "CEO & Co-Founder",
+  "company_id": "company_chainlink_001",
+  "created_at": "2025-01-10T09:15:00Z",
+  "updated_at": "2025-01-15T11:30:00Z",
+  
+  "professional": {
+    "current_title": "CEO & Co-Founder",
+    "current_company": "Chainlink",
+    "experience_years": 12,
+    "location": "New York, NY",
+    "skills": [
+      "Blockchain Architecture",
+      "Smart Contracts",
+      "Decentralized Systems",
+      "Oracle Networks",
+      "Product Strategy",
+      "Team Leadership",
+      "Cryptography",
+      "Venture Capital",
+      "Business Development"
+    ],
+    "languages": ["English", "Russian"],
+    "education": [
+      {
+        "institution": "New York University",
+        "degree": "Bachelor of Arts",
+        "field_of_study": "Philosophy & Administration",
+        "start_date": "2005-09-01",
+        "end_date": "2009-05-15",
+        "achievements": ["Magna Cum Laude", "Dean's List 4 semesters"]
+      }
+    ],
+    "previous_roles": [
+      {
+        "company": "SmartContract",
+        "title": "CEO & Founder",
+        "start_date": "2014-06-01",
+        "end_date": "2017-06-01",
+        "duration_months": 36,
+        "description": "Founded and led smart contract platform that became the foundation for Chainlink",
+        "achievements": [
+          "Raised $32M in ICO funding",
+          "Built core oracle infrastructure",
+          "Assembled world-class engineering team"
+        ],
+        "skills_used": ["Smart Contracts", "Blockchain", "Fundraising", "Team Building"]
+      },
+      {
+        "company": "Secure Asset Exchange",
+        "title": "CEO & Founder", 
+        "start_date": "2011-03-01",
+        "end_date": "2014-05-01",
+        "duration_months": 38,
+        "description": "Built secure peer-to-peer marketplace for digital assets",
+        "achievements": [
+          "First to implement multi-signature escrow for digital assets",
+          "Processed over $10M in transactions",
+          "Acquired by CryptoCorp in 2014"
+        ]
+      }
+    ],
+    "professional_summary": "Visionary blockchain entrepreneur with 12+ years experience building decentralized infrastructure. Pioneer in oracle networks and smart contract connectivity. Led Chainlink from concept to $8B+ market cap, establishing the de facto standard for blockchain oracles.",
+    "linkedin_url": "https://linkedin.com/in/sergeynazarov",
+    "github_url": "https://github.com/smartcontractkit",
+    "twitter_url": "https://twitter.com/SergeyNazarov",
+    "personal_website": "https://sergeynazarov.com"
+  },
+  
+  "talent_profile": {
+    "is_talent": true,
+    "talent_score": 95,
+    "talent_categories": [
+      "BLOCKCHAIN_EXPERT",
+      "SUCCESSFUL_FOUNDER",
+      "TECHNICAL_VISIONARY",
+      "PRODUCT_INNOVATOR",
+      "TEAM_BUILDER"
+    ],
+    "manual_classification": "Tier 1 Blockchain Pioneer - Oracle Infrastructure",
+    "suggested_by_ai": true,
+    "suggestion_confidence": 0.98,
+    "achievement_summary": "Founded and scaled Chainlink to $8B+ valuation, pioneered oracle network standards, raised $64M+ in funding, built team of 180+ engineers",
+    "classified_by": "user_001",
+    "classified_at": "2025-01-10T15:20:00Z"
+  },
+  
+  "platform_profiles": [
+    {
+      "platform": "LINKEDIN",
+      "profile_url": "https://linkedin.com/in/sergeynazarov",
+      "username": "sergeynazarov",
+      "followers_count": 45000,
+      "engagement_score": 8.7,
+      "verified_account": true,
+      "last_activity": "2025-01-14T18:30:00Z",
+      "bio": "Co-founder of Chainlink. Building the world's most widely used oracle network."
+    },
+    {
+      "platform": "TWITTER", 
+      "profile_url": "https://twitter.com/SergeyNazarov",
+      "username": "SergeyNazarov",
+      "followers_count": 180000,
+      "engagement_score": 6.2,
+      "verified_account": true,
+      "last_activity": "2025-01-15T14:45:00Z",
+      "bio": "Co-founder of @chainlink. Oracle problem solver."
+    },
+    {
+      "platform": "GITHUB",
+      "profile_url": "https://github.com/smartcontractkit", 
+      "username": "smartcontractkit",
+      "followers_count": 1200,
+      "engagement_score": 9.1,
+      "verified_account": true,
+      "last_activity": "2025-01-13T16:20:00Z",
+      "bio": "Building decentralized oracle networks for smart contracts"
+    }
+  ],
+  
+  "achievements": [
+    {
+      "id": "achievement_001",
+      "achievement_type": "COMPANY_FOUNDED",
+      "title": "Co-founded Chainlink",
+      "date_achieved": "2017-06-01",
+      "verification_status": "VERIFIED",
+      "impact_score": 98,
+      "description": "Co-founded and built Chainlink into the leading decentralized oracle network with $8B+ market cap",
+      "source_url": "https://chain.link/about",
+      "tags": ["Blockchain", "Oracle", "DeFi", "Infrastructure"],
+      "verified_by": "user_001",
+      "verified_at": "2025-01-10T16:00:00Z"
+    },
+    {
+      "id": "achievement_002",
+      "achievement_type": "FUNDING_RAISED",
+      "title": "Raised $64M+ for Chainlink",
+      "date_achieved": "2021-03-15",
+      "verification_status": "VERIFIED", 
+      "impact_score": 92,
+      "description": "Successfully raised multiple funding rounds totaling $64M+ from top-tier VCs",
+      "source_url": "https://crunchbase.com/organization/chainlink",
+      "tags": ["Fundraising", "Series B", "Venture Capital"]
+    },
+    {
+      "id": "achievement_003",
+      "achievement_type": "TECHNICAL_INNOVATION",
+      "title": "Pioneered Decentralized Oracle Networks",
+      "date_achieved": "2017-09-01",
+      "verification_status": "VERIFIED",
+      "impact_score": 96,
+      "description": "Created the first production-ready decentralized oracle network, solving the oracle problem for smart contracts",
+      "source_url": "https://chain.link/whitepaper",
+      "tags": ["Technical Innovation", "Blockchain", "Smart Contracts", "Oracle Problem"]
+    },
+    {
+      "id": "achievement_004",
+      "achievement_type": "INDUSTRY_RECOGNITION",
+      "title": "Forbes 30 Under 30 - Finance",
+      "date_achieved": "2018-01-15",
+      "verification_status": "VERIFIED",
+      "impact_score": 75,
+      "description": "Recognized by Forbes for revolutionary work in blockchain finance infrastructure",
+      "source_url": "https://forbes.com/30-under-30/2018/finance",
+      "tags": ["Recognition", "Forbes", "Finance", "Leadership"]
+    }
+  ],
+  
+  "data_sources": [
+    {
+      "source_name": "LinkedIn Professional Profile",
+      "source_type": "API",
+      "confidence_score": 0.95,
+      "last_updated": "2025-01-14T10:15:00Z",
+      "data_fields": ["professional_summary", "experience", "skills", "education"]
+    },
+    {
+      "source_name": "Exa.ai Person Intelligence", 
+      "source_type": "EXA_AI",
+      "confidence_score": 0.89,
+      "last_updated": "2025-01-15T08:30:00Z",
+      "data_fields": ["achievements", "news_mentions", "industry_recognition"]
+    },
+    {
+      "source_name": "Manual Classification",
+      "source_type": "MANUAL",
+      "confidence_score": 1.0,
+      "last_updated": "2025-01-10T15:20:00Z",
+      "data_fields": ["talent_classification", "talent_score", "categories"]
+    }
+  ],
+  
+  "data_confidence": 0.95,
+  
+  "current_company": {
+    "id": "company_chainlink_001",
+    "name": "Chainlink",
+    "company_type": "CRYPTO",
+    "sector": "Blockchain Infrastructure",
+    "employee_count": 180,
+    "headquarters": "New York, NY"
+  },
+  
+  "associated_deals": [
+    {
+      "id": "deal_001",
+      "deal_status": "TRACKED",
+      "investment_stage": "SERIES_C",
+      "amount": 50000000,
+      "created_at": "2024-06-15T09:00:00Z"
+    }
+  ],
+  
+  "ownership_stakes": [
+    {
+      "person": {
+        "id": "person_sergey_nazarov",
+        "name": "Sergey Nazarov"
+      },
+      "ownership_type": "FOUNDER_EQUITY",
+      "percentage": 35.5,
+      "is_active": true,
+      "share_class": "Common"
+    }
+  ],
+  
+  "recent_activities": [
+    {
+      "id": "activity_003",
+      "activity_type": "PODCAST_INTERVIEW",
+      "occurred_at": "2025-01-12T14:00:00Z",
+      "summary": "Featured on Unchained Podcast discussing oracle adoption in traditional finance"
+    },
+    {
+      "id": "activity_004",
+      "activity_type": "CONFERENCE_SPEAK",
+      "occurred_at": "2025-01-08T16:30:00Z",
+      "summary": "Keynote at ETH Denver on 'The Future of Cross-Chain Infrastructure'"
+    }
+  ],
+  
+  "career_timeline": {
+    "current_position": {
+      "company": "Chainlink",
+      "title": "CEO & Co-Founder",
+      "start_date": "2017-06-01",
+      "duration_months": 91,
+      "description": "Leading the world's most widely adopted oracle network",
+      "company_info": {
+        "id": "company_chainlink_001",
+        "name": "Chainlink",
+        "company_type": "CRYPTO",
+        "sector": "Blockchain Infrastructure"
+      },
+      "team_size": 180,
+      "technologies": ["Blockchain", "Smart Contracts", "Oracle Networks", "Solidity", "Go", "JavaScript"],
+      "impact_metrics": {
+        "valuation_built": 8500000000,
+        "funding_raised": 64000000,
+        "team_grown": 180,
+        "integrations": 1000
+      }
+    },
+    "career_progression": {
+      "years_experience": 12,
+      "companies_count": 3,
+      "average_tenure": 42,
+      "career_trajectory": "ENTREPRENEURIAL"
+    }
+  },
+  
+  "achievement_portfolio": {
+    "achievement_score": 95,
+    "categories": {
+      "technical": [
+        {
+          "achievement_type": "TECHNICAL_INNOVATION",
+          "title": "Pioneered Decentralized Oracle Networks",
+          "impact_score": 96
+        }
+      ],
+      "leadership": [
+        {
+          "achievement_type": "COMPANY_FOUNDED", 
+          "title": "Co-founded Chainlink",
+          "impact_score": 98
+        }
+      ],
+      "entrepreneurial": [
+        {
+          "achievement_type": "FUNDING_RAISED",
+          "title": "Raised $64M+ for Chainlink", 
+          "impact_score": 92
+        }
+      ],
+      "recognition": [
+        {
+          "achievement_type": "INDUSTRY_RECOGNITION",
+          "title": "Forbes 30 Under 30 - Finance",
+          "impact_score": 75
+        }
+      ]
+    }
+  },
+  
+  "digital_footprint": {
+    "github": {
+      "username": "smartcontractkit",
+      "public_repos": 45,
+      "followers": 1200,
+      "following": 89,
+      "contributions_last_year": 520,
+      "languages": ["Solidity", "Go", "JavaScript", "TypeScript"],
+      "starred_repos": 234,
+      "organizations": ["smartcontractkit", "chainlink-community"],
+      "notable_repos": [
+        {
+          "name": "chainlink",
+          "stars": 4500,
+          "language": "Go",
+          "description": "Chainlink oracle network node implementation"
+        },
+        {
+          "name": "chainlink-contracts",
+          "stars": 890,
+          "language": "Solidity", 
+          "description": "Smart contracts for Chainlink oracle network"
+        }
+      ]
+    },
+    "linkedin": {
+      "headline": "Co-founder of Chainlink | Building Decentralized Oracle Infrastructure",
+      "connections": 5000,
+      "location": "New York, NY",
+      "industry": "Blockchain Technology",
+      "recommendations_count": 28,
+      "posts_engagement_avg": 450
+    },
+    "twitter": {
+      "handle": "SergeyNazarov",
+      "followers": 180000,
+      "following": 420,
+      "tweets_count": 2100,
+      "verified": true,
+      "bio": "Co-founder of @chainlink. Oracle problem solver.",
+      "location": "New York",
+      "engagement_rate": 6.2,
+      "topics": ["Blockchain", "DeFi", "Oracles", "Smart Contracts", "Web3"]
+    },
+    "social_influence_score": 89,
+    "content_creation": {
+      "blog_posts": 45,
+      "conference_talks": 67,
+      "podcast_appearances": 89,
+      "publications": 12
+    }
+  },
+  
+  "network_analysis": {
+    "connection_strength": 92,
+    "industry_influence": 88,
+    "mutual_connections": [
+      {
+        "id": "person_vitalik_buterin",
+        "name": "Vitalik Buterin",
+        "primary_role": "Founder, Ethereum Foundation"
+      },
+      {
+        "id": "person_chris_dixon", 
+        "name": "Chris Dixon",
+        "primary_role": "General Partner, Andreessen Horowitz"
+      }
+    ]
+  },
+  
+  "ai_insights": {
+    "talent_summary": "Elite blockchain entrepreneur and technical visionary who pioneered decentralized oracle infrastructure. Exceptional track record building and scaling deep-tech infrastructure companies. Strong technical background combined with proven business execution and fundraising capabilities.",
+    "key_strengths": [
+      "Visionary product thinking in emerging technology",
+      "Exceptional technical architecture capabilities", 
+      "Proven ability to build and lead large engineering teams",
+      "Strong fundraising and business development skills",
+      "Deep understanding of blockchain infrastructure challenges"
+    ],
+    "experience_highlights": [
+      "Built Chainlink from concept to $8B+ market cap in 7 years",
+      "Pioneered oracle network standards adopted across DeFi ecosystem",
+      "Successfully raised $64M+ from top-tier VCs including a16z",
+      "Built engineering team of 180+ across distributed global organization",
+      "Established strategic partnerships with major financial institutions"
+    ],
+    "potential_fit": {
+      "roles": ["CEO", "CTO", "Technical Co-Founder", "Head of Engineering"],
+      "company_stages": ["Series A", "Series B", "Series C", "Growth Stage"],
+      "industries": ["Blockchain", "DeFi", "Infrastructure", "Developer Tools", "Enterprise Software"]
+    },
+    "risk_factors": [
+      "May be overqualified for early-stage opportunities",
+      "Strong preference for blockchain/crypto focus",
+      "Significant equity stake in current company"
+    ]
+  }
+}
