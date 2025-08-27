@@ -41,7 +41,7 @@ export class RedpillTerminal {
 
   async start() {
     if (!this.nonInteractive) {
-      this.showWelcome();
+      await this.showWelcome();
       this.checkSetup();
       
       // Ensure backend is running before starting interactive mode
@@ -59,30 +59,107 @@ export class RedpillTerminal {
     return await this.processInput(command);
   }
 
-  private showWelcome() {
+  async showSystemStatus(): Promise<void> {
+    console.log(chalk.bold('🔍 Redpill System Status\n'));
+    
+    // Get CLI version
+    const packageJson = require('../package.json');
+    const cliVersion = packageJson.version;
+    console.log(chalk.green('✅ CLI:'), `v${cliVersion}`);
+    
+    // Check backend health
+    const spinner = ora('Checking backend health...').start();
+    const backendStatus = await this.checkBackendHealth();
+    spinner.stop();
+    
+    if (backendStatus.healthy) {
+      console.log(backendStatus.message);
+    } else {
+      console.log(backendStatus.message);
+    }
+    
+    // Check API configuration
+    console.log('\n📋 Configuration:');
+    console.log('  API URL:', chalk.dim(this.apiUrl));
+    console.log('  API Key:', this.apiKey ? chalk.green('✅ Configured') : chalk.red('❌ Not set'));
+    console.log('  Session ID:', this.sessionId || chalk.dim('Not set'));
+    
+    // Test backend connection
+    if (backendStatus.healthy) {
+      console.log('\n🧪 Testing backend connection...');
+      try {
+        const testResult = await this.executeCommand('help');
+        if (testResult.success) {
+          console.log(chalk.green('✅ Backend connection working'));
+        } else {
+          console.log(chalk.yellow('⚠️ Backend connection issues'));
+        }
+      } catch (error) {
+        console.log(chalk.red('❌ Backend connection failed'));
+      }
+    }
+    
+    console.log();
+  }
+
+  private async showWelcome() {
     console.clear();
     
+    // Get version from package.json
+    const packageJson = require('../package.json');
+    const cliVersion = packageJson.version;
+    
+    // Check backend health and get version
+    const backendStatus = await this.checkBackendHealth();
+    
     const welcome = boxen(
-      chalk.green.bold('🚀 Redpill Terminal') + '\n' +
-      chalk.dim('Natural language interface to OpenBB Platform') + '\n\n' +
-      chalk.dim('Just describe what you want to do with your portfolio.'),
+      chalk.green.bold('🚀 Redpill Terminal') + chalk.dim(` v${cliVersion}`) + '\n' +
+      chalk.dim('AI-powered investment terminal with Claude Code architecture') + '\n\n' +
+      backendStatus.message,
       {
         padding: 1,
         margin: 1,
         borderStyle: 'round',
-        borderColor: 'green'
+        borderColor: backendStatus.healthy ? 'green' : 'yellow'
       }
     );
 
     console.log(welcome);
     
     console.log(chalk.dim('Examples:'));
-    console.log(chalk.dim('  • analyze Tesla\'s fundamentals'));
-    console.log(chalk.dim('  • show me tech stocks under $50'));
-    console.log(chalk.dim('  • monitor BTC and ETH'));
-    console.log(chalk.dim('  • what\'s happening in the market today?'));
-    console.log(chalk.dim('  • import my portfolio from CSV'));
+    console.log(chalk.dim('  • what api keys should i fill in'));
+    console.log(chalk.dim('  • import my portfolio from /path/to/file.csv'));
+    console.log(chalk.dim('  • show my portfolio'));
+    console.log(chalk.dim('  • help'));
     console.log();
+  }
+
+  private async checkBackendHealth(): Promise<{ healthy: boolean; message: string; version?: string }> {
+    try {
+      const response = await axios.get(`${this.apiUrl.replace('/api/v1', '')}/health`, {
+        timeout: 5000
+      });
+      
+      if (response.data.status === 'healthy') {
+        const backendVersion = response.data.version || 'unknown';
+        const architecture = response.data.claude_code_architecture ? 'Claude Code' : 'Legacy';
+        return {
+          healthy: true,
+          message: chalk.green(`🔗 Backend: ${architecture} v${backendVersion} (${response.data.environment})`),
+          version: backendVersion
+        };
+      } else {
+        return {
+          healthy: false,
+          message: chalk.yellow('⚠️ Backend: Unhealthy response')
+        };
+      }
+    } catch (error) {
+      return {
+        healthy: false,
+        message: chalk.red('❌ Backend: Not connected (run: cd backend && uvicorn app.main:app --reload)')
+      };
+    }
   }
 
   private checkSetup() {
@@ -111,6 +188,11 @@ export class RedpillTerminal {
             }
           }
         ]);
+        
+        // Show what user typed clearly
+        if (!this.nonInteractive && input.trim()) {
+          console.log(chalk.cyan('❯ ') + chalk.white(input));
+        }
 
         // Handle command discovery
         if (input.trim() === '/' || input.trim().startsWith('/')) {
@@ -130,10 +212,11 @@ export class RedpillTerminal {
           continue;
         }
 
-        if (this.isHelpCommand(input)) {
-          this.showHelp();
-          continue;
-        }
+        // Send help command to Claude Code backend instead of local processing
+        // if (this.isHelpCommand(input)) {
+        //   this.showHelp();
+        //   continue;
+        // }
 
         // Process natural language input
         await this.processInput(input);
@@ -167,7 +250,51 @@ export class RedpillTerminal {
       }
 
     } catch (error) {
-      // Fallback to simple processing
+      // Check if it's an axios error with response
+      if (axios.isAxiosError(error)) {
+        // If we got a response from server, it's working but had an error
+        if (error.response) {
+          if (spinner) spinner.stop();
+          const errorMessage = error.response.data?.message || 'Server error';
+          
+          if (!this.nonInteractive) {
+            console.log(chalk.red('❌'), errorMessage);
+            
+            // Show Claude Code suggested actions if available
+            const suggestedActions = error.response.data?.suggested_actions;
+            if (suggestedActions && suggestedActions.length > 0) {
+              console.log(chalk.dim('\n💡 Suggestions:'));
+              suggestedActions.forEach((action: string) => {
+                console.log(chalk.dim(`  • ${action}`));
+              });
+            }
+          }
+          
+          return {
+            success: false,
+            message: errorMessage,
+            data: error.response.data
+          };
+        }
+        
+        // If it's a timeout or connection error
+        if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+          if (spinner) spinner.stop();
+          
+          if (!this.nonInteractive) {
+            console.log(chalk.yellow('⏱️ Request timed out. The operation might still be processing.'));
+            console.log(chalk.dim('Try increasing timeout or check backend logs.'));
+          }
+          
+          return {
+            success: false,
+            message: 'Request timed out',
+            data: { error: 'timeout' }
+          };
+        }
+      }
+      
+      // Only fall back to local processing for connection errors
       if (spinner) spinner.text = 'Processing locally...';
       
       try {
@@ -200,36 +327,49 @@ export class RedpillTerminal {
   private async callBackend(input: string): Promise<CommandResult> {
     try {
       const response = await axios.post(
-        `${this.apiUrl}/terminal/execute`,
+        `${this.apiUrl}/claude/execute`,
         {
           command: input,
-          context: {
+          user_id: this.sessionId,
+          session_context: {
             timestamp: new Date().toISOString(),
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-          },
-          session_id: this.sessionId,
-          include_directories: this.includeDirectories,
-          non_interactive: this.nonInteractive
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            include_directories: this.includeDirectories,
+            non_interactive: this.nonInteractive
+          }
         },
         {
           headers: {
             'Content-Type': 'application/json',
             ...(this.apiKey && { 'Authorization': `Bearer ${this.apiKey}` })
           },
-          timeout: 30000
+          timeout: 60000  // Increased to 60 seconds for complex operations
         }
       );
 
-      // Update session ID if provided
-      if (response.data.session_id) {
-        this.sessionId = response.data.session_id;
+      // Update session ID from intent if provided
+      if (response.data.intent?.session_id) {
+        this.sessionId = response.data.intent.session_id;
       }
 
-      return {
+      const result: CommandResult = {
         success: response.data.success,
         message: response.data.message,
         data: response.data.data
       };
+
+      // Add Claude Code observability information if in debug mode
+      if (process.env.DEBUG === 'true' && response.data.trace) {
+        result.data = {
+          ...result.data,
+          intent: response.data.intent,
+          trace: response.data.trace,
+          execution_time_ms: response.data.execution_time_ms,
+          suggested_actions: response.data.suggested_actions
+        };
+      }
+
+      return result;
 
     } catch (error) {
       // Try to start backend if connection fails
@@ -255,7 +395,7 @@ export class RedpillTerminal {
                   'Content-Type': 'application/json',
                   ...(this.apiKey && { 'Authorization': `Bearer ${this.apiKey}` })
                 },
-                timeout: 30000
+                timeout: 60000  // Increased to 60 seconds for complex operations
               }
             );
             
@@ -293,18 +433,18 @@ export class RedpillTerminal {
       };
     }
 
-    if (lower.includes('portfolio')) {
+    if (lower.includes('portfolio') || lower.includes('import')) {
       return {
-        success: true,
-        message: 'Portfolio features require backend connection for data persistence and analysis.',
-        data: { type: 'info' }
+        success: false,
+        message: 'Unable to connect to backend for portfolio operations. Please check that the backend is running.',
+        data: { type: 'connection_error', suggestion: 'Try: npm run backend' }
       };
     }
 
     // Default response
     return {
       success: true,
-      message: `I understand you're asking about "${input}". For live market data and analysis, please start the Redpill backend server.`,
+      message: `I understand you're asking about "${input}". Let me try to help with that.`,
       data: { type: 'info' }
     };
   }
@@ -350,9 +490,7 @@ export class RedpillTerminal {
     return ['clear', 'cls'].includes(input.toLowerCase().trim());
   }
 
-  private isHelpCommand(input: string): boolean {
-    return ['help', '?', 'h'].includes(input.toLowerCase().trim());
-  }
+  // Removed - help now handled by AI backend
 
   private getAvailableCommands() {
     return {
@@ -479,30 +617,5 @@ export class RedpillTerminal {
     console.log();
   }
 
-  private showHelp() {
-    console.log(boxen(
-      chalk.bold('Available Commands') + '\n\n' +
-      chalk.green('Natural Language:') + '\n' +
-      '  • analyze TSLA\n' +
-      '  • what\'s the price of Bitcoin?\n' +
-      '  • show me my portfolio\n' +
-      '  • monitor AAPL and MSFT\n' +
-      '  • import portfolio from CSV\n\n' +
-      chalk.blue('Quick Commands (type "/"):') + '\n' +
-      '  • /portfolio - Portfolio overview\n' +
-      '  • /keys - API key status\n' +
-      '  • /market - Market data\n' +
-      '  • /status - System status\n\n' +
-      chalk.blue('Special Commands:') + '\n' +
-      '  • help - Show this help\n' +
-      '  • clear - Clear screen\n' +
-      '  • exit - Exit terminal',
-      {
-        padding: 1,
-        borderStyle: 'round',
-        borderColor: 'blue'
-      }
-    ));
-    console.log();
-  }
+  // Removed - help now handled by AI backend
 }

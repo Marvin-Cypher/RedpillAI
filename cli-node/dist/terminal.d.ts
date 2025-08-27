@@ -17,7 +17,9 @@ export declare class RedpillTerminal {
     });
     start(): Promise<void>;
     executeCommand(command: string): Promise<CommandResult>;
+    showSystemStatus(): Promise<void>;
     private showWelcome;
+    private checkBackendHealth;
     private checkSetup;
     private runInteractiveMode;
     private processInput;
@@ -27,11 +29,9 @@ export declare class RedpillTerminal {
     private displayResult;
     private isExitCommand;
     private isClearCommand;
-    private isHelpCommand;
     private getAvailableCommands;
     private handleCommandDiscovery;
     private showCommandMenu;
-    private showHelp;
 }
 export {};
 //# sourceMappingURL=terminal.d.ts.map

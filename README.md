@@ -1,6 +1,30 @@
-# RedpillAI - AI-Driven Investment Terminal
+# 🚀 RedPill AI Terminal - True AI-First Investment CLI
 
-RedpillAI is an AI-powered command-line interface for investment professionals, designed to revolutionize how VCs and investors interact with financial data and make decisions. At its core is a natural language terminal that understands ANY investment request and executes it through AI-driven automation, with an optional web UI for visualization and portfolio management.
+**Revolutionary AI-First Architecture** - Natural language investment terminal with Gemini CLI-level intelligence. Complete transformation from hardcoded patterns to autonomous AI reasoning.
+
+## ⚡ Instant Usage - Zero Command Syntax
+
+```bash
+# Install & Run
+cd cli-node && npm install && npm run build
+
+# Pure natural language - no commands needed
+./dist/index.js -p "add 5 NVDA to my portfolio"
+./dist/index.js -p "import my portfolio from ~/portfolio.csv" 
+./dist/index.js -p "show me market indices for US today"
+./dist/index.js -p "create charts with BTC and ETH"
+./dist/index.js -p "what's the price of AAPL?"
+```
+
+## 🧠 True AI Intelligence Features
+
+- **🎯 Zero Hardcoded Patterns**: Pure AI reasoning with function calling
+- **🗣️ Natural Language Only**: No command syntax - just talk naturally
+- **🔧 Autonomous Tool Selection**: AI chooses correct tools without programming
+- **✅ Intelligent Validation**: Asks for missing parameters instead of failing
+- **🔗 Multi-Step Operations**: `"add 2.5 BTC then show indices for US only"`
+- **📊 Smart File Import**: CSV/Excel with automatic column detection
+- **💡 Context Awareness**: Maintains conversation and learns preferences
 
 <img width="1606" height="1088" alt="Screenshot 2025-07-29 at 21 33 23" src="https://github.com/user-attachments/assets/39480e4e-1a1c-419d-974f-d38919811d3c" />
 

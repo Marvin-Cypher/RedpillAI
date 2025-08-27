@@ -132,9 +132,8 @@ program
   .action(async () => {
     const terminal = new RedpillTerminal({ nonInteractive: true });
     try {
-      const result = await terminal.executeCommand('system status');
-      console.log(result.message);
-      process.exit(result.success ? 0 : 1);
+      await terminal.showSystemStatus();
+      process.exit(0);
     } catch (error) {
       console.error('Error:', error instanceof Error ? error.message : error);
       process.exit(1);

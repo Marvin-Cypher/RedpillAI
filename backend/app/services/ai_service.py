@@ -9,7 +9,7 @@ from ..models.deals import Deal
 from ..models.companies import Company
 
 class AIService:
-    """AI service for VC analysis supporting both OpenAI and redpill.ai APIs."""
+    """AI service for VC analysis supporting both OpenAI and redpill.ai APIs with tool calling."""
     
     def __init__(self):
         # Support multiple AI providers
@@ -36,6 +36,185 @@ class AIService:
                 self.api_key = settings.openai_api_key
                 self.client = OpenAI(api_key=settings.openai_api_key)
                 self.default_model = "gpt-4"
+        
+        # Define available tools for function calling
+        self.tools = self._define_tools()
+    
+    def _define_tools(self) -> List[Dict[str, Any]]:
+        """Define all available tools for function calling."""
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_portfolio",
+                    "description": "Get user portfolio holdings and summary",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "user_id": {"type": "string", "description": "User ID to get portfolio for"}
+                        },
+                        "required": ["user_id"]
+                    }
+                }
+            },
+            {
+                "type": "function", 
+                "function": {
+                    "name": "add_portfolio_holding",
+                    "description": "Add an asset to user portfolio",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "user_id": {"type": "string", "description": "User ID"},
+                            "symbol": {"type": "string", "description": "Asset symbol (e.g. BTC, ETH, AAPL)"},
+                            "amount": {"type": "number", "description": "Amount to add"}
+                        },
+                        "required": ["user_id", "symbol", "amount"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "remove_portfolio_holding", 
+                    "description": "Remove or reduce an asset from user portfolio",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "user_id": {"type": "string", "description": "User ID"},
+                            "symbol": {"type": "string", "description": "Asset symbol to remove"},
+                            "amount": {"type": "number", "description": "Amount to remove (optional - removes all if not specified)"}
+                        },
+                        "required": ["user_id", "symbol"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_crypto_price",
+                    "description": "Get current cryptocurrency price and market data",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "symbol": {"type": "string", "description": "Crypto symbol (e.g. BTC, ETH)"}
+                        },
+                        "required": ["symbol"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_equity_quote",
+                    "description": "Get stock/equity quote and market data",
+                    "parameters": {
+                        "type": "object", 
+                        "properties": {
+                            "symbol": {"type": "string", "description": "Stock symbol (e.g. AAPL, MSFT)"}
+                        },
+                        "required": ["symbol"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "create_chart",
+                    "description": "Create price chart for financial assets",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "symbols": {"type": "array", "items": {"type": "string"}, "description": "Asset symbols to chart"},
+                            "period": {"type": "string", "description": "Time period (1d, 7d, 1m, 3m, 6m, 1y)"}
+                        },
+                        "required": ["symbols"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_market_overview",
+                    "description": "Get market overview and summary of major indices and trends",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_companies",
+                    "description": "Get list of companies in the database",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "sector": {"type": "string", "description": "Filter by sector (optional)"}
+                        },
+                        "required": []
+                    }
+                }
+            },
+            {
+                "type": "function", 
+                "function": {
+                    "name": "check_api_keys",
+                    "description": "Check API key configuration status",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "import_portfolio",
+                    "description": "Import portfolio from file or external source",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "file_path": {"type": "string", "description": "Path to portfolio file"},
+                            "format": {"type": "string", "description": "File format (csv, json, excel)"}
+                        },
+                        "required": ["file_path"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_news",
+                    "description": "Get latest news and market updates using Exa.ai",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string", "description": "Search query for news (e.g., 'Bitcoin', 'NVDA earnings', 'market indices')"},
+                            "limit": {"type": "number", "description": "Number of articles to return (default: 5)"}
+                        },
+                        "required": ["query"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_indices",
+                    "description": "Get major market indices and performance data",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "region": {"type": "string", "description": "Region (US, EU, ASIA) or 'all' for global"}
+                        },
+                        "required": []
+                    }
+                }
+            }
+        ]
         
     def create_vc_system_prompt(self, deal: Deal, company: Company) -> str:
         """Create a specialized system prompt for VC analysis."""
@@ -431,21 +610,50 @@ Be concise but thorough in your responses. Use only English language in all resp
             # Add current user message
             messages.append({"role": "user", "content": message})
 
-            # Route to appropriate AI provider
+            # Route to appropriate AI provider with tool calling
             if self.client:
                 response = self.client.chat.completions.create(
                     model=self.default_model,
                     messages=messages,
                     max_tokens=2000,
-                    temperature=0.7
+                    temperature=0.7,
+                    tools=self.tools,
+                    tool_choice="auto"
                 )
-                content = response.choices[0].message.content
-                model = self.default_model
-                usage = {
-                    "total_tokens": response.usage.total_tokens if response.usage else 0,
-                    "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
-                    "completion_tokens": response.usage.completion_tokens if response.usage else 0
-                }
+                
+                # Handle tool calls if present
+                message = response.choices[0].message
+                if message.tool_calls:
+                    # Return both content and tool calls for processing
+                    content = message.content or "I'll help you with that."
+                    tool_calls = []
+                    for tool_call in message.tool_calls:
+                        tool_calls.append({
+                            "id": tool_call.id,
+                            "function": {
+                                "name": tool_call.function.name,
+                                "arguments": tool_call.function.arguments
+                            }
+                        })
+                    
+                    return {
+                        "content": content,
+                        "tool_calls": tool_calls,
+                        "model": self.default_model,
+                        "usage": {
+                            "total_tokens": response.usage.total_tokens if response.usage else 0,
+                            "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+                            "completion_tokens": response.usage.completion_tokens if response.usage else 0
+                        }
+                    }
+                else:
+                    content = message.content
+                    model = self.default_model
+                    usage = {
+                        "total_tokens": response.usage.total_tokens if response.usage else 0,
+                        "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
+                        "completion_tokens": response.usage.completion_tokens if response.usage else 0
+                    }
             else:
                 # Mock response for development
                 content = self._generate_mock_chat_response(message, project_context)

@@ -61,7 +61,14 @@ async def health_check():
         "status": "healthy",
         "app": settings.app_name,
         "version": settings.version,
-        "environment": "development" if settings.debug else "production"
+        "environment": "development" if settings.debug else "production",
+        "claude_code_architecture": True,
+        "features": [
+            "Declarative intent parsing",
+            "Tool contracts with validation",
+            "Observable execution",
+            "Graceful degradation"
+        ]
     }
 
 
@@ -86,7 +93,8 @@ async def root():
 
 # Import and include routers
 from .api import auth, companies, deals, ai_chat, market, config
-from .api import terminal  # AI-first terminal
+from .api import terminal  # AI-first terminal (legacy)
+from .api import claude_code_terminal  # New Claude Code-style terminal
 from .api.v1 import search
 
 # Temporarily disable routers with forward reference issues until we fix Pydantic models
@@ -101,7 +109,8 @@ app.include_router(deals.router, prefix="/api/v1/deals", tags=["deals"])
 app.include_router(ai_chat.router, prefix="/api/v1/chat", tags=["ai-chat"])
 app.include_router(market.router, prefix="/api/v1/market", tags=["market-data"])
 app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
-app.include_router(terminal.router, prefix="/api/v1/terminal", tags=["terminal"])
+app.include_router(terminal.router, prefix="/api/v1/terminal", tags=["terminal"])  # Legacy
+app.include_router(claude_code_terminal.router, prefix="/api/v1/claude", tags=["claude-code-terminal"])  # New
 app.include_router(config.router, prefix="/api/v1/config", tags=["configuration"])
 
 # Temporarily disabled routers until Pydantic forward reference issues are fixed
