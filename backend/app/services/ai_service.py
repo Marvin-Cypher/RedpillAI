@@ -223,7 +223,8 @@ class AIService:
                         "type": "object",
                         "properties": {
                             "count": {"type": "number", "description": "Number of trending stocks to return (default: 10)"},
-                            "category": {"type": "string", "description": "Category filter: 'gainers', 'losers', 'volume', or 'all'"}
+                            "category": {"type": "string", "description": "Category filter: 'gainers', 'losers', 'volume', or 'all'"},
+                            "sector": {"type": "string", "description": "Sector filter: 'tech', 'semiconductor', 'chip', 'finance', 'energy', 'healthcare', etc."}
                         },
                         "required": []
                     }
@@ -289,6 +290,32 @@ class AIService:
                             "safe": {"type": "boolean", "description": "Whether this command is safe to execute (default: true)"}
                         },
                         "required": ["command", "purpose"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "execute_multi_step_request",
+                    "description": "Execute complex requests that require multiple tools in sequence (e.g., get data then create chart)",
+                    "parameters": {
+                        "type": "object", 
+                        "properties": {
+                            "steps": {
+                                "type": "array",
+                                "description": "Array of steps to execute in order",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "tool": {"type": "string", "description": "Tool name to use"},
+                                        "params": {"type": "object", "description": "Parameters for the tool"},
+                                        "description": {"type": "string", "description": "What this step does"}
+                                    }
+                                }
+                            },
+                            "final_goal": {"type": "string", "description": "Overall goal of the multi-step request"}
+                        },
+                        "required": ["steps", "final_goal"]
                     }
                 }
             }

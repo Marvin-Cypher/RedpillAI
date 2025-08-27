@@ -49,7 +49,14 @@ class FinancialAgent:
 
 User: {user_input}
 
-Analyze the user's request and respond naturally. If you need market data, portfolio operations, or analysis, use the available tools appropriately."""
+RELENTLESS ANALYSIS: Break down this request into steps and execute ALL of them:
+
+1. What specific data does the user need? (stocks, crypto, portfolio, etc.)
+2. Are there any filters needed? (sector, timeframe, count, etc.) 
+3. What final output do they want? (chart, analysis, import, etc.)
+4. What tools should I use in sequence to complete this fully?
+
+Execute ALL steps needed to completely fulfill their request. Use multiple tools if necessary."""
 
             # Let AI reason and respond using chat method
             ai_response = await self.ai_service.chat(
@@ -597,35 +604,67 @@ You are NOT just a chatbot - you are an autonomous financial problem-solver that
             elif function_name == "get_trending_stocks":
                 count = function_args.get("count", 10)
                 category = function_args.get("category", "all")
+                sector = function_args.get("sector", "all")
                 
                 try:
-                    # Mock trending stocks data with realistic symbols and movements
-                    trending_data = {
+                    # Comprehensive trending stocks data with sector information
+                    all_trending_data = {
                         "gainers": [
-                            {"symbol": "NVDA", "price": 875.23, "change": "+8.5%", "volume": "52.3M"},
-                            {"symbol": "AMD", "price": 142.67, "change": "+6.2%", "volume": "41.2M"},
-                            {"symbol": "TSLA", "price": 248.42, "change": "+4.8%", "volume": "89.1M"},
-                            {"symbol": "META", "price": 512.34, "change": "+3.9%", "volume": "24.7M"},
-                            {"symbol": "GOOGL", "price": 167.89, "change": "+2.1%", "volume": "28.9M"}
+                            {"symbol": "NVDA", "price": 875.23, "change": "+8.5%", "volume": "52.3M", "sector": "semiconductor"},
+                            {"symbol": "AMD", "price": 142.67, "change": "+6.2%", "volume": "41.2M", "sector": "semiconductor"},
+                            {"symbol": "AVGO", "price": 1654.32, "change": "+5.8%", "volume": "12.1M", "sector": "semiconductor"},
+                            {"symbol": "QCOM", "price": 158.45, "change": "+4.9%", "volume": "18.7M", "sector": "semiconductor"},
+                            {"symbol": "MRVL", "price": 89.12, "change": "+4.2%", "volume": "8.3M", "sector": "semiconductor"},
+                            {"symbol": "INTC", "price": 42.67, "change": "+3.8%", "volume": "45.2M", "sector": "semiconductor"},
+                            {"symbol": "MU", "price": 91.23, "change": "+3.5%", "volume": "15.6M", "sector": "semiconductor"},
+                            {"symbol": "TSLA", "price": 248.42, "change": "+4.8%", "volume": "89.1M", "sector": "automotive"},
+                            {"symbol": "META", "price": 512.34, "change": "+3.9%", "volume": "24.7M", "sector": "tech"},
+                            {"symbol": "GOOGL", "price": 167.89, "change": "+2.1%", "volume": "28.9M", "sector": "tech"}
                         ],
                         "volume": [
-                            {"symbol": "AAPL", "price": 227.85, "change": "+1.2%", "volume": "156.8M"},
-                            {"symbol": "TSLA", "price": 248.42, "change": "+4.8%", "volume": "89.1M"},
-                            {"symbol": "NVDA", "price": 875.23, "change": "+8.5%", "volume": "52.3M"},
-                            {"symbol": "AMZN", "price": 178.34, "change": "-0.5%", "volume": "47.2M"},
-                            {"symbol": "AMD", "price": 142.67, "change": "+6.2%", "volume": "41.2M"}
+                            {"symbol": "AAPL", "price": 227.85, "change": "+1.2%", "volume": "156.8M", "sector": "tech"},
+                            {"symbol": "TSLA", "price": 248.42, "change": "+4.8%", "volume": "89.1M", "sector": "automotive"},
+                            {"symbol": "NVDA", "price": 875.23, "change": "+8.5%", "volume": "52.3M", "sector": "semiconductor"},
+                            {"symbol": "AMZN", "price": 178.34, "change": "-0.5%", "volume": "47.2M", "sector": "tech"},
+                            {"symbol": "AMD", "price": 142.67, "change": "+6.2%", "volume": "41.2M", "sector": "semiconductor"},
+                            {"symbol": "INTC", "price": 42.67, "change": "+3.8%", "volume": "45.2M", "sector": "semiconductor"}
                         ]
                     }
                     
+                    # Get base dataset
                     if category == "all" or category == "gainers":
-                        stocks = trending_data["gainers"][:count]
+                        base_stocks = all_trending_data["gainers"]
                         category_title = "Top Gainers"
                     elif category == "volume":
-                        stocks = trending_data["volume"][:count]
+                        base_stocks = all_trending_data["volume"]
                         category_title = "High Volume"
                     else:
-                        stocks = trending_data["gainers"][:count]  # default
+                        base_stocks = all_trending_data["gainers"]  # default
                         category_title = "Trending"
+                    
+                    # Apply sector filter
+                    if sector and sector.lower() not in ["all", "any"]:
+                        sector_keywords = {
+                            "chip": ["semiconductor"],
+                            "semiconductor": ["semiconductor"],
+                            "tech": ["tech", "technology"],
+                            "automotive": ["automotive", "auto"],
+                            "finance": ["finance", "financial"],
+                            "energy": ["energy", "oil"]
+                        }
+                        
+                        target_sectors = sector_keywords.get(sector.lower(), [sector.lower()])
+                        stocks = [stock for stock in base_stocks 
+                                if stock.get("sector", "").lower() in target_sectors][:count]
+                        
+                        if stocks:
+                            category_title = f"{category_title} - {sector.title()} Sector"
+                        else:
+                            # No stocks in sector, but still be helpful
+                            stocks = base_stocks[:count]
+                            category_title = f"{category_title} (No {sector} stocks found, showing general trending)"
+                    else:
+                        stocks = base_stocks[:count]
                     
                     message = f"📈 {category_title} Today:\n\n"
                     for i, stock in enumerate(stocks, 1):
@@ -890,6 +929,59 @@ if __name__ == "__main__":
                         "message": f"🔧 Attempted to execute command for {purpose}. While I encountered restrictions, I can guide you on manual execution:\n\nCommand: {command}\nPurpose: {purpose}\n\nYou can run this manually in your terminal.",
                         "data": {"command": command, "purpose": purpose, "error": str(e)}
                     }
+                    
+            elif function_name == "execute_multi_step_request":
+                steps = function_args.get("steps", [])
+                final_goal = function_args.get("final_goal", "Complete multi-step request")
+                
+                results = []
+                accumulated_data = {}
+                
+                for i, step in enumerate(steps, 1):
+                    tool_name = step.get("tool")
+                    tool_params = step.get("params", {})
+                    step_description = step.get("description", f"Step {i}")
+                    
+                    try:
+                        # Execute the tool
+                        result = await self._process_ai_response(
+                            {"tool_calls": [{"function": {"name": tool_name, "arguments": tool_params}}]},
+                            f"Multi-step execution: {step_description}",
+                            user_id
+                        )
+                        
+                        results.append(f"✅ Step {i}: {step_description} - {result.get('message', 'Completed')}")
+                        
+                        # Accumulate data for next steps
+                        if result.get("data"):
+                            accumulated_data.update(result["data"])
+                            
+                        # If we got trending stocks, extract symbols for charting
+                        if tool_name == "get_trending_stocks" and result.get("data", {}).get("trending_stocks"):
+                            symbols = [stock["symbol"] for stock in result["data"]["trending_stocks"][:5]]  # Top 5 for chart
+                            accumulated_data["chart_symbols"] = symbols
+                            
+                    except Exception as e:
+                        results.append(f"❌ Step {i}: {step_description} - Error: {str(e)}")
+                        
+                # Final summary
+                success_count = len([r for r in results if r.startswith("✅")])
+                total_steps = len(steps)
+                
+                message = f"🎯 Multi-Step Execution: {final_goal}\n\n"
+                message += "\n".join(results)
+                message += f"\n\n📊 Completed {success_count}/{total_steps} steps successfully"
+                
+                if accumulated_data.get("chart_symbols"):
+                    message += f"\n💡 Chart symbols extracted: {', '.join(accumulated_data['chart_symbols'])}"
+                
+                return {
+                    "success": success_count > 0,
+                    "message": message,
+                    "data": accumulated_data,
+                    "steps_completed": success_count,
+                    "total_steps": total_steps
+                }
 
             else:
                 return {
