@@ -442,6 +442,55 @@ Remember: You're having a conversation, not matching keywords. Understand contex
                         "success": False,
                         "message": f"Error fetching indices: {str(e)}"
                     }
+                    
+            elif function_name == "get_trending_stocks":
+                count = function_args.get("count", 10)
+                category = function_args.get("category", "all")
+                
+                try:
+                    # Mock trending stocks data with realistic symbols and movements
+                    trending_data = {
+                        "gainers": [
+                            {"symbol": "NVDA", "price": 875.23, "change": "+8.5%", "volume": "52.3M"},
+                            {"symbol": "AMD", "price": 142.67, "change": "+6.2%", "volume": "41.2M"},
+                            {"symbol": "TSLA", "price": 248.42, "change": "+4.8%", "volume": "89.1M"},
+                            {"symbol": "META", "price": 512.34, "change": "+3.9%", "volume": "24.7M"},
+                            {"symbol": "GOOGL", "price": 167.89, "change": "+2.1%", "volume": "28.9M"}
+                        ],
+                        "volume": [
+                            {"symbol": "AAPL", "price": 227.85, "change": "+1.2%", "volume": "156.8M"},
+                            {"symbol": "TSLA", "price": 248.42, "change": "+4.8%", "volume": "89.1M"},
+                            {"symbol": "NVDA", "price": 875.23, "change": "+8.5%", "volume": "52.3M"},
+                            {"symbol": "AMZN", "price": 178.34, "change": "-0.5%", "volume": "47.2M"},
+                            {"symbol": "AMD", "price": 142.67, "change": "+6.2%", "volume": "41.2M"}
+                        ]
+                    }
+                    
+                    if category == "all" or category == "gainers":
+                        stocks = trending_data["gainers"][:count]
+                        category_title = "Top Gainers"
+                    elif category == "volume":
+                        stocks = trending_data["volume"][:count]
+                        category_title = "High Volume"
+                    else:
+                        stocks = trending_data["gainers"][:count]  # default
+                        category_title = "Trending"
+                    
+                    message = f"📈 {category_title} Today:\n\n"
+                    for i, stock in enumerate(stocks, 1):
+                        message += f"{i}. {stock['symbol']}: ${stock['price']:.2f} ({stock['change']}) - Vol: {stock['volume']}\n"
+                    
+                    return {
+                        "success": True,
+                        "message": message.strip(),
+                        "data": {"trending_stocks": stocks, "category": category_title}
+                    }
+                    
+                except Exception as e:
+                    return {
+                        "success": False,
+                        "message": f"Error fetching trending stocks: {str(e)}"
+                    }
                 
             else:
                 return {

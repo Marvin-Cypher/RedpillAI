@@ -213,6 +213,21 @@ class AIService:
                         "required": []
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_trending_stocks",
+                    "description": "Get today's top trending stocks with volume and price movements",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "count": {"type": "number", "description": "Number of trending stocks to return (default: 10)"},
+                            "category": {"type": "string", "description": "Category filter: 'gainers', 'losers', 'volume', or 'all'"}
+                        },
+                        "required": []
+                    }
+                }
             }
         ]
         
