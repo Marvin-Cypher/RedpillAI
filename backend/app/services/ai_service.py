@@ -228,6 +228,69 @@ class AIService:
                         "required": []
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "access_internet",
+                    "description": "Access internet to fetch data when APIs fail - search web or fetch specific URLs",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string", "description": "Search query or URL to fetch"},
+                            "purpose": {"type": "string", "description": "What data you're trying to get (e.g., 'stock price', 'crypto price', 'market news')"}
+                        },
+                        "required": ["query", "purpose"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "create_script",
+                    "description": "Create a script or tool when needed functionality doesn't exist",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "script_type": {"type": "string", "description": "Type: 'python', 'bash', 'nodejs', 'curl'"},
+                            "purpose": {"type": "string", "description": "What the script should accomplish"},
+                            "requirements": {"type": "string", "description": "Specific requirements or APIs to use"}
+                        },
+                        "required": ["script_type", "purpose"]
+                    }
+                }
+            },
+            {
+                "type": "function", 
+                "function": {
+                    "name": "access_device_files",
+                    "description": "Access local device files when needed (read, search, analyze)",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "action": {"type": "string", "description": "Action: 'search', 'read', 'list', 'analyze'"},
+                            "path": {"type": "string", "description": "File path or directory to access"},
+                            "pattern": {"type": "string", "description": "Search pattern if searching for files"}
+                        },
+                        "required": ["action"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "execute_system_command", 
+                    "description": "Execute system commands when needed to solve problems",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "command": {"type": "string", "description": "System command to execute"},
+                            "purpose": {"type": "string", "description": "Why this command is needed"},
+                            "safe": {"type": "boolean", "description": "Whether this command is safe to execute (default: true)"}
+                        },
+                        "required": ["command", "purpose"]
+                    }
+                }
             }
         ]
         
