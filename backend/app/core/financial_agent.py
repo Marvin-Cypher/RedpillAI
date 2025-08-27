@@ -142,6 +142,17 @@ User: "Create advanced analysis dashboard"
 - Be resourceful and creative
 - Show your autonomous problem-solving in action
 
+🔥 CRITICAL: For complex requests that need multiple steps:
+1. MAKE MULTIPLE FUNCTION CALLS in the same response
+2. Chain operations: get_trending_stocks → create_chart
+3. Or use execute_multi_step_request for complex workflows
+4. NEVER stop at just one tool - complete the full request
+
+EXAMPLES OF MULTI-TOOL RESPONSES:
+- "create chart for Bitcoin" → get_crypto_price AND create_chart
+- "trending chip stocks chart" → get_trending_stocks(sector=chip) AND create_chart  
+- "import portfolio then show analysis" → import_portfolio AND get_portfolio
+
 You are NOT just a chatbot - you are an autonomous financial problem-solver that GETS THINGS DONE."""
 
     def _build_conversation_context(self) -> str:
@@ -186,6 +197,10 @@ You are NOT just a chatbot - you are an autonomous financial problem-solver that
                     function_args = json.loads(tool_call["function"]["arguments"])
                 except:
                     function_args = {}
+                    
+                # RELENTLESS AUTO-CHAINING: Detect if we need additional tools
+                needs_chart = "chart" in user_input.lower() and function_name != "create_chart"
+                needs_trending_first = ("trending" in user_input.lower() or "top" in user_input.lower()) and "chart" in user_input.lower() and function_name == "create_chart"
                 
                 # Execute the requested tool
                 tool_result = await self._execute_tool(function_name, function_args, effective_user_id)
@@ -198,6 +213,28 @@ You are NOT just a chatbot - you are an autonomous financial problem-solver that
                         message = tool_result["message"]
                     elif not tool_result.get("success"):
                         message = f"❌ {tool_result.get('message', 'Tool execution failed')}"
+                    
+                    # 🔥 RELENTLESS AUTO-CHAINING: Execute follow-up tools if needed
+                    if needs_chart and function_name == "get_trending_stocks":
+                        # Auto-create chart from trending stocks data
+                        trending_stocks = tool_result.get("data", {}).get("trending_stocks", [])
+                        if trending_stocks:
+                            chart_symbols = [stock["symbol"] for stock in trending_stocks[:5]]  # Top 5 for chart
+                            chart_result = await self._execute_tool("create_chart", {"symbols": chart_symbols}, effective_user_id)
+                            if chart_result and chart_result.get("success"):
+                                tools_used.append("create_chart")
+                                message += f"\n\n🔗 **Auto-Chained Chart Creation:**\n{chart_result.get('message', '')}"
+                                enhanced_data["create_chart"] = chart_result
+                                
+                    elif needs_chart and function_name in ["get_crypto_price", "get_equity_quote"]:
+                        # Auto-create chart from price data
+                        symbol = function_args.get("symbol")
+                        if symbol:
+                            chart_result = await self._execute_tool("create_chart", {"symbols": [symbol]}, effective_user_id)
+                            if chart_result and chart_result.get("success"):
+                                tools_used.append("create_chart")  
+                                message += f"\n\n🔗 **Auto-Chained Chart Creation:**\n{chart_result.get('message', '')}"
+                                enhanced_data["create_chart"] = chart_result
         
         return {
             "message": message,
@@ -943,6 +980,10 @@ if __name__ == "__main__":
                     step_description = step.get("description", f"Step {i}")
                     
                     try:
+                        # Auto-update params with data from previous steps
+                        if tool_name == "create_chart" and accumulated_data.get("chart_symbols") and not tool_params.get("symbols"):
+                            tool_params["symbols"] = accumulated_data["chart_symbols"]
+                        
                         # Execute the tool
                         result = await self._process_ai_response(
                             {"tool_calls": [{"function": {"name": tool_name, "arguments": tool_params}}]},
