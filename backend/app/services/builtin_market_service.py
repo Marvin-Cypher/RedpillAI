@@ -85,9 +85,11 @@ class BuiltinMarketService:
         }
         
         # Market indices and sector ETFs
+        # Note: Using ETF prices as proxy, multiply by factor for index approximation
         self.market_indices = {
-            'SPY': 'S&P 500', 'QQQ': 'NASDAQ 100', 'DIA': 'Dow Jones',
-            'IWM': 'Russell 2000', 'VTI': 'Total Stock Market'
+            'SPY': {'name': 'S&P 500', 'factor': 10},  # SPY ~590 * 10 = 5900 (S&P index)
+            'QQQ': {'name': 'NASDAQ 100', 'factor': 40},  # QQQ ~500 * 40 = 20000 (NASDAQ)
+            'DIA': {'name': 'Dow Jones', 'factor': 100}  # DIA ~425 * 100 = 42500 (Dow)
         }
         
         self.sector_etfs = {
@@ -830,14 +832,16 @@ class BuiltinMarketService:
         try:
             market_data = {}
             
-            # Get major indices
-            for symbol, name in list(self.market_indices.items())[:3]:  # Limit requests
+            # Get major indices (using ETF proxies with factor adjustment)
+            for symbol, info in list(self.market_indices.items())[:3]:  # Limit requests
                 try:
                     data = await self.get_stock_data(symbol, with_chart=False)
                     if 'price' in data:
-                        market_data[name] = {
+                        # Adjust ETF price to approximate index value
+                        adjusted_price = data['price'] * info['factor']
+                        market_data[info['name']] = {
                             'symbol': symbol,
-                            'price': data['price'],
+                            'price': adjusted_price,
                             'change_pct': data.get('change_pct', 0)
                         }
                 except Exception:
