@@ -4,6 +4,12 @@ import ora from 'ora';
 import boxen from 'boxen';
 import axios from 'axios';
 import { BackendLauncher } from './backend-launcher';
+import * as fs from 'fs';
+import * as path from 'path';
+import { getAdaptiveAsciiArt } from './branding';
+import { ColorSchemes, type ColorScheme, getChalkColor } from './color-utils';
+import { EnhancedInput } from './enhanced-input';
+import { AdvancedTerminalRenderer } from './terminal-renderer';
 
 interface CommandResult {
   success: boolean;
@@ -18,6 +24,11 @@ export class RedpillTerminal {
   private includeDirectories?: string[];
   private nonInteractive: boolean = false;
   private backendLauncher: BackendLauncher;
+  private logFile: string;
+  private debugMode: boolean = false;
+  private colorScheme: ColorScheme = 'default';
+  private enhancedInput: EnhancedInput;
+  private renderer: AdvancedTerminalRenderer;
 
   constructor(options: {
     includeDirectories?: string[];
@@ -28,15 +39,40 @@ export class RedpillTerminal {
     const dotenv = require('dotenv');
     dotenv.config({ path: '.env' });
     
-    this.apiUrl = process.env.REDPILL_API_URL || 'http://localhost:8000/api/v1';
+    this.apiUrl = process.env.REDPILL_API_URL || 'http://localhost:8001/api/v2';
     this.apiKey = process.env.REDPILL_API_KEY || process.env.OPENAI_API_KEY;
     this.includeDirectories = options.includeDirectories;
     this.nonInteractive = options.nonInteractive || false;
     this.sessionId = options.sessionId;
+    this.debugMode = process.env.REDPILL_DEBUG === 'true' || process.argv.includes('--debug');
+    
+    // Setup comprehensive logging
+    const logsDir = path.join(process.cwd(), 'logs');
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+    this.logFile = path.join(logsDir, `terminal-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.log`);
     
     // Initialize backend launcher
     this.backendLauncher = new BackendLauncher();
     this.backendLauncher.setupCleanup();
+    
+    // Initialize enhanced input system
+    this.enhancedInput = new EnhancedInput({
+      colorScheme: this.colorScheme,
+      enableFileCompletion: true,
+      enableCommandCompletion: true
+    });
+
+    // Initialize advanced terminal renderer (fixes truncation issues)
+    this.renderer = new AdvancedTerminalRenderer({
+      terminalWidth: process.stdout.columns || 80,
+      terminalHeight: process.stdout.rows || 24,
+      colorScheme: this.colorScheme
+    });
+
+    // Initialize logging
+    console.log('✅ RedpillTerminal initialized with V2 API:', this.apiUrl);
   }
 
   async start() {
@@ -105,6 +141,14 @@ export class RedpillTerminal {
   private async showWelcome() {
     console.clear();
     
+    // Get terminal width for adaptive branding
+    const terminalWidth = process.stdout.columns || 80;
+    const colors = ColorSchemes[this.colorScheme];
+    
+    // Display adaptive ASCII art
+    const asciiArt = getAdaptiveAsciiArt(terminalWidth);
+    console.log(getChalkColor(colors.primary)(asciiArt));
+    
     // Get version from package.json
     const packageJson = require('../package.json');
     const cliVersion = packageJson.version;
@@ -113,24 +157,25 @@ export class RedpillTerminal {
     const backendStatus = await this.checkBackendHealth();
     
     const welcome = boxen(
-      chalk.green.bold('🚀 Redpill Terminal') + chalk.dim(` v${cliVersion}`) + '\n' +
-      chalk.dim('AI-powered investment terminal with Claude Code architecture') + '\n\n' +
+      getChalkColor(colors.accent)('AI-Powered Investment Terminal') + chalk.dim(` v${cliVersion}`) + '\n' +
+      chalk.dim('Claude Code architecture with natural language interface') + '\n\n' +
       backendStatus.message,
       {
         padding: 1,
         margin: 1,
         borderStyle: 'round',
-        borderColor: backendStatus.healthy ? 'green' : 'yellow'
+        borderColor: backendStatus.healthy ? colors.success : colors.warning
       }
     );
 
     console.log(welcome);
     
-    console.log(chalk.dim('Examples:'));
-    console.log(chalk.dim('  • what api keys should i fill in'));
-    console.log(chalk.dim('  • import my portfolio from /path/to/file.csv'));
-    console.log(chalk.dim('  • show my portfolio'));
-    console.log(chalk.dim('  • help'));
+    console.log(getChalkColor(colors.dim)('💡 Natural language examples:'));
+    console.log(getChalkColor(colors.dim)('  • what api keys should i fill in'));
+    console.log(getChalkColor(colors.dim)('  • import my portfolio from /path/to/file.csv'));
+    console.log(getChalkColor(colors.dim)('  • show my portfolio and create charts'));
+    console.log(getChalkColor(colors.dim)('  • help'));
+    console.log(getChalkColor(colors.dim)('  • /theme matrix  (change color scheme)'));
     console.log();
   }
 
@@ -173,26 +218,23 @@ export class RedpillTerminal {
   private async runInteractiveMode() {
     while (true) {
       try {
-        const { input } = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'input',
-            message: chalk.green('❯'),
-            prefix: '',
-            transformer: (input: string) => {
-              // Show hint when user types "/"
-              if (input === '/') {
-                return chalk.dim('/ (type to see commands...)');
-              }
-              return input;
-            }
-          }
-        ]);
+        const colors = ColorSchemes[this.colorScheme];
+        
+        // Use enhanced input system
+        const input = await this.enhancedInput.prompt();
         
         // Clear line and show clean input (avoid duplication)
         if (!this.nonInteractive && input.trim()) {
           // Just move to next line, input already shown by inquirer
           process.stdout.write('\n');
+        }
+
+        // Handle theme switching first (before command discovery)
+        if (input.trim().startsWith('/theme')) {
+          const themeParts = input.trim().split(' ');
+          const themeName = themeParts.length > 1 ? themeParts[1] : '';
+          this.handleThemeChange(themeName);
+          continue;
         }
 
         // Handle command discovery
@@ -219,8 +261,26 @@ export class RedpillTerminal {
         //   continue;
         // }
 
-        // Process natural language input
-        await this.processInput(input);
+        // Process enhanced input with context detection
+        const inputContext = this.enhancedInput.processInput(input);
+        
+        // Handle file context display
+        if (inputContext.fileContext.length > 0) {
+          console.log(getChalkColor(colors.accent)('📁 File context detected:'));
+          inputContext.fileContext.forEach(file => {
+            console.log(getChalkColor(colors.dim)(`  • ${file}`));
+          });
+        }
+
+        // Handle shell commands
+        if (inputContext.isShellCommand && inputContext.shellCommand) {
+          console.log(getChalkColor(colors.accent)('🔧 Shell command:'), getChalkColor(colors.primary)(inputContext.shellCommand));
+          console.log(getChalkColor(colors.dim)('Note: Shell execution not implemented yet'));
+          continue;
+        }
+
+        // Process natural language input with context
+        await this.processInput(inputContext.cleanInput, inputContext);
 
       } catch (error) {
         if (error && typeof error === 'object' && 'name' in error && error.name === 'ExitPromptError') {
@@ -233,7 +293,7 @@ export class RedpillTerminal {
     }
   }
 
-  private async processInput(input: string): Promise<CommandResult> {
+  private async processInput(input: string, context?: any): Promise<CommandResult> {
     // Enhanced logging with progress indicators
     const spinner = this.nonInteractive ? null : ora({
       text: '🤖 AI analyzing your request...',
@@ -246,7 +306,7 @@ export class RedpillTerminal {
       }
       
       // Try to connect to local backend first
-      const result = await this.callBackend(input);
+      const result = await this.callBackend(input, context);
       
       if (result.success) {
         if (spinner) {
@@ -347,19 +407,22 @@ export class RedpillTerminal {
     }
   }
 
-  private async callBackend(input: string): Promise<CommandResult> {
+  private async callBackend(input: string, context?: any): Promise<CommandResult> {
     try {
       const response = await axios.post(
-        `${this.apiUrl}/terminal/execute`,
+        `${this.apiUrl}/terminal/query`,
         {
-          command: input,
-          user_id: this.sessionId,
-          session_context: {
+          query: input,
+          user_id: this.sessionId || "default",
+          context: {
             timestamp: new Date().toISOString(),
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             include_directories: this.includeDirectories,
-            non_interactive: this.nonInteractive
-          }
+            non_interactive: this.nonInteractive,
+            file_context: context?.fileContext || [],
+            enhanced_input: true
+          },
+          debug: this.debugMode
         },
         {
           headers: {
@@ -438,28 +501,17 @@ export class RedpillTerminal {
 
 
   private displayResult(result: CommandResult) {
-    if (result.data?.visualization) {
-      // Handle charts/visualizations
-      console.log(chalk.blue('📊 Visualization:'));
-      console.log(result.data.visualization);
-    }
-
-    if (result.data?.table) {
-      // Handle table data
-      console.table(result.data.table);
-    }
-
-    // Display the main message (now includes OpenBB-style formatting from backend)
-    console.log(result.message);
+    // Use advanced renderer instead of basic console.log (fixes truncation)
+    this.renderer.renderResponse(result.message, result.data);
     
+    // Handle next steps if present
     if (result.data?.next_steps) {
-      console.log(chalk.dim('\nNext steps:'));
+      console.log(getChalkColor('dim')('\nNext steps:'));
       result.data.next_steps.forEach((step: string) => {
-        console.log(chalk.dim(`  • ${step}`));
+        console.log(getChalkColor('dim')(`  • ${step}`));
       });
+      console.log(); // Add spacing
     }
-
-    console.log(); // Add spacing
   }
 
   private isExitCommand(input: string): boolean {
@@ -495,6 +547,7 @@ export class RedpillTerminal {
       ],
       'System Commands': [
         { command: '/help', description: 'Show this help menu' },
+        { command: '/theme [name]', description: 'Change color theme (default, matrix, neon)' },
         { command: '/clear', description: 'Clear the terminal screen' },
         { command: '/session', description: 'Show current session info' },
         { command: '/exit', description: 'Exit the terminal' }
@@ -597,5 +650,105 @@ export class RedpillTerminal {
     console.log();
   }
 
-  // Removed - help now handled by AI backend
+  private handleThemeChange(themeName: string) {
+    const availableThemes = Object.keys(ColorSchemes);
+    
+    if (!themeName) {
+      console.log(chalk.blue('Available themes:'), availableThemes.join(', '));
+      console.log(chalk.dim('Usage: /theme <name>'));
+      return;
+    }
+    
+    if (availableThemes.includes(themeName as ColorScheme)) {
+      this.colorScheme = themeName as ColorScheme;
+      
+      // Update renderer with new theme
+      this.renderer = new AdvancedTerminalRenderer({
+        terminalWidth: process.stdout.columns || 80,
+        terminalHeight: process.stdout.rows || 24,
+        colorScheme: this.colorScheme
+      });
+      
+      console.log(chalk.green(`✅ Theme changed to: ${themeName}`));
+      // Refresh display
+      setTimeout(() => this.showWelcome(), 500);
+    } else {
+      console.log(chalk.red(`❌ Unknown theme: ${themeName}`));
+      console.log(chalk.dim('Available themes:'), availableThemes.join(', '));
+    }
+  }
+
+  private async handleAdvancedInput(input: string) {
+    // Enhanced input processing inspired by Gemini CLI
+    const colors = ColorSchemes[this.colorScheme];
+    
+    // Handle file context (@file syntax)
+    if (input.includes('@')) {
+      const fileMatches = input.match(/@([^\s]+)/g);
+      if (fileMatches) {
+        console.log(getChalkColor(colors.accent)('📁 File context detected:'));
+        fileMatches.forEach(match => {
+          const filePath = match.substring(1);
+          console.log(getChalkColor(colors.dim)(`  • ${filePath}`));
+        });
+      }
+    }
+
+    // Handle shell mode (!command syntax)
+    if (input.startsWith('!')) {
+      const shellCommand = input.substring(1).trim();
+      console.log(getChalkColor(colors.accent)('🔧 Shell command:'), getChalkColor(colors.primary)(shellCommand));
+      
+      // For now, just show what would be executed
+      console.log(getChalkColor(colors.dim)('Note: Shell execution not implemented yet'));
+      return;
+    }
+
+    // Process through normal AI pipeline
+    return await this.processInput(input);
+  }
+
+  // Enhanced help system with organized sections
+  private showEnhancedHelp() {
+    const colors = ColorSchemes[this.colorScheme];
+    
+    console.log(boxen(
+      getChalkColor(colors.primary, 'bold')('🚀 RedPill Terminal Help\n') +
+      getChalkColor(colors.dim)('Natural language AI investment terminal\n'),
+      {
+        padding: 1,
+        borderStyle: 'round',
+        borderColor: colors.accent
+      }
+    ));
+
+    console.log(getChalkColor(colors.primary, 'bold')('Basics:'));
+    console.log(getChalkColor(colors.secondary)('  Add context'), '- Use', getChalkColor(colors.accent, 'bold')('@'), 'to reference files (e.g.,', getChalkColor(colors.accent, 'bold')('@data/portfolio.csv'), ')');
+    console.log(getChalkColor(colors.secondary)('  Shell mode'), '- Use', getChalkColor(colors.accent, 'bold')('!'), 'to execute shell commands (e.g.,', getChalkColor(colors.accent, 'bold')('!ls'), ')');
+    console.log(getChalkColor(colors.secondary)('  Natural language'), '- Just type what you want (e.g.,', getChalkColor(colors.accent, 'bold')('show my portfolio'), ')');
+    console.log();
+
+    console.log(getChalkColor(colors.primary, 'bold')('Quick Commands:'));
+    console.log(getChalkColor(colors.accent)('  /portfolio'), '- Show portfolio overview');
+    console.log(getChalkColor(colors.accent)('  /market'), '- Market overview and indices');
+    console.log(getChalkColor(colors.accent)('  /theme <name>'), '- Change color theme (default, matrix, neon)');
+    console.log(getChalkColor(colors.accent)('  /status'), '- System health check');
+    console.log(getChalkColor(colors.accent)('  /'), '- Show all available commands');
+    console.log();
+
+    console.log(getChalkColor(colors.primary, 'bold')('Keyboard Shortcuts:'));
+    console.log(getChalkColor(colors.accent)('  Ctrl+C'), '- Exit terminal');
+    console.log(getChalkColor(colors.accent)('  Ctrl+L'), '- Clear screen (or type "clear")');
+    console.log(getChalkColor(colors.accent)('  Up/Down'), '- Command history');
+    console.log(getChalkColor(colors.accent)('  Tab'), '- Auto-completion (when available)');
+    console.log();
+
+    console.log(getChalkColor(colors.primary, 'bold')('Examples:'));
+    console.log(getChalkColor(colors.dim)('  • what api keys should i fill in'));
+    console.log(getChalkColor(colors.dim)('  • import my portfolio from @/path/to/file.csv'));
+    console.log(getChalkColor(colors.dim)('  • show BTC and ETH prices'));
+    console.log(getChalkColor(colors.dim)('  • create a chart comparing AAPL vs MSFT'));
+    console.log(getChalkColor(colors.dim)('  • !ls -la (execute shell command)'));
+    console.log();
+  }
 }

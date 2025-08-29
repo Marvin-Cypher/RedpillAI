@@ -10,6 +10,11 @@ export declare class RedpillTerminal {
     private includeDirectories?;
     private nonInteractive;
     private backendLauncher;
+    private logFile;
+    private debugMode;
+    private colorScheme;
+    private enhancedInput;
+    private renderer;
     constructor(options?: {
         includeDirectories?: string[];
         nonInteractive?: boolean;
@@ -30,6 +35,9 @@ export declare class RedpillTerminal {
     private getAvailableCommands;
     private handleCommandDiscovery;
     private showCommandMenu;
+    private handleThemeChange;
+    private handleAdvancedInput;
+    private showEnhancedHelp;
 }
 export {};
 //# sourceMappingURL=terminal.d.ts.map
