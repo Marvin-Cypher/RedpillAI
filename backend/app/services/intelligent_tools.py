@@ -12,6 +12,8 @@ from pydantic import BaseModel
 from ..services.openbb_service import OpenBBService
 from ..services.openbb_cli_wrapper import openbb_cli
 from ..services.openbb_direct import openbb_direct
+from ..services.openbb_tool_registry import openbb_registry, ToolPriority
+from ..services.openbb_tool_executor import openbb_executor
 from ..services.market_data_service import MarketDataService
 from ..services.company_service import CompanyService
 from ..services.portfolio_service import PortfolioService
@@ -41,7 +43,9 @@ class IntelligentToolsService:
     
     async def get_tool_definitions(self) -> List[Dict[str, Any]]:
         """Get OpenAI function calling definitions for all tools"""
-        return [
+        
+        # Start with custom RedPill tools
+        custom_tools = [
             {
                 "type": "function",
                 "function": {
@@ -456,6 +460,17 @@ class IntelligentToolsService:
                 }
             }
         ]
+        
+        # Add ALL OpenBB tools from the comprehensive registry
+        # Get high-priority OpenBB tools (Critical and High priority)
+        openbb_tools = openbb_registry.get_all_ai_tool_schemas(max_priority=ToolPriority.HIGH)
+        
+        # Combine custom RedPill tools with OpenBB tools
+        all_tools = custom_tools + openbb_tools
+        
+        self.logger.info(f"✅ Registered {len(all_tools)} total AI tools ({len(custom_tools)} custom + {len(openbb_tools)} OpenBB)")
+        
+        return all_tools
     
     async def execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> ToolResult:
         """Execute a tool with given arguments"""
@@ -483,10 +498,29 @@ class IntelligentToolsService:
             elif tool_name == "generate_interactive_chart":
                 return await self._generate_interactive_chart(**arguments)
             else:
-                return ToolResult(
-                    success=False,
-                    message=f"Unknown tool: {tool_name}"
-                )
+                # Check if it's an OpenBB tool from the registry
+                if openbb_registry.get_tool_definition(tool_name):
+                    # Execute OpenBB tool dynamically
+                    result = await openbb_executor.execute_tool(tool_name, arguments)
+                    
+                    if result["success"]:
+                        return ToolResult(
+                            success=True,
+                            message=f"OpenBB tool {tool_name} executed successfully",
+                            data=result.get("data"),
+                            metadata=result.get("metadata")
+                        )
+                    else:
+                        return ToolResult(
+                            success=False,
+                            message=f"OpenBB tool error: {result.get('error', 'Unknown error')}",
+                            data=result
+                        )
+                else:
+                    return ToolResult(
+                        success=False,
+                        message=f"Unknown tool: {tool_name}"
+                    )
         except Exception as e:
             return ToolResult(
                 success=False,

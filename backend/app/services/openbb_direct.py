@@ -193,9 +193,9 @@ class OpenBBDirect:
         
         try:
             # Get the chart from the OBBject
-            if hasattr(data, 'chart') and data.chart:
-                # Save chart as HTML
-                chart_html = data.chart.to_html(
+            if hasattr(data, 'chart') and data.chart and hasattr(data.chart, 'fig') and data.chart.fig:
+                # Save chart as HTML using the figure object
+                chart_html = data.chart.fig.to_html(
                     include_plotlyjs='cdn',
                     config={'displayModeBar': True, 'responsive': True}
                 )
