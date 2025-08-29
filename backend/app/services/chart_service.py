@@ -31,7 +31,7 @@ class ChartService:
         self.charts_dir = Path.home() / ".redpill" / "charts"
         self.charts_dir.mkdir(parents=True, exist_ok=True)
         
-    async def generate_crypto_chart(self, symbol: str, period: str = "1y") -> Dict[str, Any]:
+    async def generate_crypto_chart(self, symbol: str, period: str = "1y", chart_type: str = "price") -> Dict[str, Any]:
         """
         Generate crypto price chart using matplotlib
         """
@@ -45,12 +45,12 @@ class ChartService:
                     "error": f"Insufficient data for {symbol}"
                 }
             
-            # Generate chart
-            chart_path = await self._create_price_chart(
-                data, 
-                title=f"{symbol} Price Chart ({period})",
-                symbol=symbol
-            )
+            # Generate chart based on type
+            chart_title = f"{symbol} {'Candlestick' if chart_type == 'candlestick' else 'Price'} Chart ({period})"
+            if chart_type == "candlestick":
+                chart_path = await self._create_candlestick_chart(data, title=chart_title, symbol=symbol)
+            else:
+                chart_path = await self._create_price_chart(data, title=chart_title, symbol=symbol)
             
             return {
                 "success": True,
@@ -68,7 +68,7 @@ class ChartService:
                 "error": str(e)
             }
     
-    async def generate_stock_chart(self, symbol: str, period: str = "1y") -> Dict[str, Any]:
+    async def generate_stock_chart(self, symbol: str, period: str = "1y", chart_type: str = "price") -> Dict[str, Any]:
         """
         Generate stock price chart using matplotlib
         """
@@ -82,12 +82,12 @@ class ChartService:
                     "error": f"Insufficient data for {symbol}"
                 }
             
-            # Generate chart
-            chart_path = await self._create_price_chart(
-                data,
-                title=f"{symbol} Stock Price Chart ({period})",
-                symbol=symbol
-            )
+            # Generate chart based on type
+            chart_title = f"{symbol} {'Candlestick' if chart_type == 'candlestick' else 'Price'} Chart ({period})"
+            if chart_type == "candlestick":
+                chart_path = await self._create_candlestick_chart(data, title=chart_title, symbol=symbol)
+            else:
+                chart_path = await self._create_price_chart(data, title=chart_title, symbol=symbol)
             
             return {
                 "success": True,
@@ -240,6 +240,73 @@ class ChartService:
         except Exception as e:
             logger.error(f"Chart creation failed: {e}")
             raise
+    
+    async def _create_candlestick_chart(self, data: pd.DataFrame, title: str, symbol: str) -> Path:
+        """Create a candlestick/OHLC chart using matplotlib"""
+        try:
+            import matplotlib.patches as patches
+            from matplotlib.patches import Rectangle
+            
+            plt.style.use('dark_background')
+            fig, ax = plt.subplots(figsize=(12, 8))
+            
+            # Check if we have OHLC data
+            has_ohlc = all(col in data.columns for col in ['open', 'high', 'low', 'close']) or \
+                      all(col in data.columns for col in ['Open', 'High', 'Low', 'Close'])
+            
+            if not has_ohlc:
+                # Fallback: create price chart if no OHLC data
+                return await self._create_price_chart(data, title.replace('Candlestick', 'Price'), symbol)
+            
+            # Normalize column names
+            if 'Open' in data.columns:
+                data = data.rename(columns={'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close'})
+            
+            # Create candlestick chart
+            for i, (idx, row) in enumerate(data.iterrows()):
+                open_price = row['open']
+                close_price = row['close'] 
+                high_price = row['high']
+                low_price = row['low']
+                
+                # Determine color (green for up, red for down)
+                color = '#00ff88' if close_price >= open_price else '#ff4444'
+                
+                # Draw high-low line
+                ax.plot([i, i], [low_price, high_price], color=color, linewidth=1, alpha=0.8)
+                
+                # Draw body rectangle
+                body_height = abs(close_price - open_price)
+                body_bottom = min(open_price, close_price)
+                
+                rect = Rectangle((i - 0.3, body_bottom), 0.6, body_height, 
+                               facecolor=color, alpha=0.8, edgecolor=color)
+                ax.add_patch(rect)
+            
+            # Styling
+            ax.set_title(title, fontsize=16, fontweight='bold', color='white')
+            ax.set_xlabel('Time Period', fontsize=12, color='white')
+            ax.set_ylabel('Price (USD)', fontsize=12, color='white')
+            ax.grid(True, alpha=0.3)
+            
+            # Format axes
+            plt.tight_layout()
+            
+            # Save chart
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            chart_filename = f"{symbol}_{timestamp}_candlestick_chart.png"
+            chart_path = self.charts_dir / chart_filename
+            
+            plt.savefig(chart_path, dpi=300, bbox_inches='tight', 
+                       facecolor='black', edgecolor='none')
+            plt.close()
+            
+            return chart_path
+            
+        except Exception as e:
+            logger.error(f"Candlestick chart creation failed: {e}")
+            # Fallback to regular price chart
+            return await self._create_price_chart(data, title.replace('Candlestick', 'Price'), symbol)
 
 # Global instance
 chart_service = ChartService()

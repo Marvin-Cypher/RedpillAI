@@ -24,8 +24,6 @@ export declare class RedpillTerminal {
     private runInteractiveMode;
     private processInput;
     private callBackend;
-    private processLocally;
-    private extractTickers;
     private displayResult;
     private isExitCommand;
     private isClearCommand;

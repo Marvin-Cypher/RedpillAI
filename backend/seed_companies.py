@@ -170,6 +170,117 @@ PORTFOLIO_COMPANIES = [
         "founded_year": 2023,
         "headquarters": "Berlin, Germany",
         "employee_count": "8"
+    },
+    # Top 10 Cyber Security Companies
+    {
+        "name": "Palo Alto Networks",
+        "description": "Global cybersecurity leader providing next-generation security solutions including firewalls, cloud security, and endpoint protection.",
+        "website": "https://paloaltonetworks.com",
+        "company_type": CompanyType.PUBLIC,
+        "sector": "cybersecurity",
+        "token_symbol": "PANW",
+        "founded_year": 2005,
+        "headquarters": "Santa Clara, USA",
+        "employee_count": "14,000+"
+    },
+    {
+        "name": "CrowdStrike",
+        "description": "Cloud-delivered endpoint protection platform that provides next-generation antivirus, endpoint detection and response, and threat intelligence.",
+        "website": "https://crowdstrike.com",
+        "company_type": CompanyType.PUBLIC,
+        "sector": "cybersecurity",
+        "token_symbol": "CRWD",
+        "founded_year": 2011,
+        "headquarters": "Austin, USA",
+        "employee_count": "8,000+"
+    },
+    {
+        "name": "Fortinet",
+        "description": "Develops and sells cybersecurity solutions including firewalls, anti-virus, intrusion prevention and endpoint security.",
+        "website": "https://fortinet.com",
+        "company_type": CompanyType.PUBLIC,
+        "sector": "cybersecurity",
+        "token_symbol": "FTNT",
+        "founded_year": 2000,
+        "headquarters": "Sunnyvale, USA",
+        "employee_count": "13,000+"
+    },
+    {
+        "name": "Zscaler",
+        "description": "Cloud-based information security company providing Internet security, web security, next generation firewalls, sandboxing, SSL inspection, and more.",
+        "website": "https://zscaler.com",
+        "company_type": CompanyType.PUBLIC,
+        "sector": "cybersecurity",
+        "token_symbol": "ZS",
+        "founded_year": 2008,
+        "headquarters": "San Jose, USA",
+        "employee_count": "7,000+"
+    },
+    {
+        "name": "SentinelOne",
+        "description": "Autonomous cybersecurity platform that delivers AI-powered prevention, detection, and response across endpoints, cloud, and IoT.",
+        "website": "https://sentinelone.com",
+        "company_type": CompanyType.PUBLIC,
+        "sector": "cybersecurity",
+        "token_symbol": "S",
+        "founded_year": 2013,
+        "headquarters": "Mountain View, USA",
+        "employee_count": "2,500+"
+    },
+    {
+        "name": "Cloudflare",
+        "description": "Web infrastructure and security company providing CDN, DDoS mitigation, Internet security, and distributed DNS services.",
+        "website": "https://cloudflare.com",
+        "company_type": CompanyType.PUBLIC,
+        "sector": "cybersecurity",
+        "token_symbol": "NET",
+        "founded_year": 2009,
+        "headquarters": "San Francisco, USA",
+        "employee_count": "3,500+"
+    },
+    {
+        "name": "Okta",
+        "description": "Identity and access management company providing cloud software that helps companies manage and secure user authentication and authorization.",
+        "website": "https://okta.com",
+        "company_type": CompanyType.PUBLIC,
+        "sector": "cybersecurity",
+        "token_symbol": "OKTA",
+        "founded_year": 2009,
+        "headquarters": "San Francisco, USA",
+        "employee_count": "6,000+"
+    },
+    {
+        "name": "Check Point Software",
+        "description": "Multinational provider of software and hardware products for IT security including network security, endpoint security, cloud security, and mobile security.",
+        "website": "https://checkpoint.com",
+        "company_type": CompanyType.PUBLIC,
+        "sector": "cybersecurity",
+        "token_symbol": "CHKP",
+        "founded_year": 1993,
+        "headquarters": "Tel Aviv, Israel",
+        "employee_count": "7,000+"
+    },
+    {
+        "name": "Datadog",
+        "description": "Monitoring and security platform for cloud applications, providing observability across infrastructure, applications, and security.",
+        "website": "https://datadoghq.com",
+        "company_type": CompanyType.PUBLIC,
+        "sector": "cybersecurity",
+        "token_symbol": "DDOG",
+        "founded_year": 2010,
+        "headquarters": "New York, USA",
+        "employee_count": "5,000+"
+    },
+    {
+        "name": "Elastic",
+        "description": "Search company that builds self-managed and SaaS offerings for search, logging, security, observability, and analytics use cases.",
+        "website": "https://elastic.co",
+        "company_type": CompanyType.PUBLIC,
+        "sector": "cybersecurity",
+        "token_symbol": "ESTC",
+        "founded_year": 2012,
+        "headquarters": "Mountain View, USA",
+        "employee_count": "3,000+"
     }
 ]
 

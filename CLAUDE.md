@@ -6,8 +6,14 @@ This file provides guidance to Claude Code when working with RedPill AI Terminal
 
 **RedPill AI Terminal** - CLI-first investment terminal with natural language interface and optional web UI assistant.
 
-## Current Status (2025-08-27)
+## Current Status (2025-08-29)
 
+✅ **UNIFIED CHROMA INTELLIGENCE** - Complete ChromaDB integration for persistent memory and semantic search  
+✅ **CONVERSATION MEMORY** - Full conversation persistence across CLI sessions with context awareness  
+✅ **PORTFOLIO-AWARE AI** - Remembers tracked companies, holdings, watchlists from conversation history  
+✅ **MULTI-STEP AUTONOMOUS EXECUTION** - Complex requests trigger comprehensive analysis workflows  
+✅ **ENTITY EXTRACTION & STORAGE** - Automatic symbol/company detection and storage in vector database  
+✅ **SEMANTIC CONTEXT RETRIEVAL** - Intelligent pronoun resolution and portfolio-first responses  
 ✅ **TRUE AI-FIRST ARCHITECTURE** - Complete transformation from hardcoded patterns to AI reasoning  
 ✅ **GEMINI CLI-LEVEL INTELLIGENCE** - Natural language understanding with autonomous tool selection  
 ✅ **FUNCTION CALLING** - Proper OpenAI-style function calling with 12+ integrated tools  
@@ -21,8 +27,9 @@ This file provides guidance to Claude Code when working with RedPill AI Terminal
 ### Primary Stack (CLI-First)
 - **CLI Terminal**: Node.js + TypeScript + Inquirer.js (Primary Interface)
 - **Backend**: FastAPI + OpenBB Platform (AI & Data Processing)
+- **Memory Layer**: ChromaDB vector database for unified intelligence
 - **Web UI**: Next.js 15 (Optional Assistant)
-- **AI**: OpenAI/Redpill AI with specialized VC prompts
+- **AI**: OpenAI/Redpill AI with persistent memory and context awareness
 
 ### Work Principle
 
@@ -48,6 +55,35 @@ Anti-hardcode rules
 
 ❌ No silent failures.
 ✅ Always return trace + next best action.
+
+## Unified Intelligence Architecture
+
+### ChromaDB Memory System
+- **11 Specialized Collections**: conversations, portfolio, companies, research, reports, meetings, deals, market data, fund performance, imports, action items
+- **Tenant Isolation**: Multi-user support with workspace separation
+- **Semantic Search**: Context-aware retrieval using vector embeddings
+- **Entity Extraction**: Automatic symbol/company detection and storage
+- **Portfolio Awareness**: Remembers tracked companies across sessions
+
+### Memory Collections Schema
+```python
+collections = {
+    "user_conversations": "All chat history with entity extraction",
+    "portfolio_memory": "Holdings, watchlists, tracked symbols",
+    "company_profiles": "Company data, fundamentals, analysis",
+    "research_reports": "Research memos, analysis, insights",
+    "market_intelligence": "OpenBB data, trends, sentiment",
+    "fund_performance": "Fund metrics, benchmarks, analysis"
+    # ... 5 more specialized collections
+}
+```
+
+### Intelligence Features
+- **Context-Aware Queries**: "my tracking companies" → retrieves portfolio symbols
+- **Multi-Step Execution**: Complex requests trigger comprehensive workflows
+- **Pronoun Resolution**: "them/these/those" → refers to previously mentioned entities
+- **Conversation Persistence**: Full memory across CLI sessions
+- **Portfolio-First Responses**: Prioritizes user's holdings and watchlist
 
 ## Quick Start
 
@@ -125,6 +161,12 @@ npm run build && npm run lint
 ```
 
 ## Current System Status
+- ✅ **UNIFIED CHROMA INTELLIGENCE**: Complete vector database integration with semantic search
+- ✅ **PERSISTENT MEMORY**: Full conversation memory across CLI sessions with context retention  
+- ✅ **PORTFOLIO INTELLIGENCE**: AI remembers tracked companies and provides portfolio-aware responses
+- ✅ **MULTI-STEP AUTONOMOUS EXECUTION**: Complex queries trigger comprehensive analysis workflows
+- ✅ **ENTITY RECOGNITION**: Automatic symbol/company extraction and storage in memory collections
+- ✅ **SEMANTIC CONTEXT RETRIEVAL**: Intelligent pronoun resolution using conversation history
 - ✅ **AI-FIRST ARCHITECTURE**: True AI reasoning with function calling (no hardcoded patterns)
 - ✅ **PORTFOLIO OPERATIONS**: Add/remove/import holdings with CSV/Excel support
 - ✅ **MARKET DATA**: Real-time quotes, indices, and chart generation working
@@ -133,17 +175,35 @@ npm run build && npm run lint
 - ✅ **MULTI-STEP OPERATIONS**: Complex commands like "add BTC then show indices" work perfectly
 
 ## Working AI Tools
-1. `get_portfolio` - View holdings
-2. `add_portfolio_holding` - Add assets
-3. `remove_portfolio_holding` - Remove assets
-4. `import_portfolio` - Import CSV/Excel files
-5. `get_equity_quote` - Stock quotes with OHLC
-6. `get_crypto_price` - Cryptocurrency prices
-7. `create_chart` - Generate price charts
-8. `get_market_overview` - Market summary
-9. `get_companies` - Company database
-10. `check_api_keys` - API configuration status
-11. `get_news` - News search (Exa.ai ready)
-12. `get_indices` - Market indices (US/EU/Global)
 
-The system is **production-ready** with true AI-first architecture exactly like Gemini CLI.
+### Core Intelligence
+1. `execute_multi_step_request` - Comprehensive multi-step analysis workflows
+2. `conduct_deep_research` - AI-powered research with synthesis
+3. `research_and_analyze_companies` - Company comparison and analysis
+
+### Portfolio Management  
+4. `get_portfolio` - View holdings with memory context
+5. `add_portfolio_holding` - Add assets with entity storage
+6. `remove_portfolio_holding` - Remove assets with memory update
+7. `import_portfolio` - Import CSV/Excel files with entity extraction
+
+### Market Data & Analysis
+8. `get_equity_quote` - Stock quotes with OHLC data
+9. `get_crypto_price` - Cryptocurrency prices with fallbacks
+10. `create_chart` - Generate price charts with context
+11. `get_market_overview` - Comprehensive market summary
+12. `get_trending_stocks` - Trending stocks with sector awareness
+13. `get_indices` - Market indices (US/EU/Global)
+
+### Research & Intelligence
+14. `get_companies` - Company database with sector mapping
+15. `get_news` - News search (Exa.ai integrated)
+16. `map_companies_to_symbols` - Intelligent ticker mapping
+17. `check_api_keys` - API configuration status
+
+### Memory & Context
+18. **Unified ChromaDB Integration** - Persistent conversation and portfolio memory
+19. **Semantic Search** - Context-aware entity retrieval across all collections
+20. **Portfolio Awareness** - Remembers tracked companies from conversation history
+
+The system is **production-ready** with unified intelligence achieving **Claude Code level intelligence** - persistent memory, context awareness, and autonomous multi-step execution exactly like advanced AI assistants.

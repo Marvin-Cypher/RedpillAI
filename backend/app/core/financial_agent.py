@@ -15,6 +15,8 @@ from ..services.market_data_service import MarketDataService
 from ..services.builtin_market_service import builtin_market_service
 from ..services.chart_service import ChartService
 from ..services.company_service import CompanyService
+from ..services.chroma_memory_service import chroma_memory_service
+from ..services.unified_chroma_service import unified_chroma_service
 
 
 class FinancialAgent:
@@ -30,7 +32,10 @@ class FinancialAgent:
         self.market_data_service = MarketDataService()
         self.chart_service = ChartService()
         self.company_service = CompanyService()
-        self.conversation_history = []
+        self.memory_service = chroma_memory_service  # Legacy service
+        self.unified_memory = unified_chroma_service  # New unified service
+        self.session_id = "default"  # Can be made user-specific later
+        self.tenant_id = "default"  # Will be user-specific in production
         
     async def process_command(self, user_input: str, user_id: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -43,8 +48,11 @@ class FinancialAgent:
             # Build comprehensive system prompt
             system_prompt = self._build_system_prompt()
             
-            # Add conversation context
-            context = self._build_conversation_context()
+            # Add conversation context from Chroma memory
+            context = await self._build_conversation_context(user_input)
+            
+            # DEBUG: Log context to see what AI receives
+            print(f"🔍 DEBUG - Context built: {context[:500]}...")
             
             # Construct full prompt for AI reasoning
             full_prompt = f"""{system_prompt}
@@ -68,14 +76,14 @@ Execute ALL steps needed to completely fulfill their request. Use multiple tools
             # Let AI reason and respond using chat method
             ai_response = await self.ai_service.chat(
                 message=full_prompt,
-                conversation_history=self._get_conversation_messages()
+                conversation_history=await self._get_conversation_messages()
             )
             
             # Process AI response and execute any tool calls
             result = await self._process_ai_response(ai_response, user_input, user_id)
             
-            # Update conversation history
-            self._update_conversation(user_input, result)
+            # Store in unified Chroma intelligence system
+            await self._store_unified_conversation_memory(user_input, result)
             
             return {
                 "success": True,
@@ -114,6 +122,7 @@ Execute ALL steps needed to completely fulfill their request. Use multiple tools
 • Portfolio Management: get_portfolio, add_portfolio_holding, remove_portfolio_holding, import_portfolio
 • Market Data: get_crypto_price, get_equity_quote, get_market_overview, get_trending_stocks, map_companies_to_symbols
 • Analysis Tools: get_companies, create_chart, get_news, get_indices, research_and_analyze_companies
+• Deep Research: conduct_deep_research (multi-step research with AI synthesis - comprehensive analysis)
 • Internet Access: access_internet (search web, fetch URLs when APIs fail)
 • Script Generation: create_script (auto-generate Python/bash/node scripts for missing features)
 • Device Access: access_device_files (read/search/analyze local files)
@@ -122,7 +131,9 @@ Execute ALL steps needed to completely fulfill their request. Use multiple tools
 🎯 INTENT RECOGNITION PATTERNS:
 • "trending stocks", "hot stocks", "top stocks", "popular stocks" → use get_trending_stocks
 • "price of X", "X quote", "X stock price" → use get_equity_quote for stocks, get_crypto_price for crypto
+• "price list", "prices of my companies", "all my tracking companies", "multiple quotes" → use execute_multi_step_request for comprehensive analysis
 • "compare companies", "chart of X, Y, Z" → use research_and_analyze_companies OR map_companies_to_symbols then create_chart
+• "deep research", "comprehensive analysis", "due diligence", "investigate" → use conduct_deep_research for multi-step analysis
 • "my portfolio", "holdings", "what do I own" → use get_portfolio
 • "market overview", "indices", "how is market doing" → use get_market_overview or get_indices
 
@@ -169,34 +180,91 @@ EXAMPLES OF MULTI-TOOL RESPONSES:
 
 You are NOT just a chatbot - you are an autonomous financial problem-solver that GETS THINGS DONE."""
 
-    def _build_conversation_context(self) -> str:
-        """Build enhanced conversation context with entity tracking"""
-        if not self.conversation_history:
-            return "\\nConversation Context: This is the start of our conversation."
-        
-        context = "\\nRecent Conversation Context:"
-        # Include last 3 exchanges with enhanced entity tracking
-        for entry in self.conversation_history[-3:]:
-            context += f"\\nUser: {entry['user_input']}"
-            context += f"\\nAssistant: {entry['response'][:200]}..."
+    async def _build_conversation_context(self, user_input: str) -> str:
+        """Build enhanced conversation context using unified Chroma intelligence"""
+        try:
+            # Get relevant conversation memories
+            conversation_memories = await self.unified_memory.semantic_search(
+                "user_conversations",
+                user_input,
+                tenant_id=self.tenant_id,
+                n_results=3
+            )
             
-            # Extract and highlight important entities from the conversation
-            if 'data' in entry and isinstance(entry['data'], dict):
-                if 'companies' in entry['data'] or 'holdings' in entry['data']:
-                    context += f"\\n[ENTITIES: Companies/symbols mentioned in this exchange]"
-        
-        # Add explicit entity reference section
-        context += "\\n\\nIMPORTANT: If the current request uses pronouns like 'their', 'them', 'these', 'those', refer to entities mentioned in the above conversation context."
-        
-        return context
+            # Get portfolio context
+            portfolio_context = await self.unified_memory.get_portfolio_context(
+                tenant_id=self.tenant_id,
+                query=user_input
+            )
+            
+            if not conversation_memories and not portfolio_context.get('symbols'):
+                return "\n📝 AI INTELLIGENCE: Fresh session - no previous context."
+            
+            context = "\n📝 UNIFIED AI INTELLIGENCE & MEMORY:\n"
+            
+            # Add relevant conversation memories  
+            if conversation_memories:
+                context += f"\n🧠 RELEVANT CONVERSATIONS ({len(conversation_memories)} found):"
+                for i, memory in enumerate(conversation_memories, 1):
+                    # Extract user input from metadata
+                    user_input = memory["metadata"].get("user_input", "")[:80]
+                    content_preview = memory["content"][:120]
+                    context += f"\n[Memory {i}] {user_input}... → {content_preview}..."
+            
+            # Add portfolio intelligence with high prominence
+            if portfolio_context.get('symbols'):
+                context += f"\n\n🎯 PORTFOLIO INTELLIGENCE:"
+                context += f"\n• Tracked symbols: {', '.join(portfolio_context['symbols'])}"
+                
+                if portfolio_context.get('holdings'):
+                    holdings_list = [f"{h.get('symbol', '')} ({h.get('sector', '')})" 
+                                   for h in portfolio_context['holdings'][:5]]
+                    context += f"\n• Holdings: {', '.join(holdings_list)}"
+                
+                if portfolio_context.get('watchlist'):
+                    watch_list = [f"{w.get('symbol', '')} ({w.get('sector', '')})" 
+                                for w in portfolio_context['watchlist'][:5]]
+                    context += f"\n• Watchlist: {', '.join(watch_list)}"
+                
+                if portfolio_context.get('sectors'):
+                    context += f"\n• Active sectors: {', '.join(portfolio_context['sectors'][:5])}"
+            
+            # CRITICAL: Enhanced pronoun resolution with portfolio awareness
+            context += "\n\n🚨 CRITICAL AI MEMORY RULES:"
+            context += "\n• 'my tracking companies' = portfolio symbols above"
+            context += "\n• 'make a price list' = use execute_multi_step_request to get quotes for ALL tracked symbols"
+            context += "\n• 'them'/'these'/'those' = refer to symbols/companies listed above"
+            context += "\n• 'compare their performance' = analyze tracked symbols"
+            context += "\n• ALWAYS use this unified intelligence for context awareness"
+            context += "\n• Portfolio-first responses: prioritize user's holdings and watchlist"
+            context += "\n• FOR MULTIPLE SYMBOLS: Use execute_multi_step_request NOT single quote functions"
+            
+            return context
+            
+        except Exception as e:
+            self.logger.error(f"Failed to build conversation context: {e}")
+            return f"\n📝 CONVERSATION MEMORY: Error loading context - {str(e)[:100]}"
     
-    def _get_conversation_messages(self) -> List[Dict[str, str]]:
-        """Convert conversation history to messages format"""
-        messages = []
-        for entry in self.conversation_history[-5:]:  # Last 5 exchanges
-            messages.append({"role": "user", "content": entry["user_input"]})
-            messages.append({"role": "assistant", "content": entry["response"]})
-        return messages
+    async def _get_conversation_messages(self) -> List[Dict[str, str]]:
+        """Convert recent conversation memory to messages format"""
+        try:
+            # Get recent memories from Chroma
+            recent_memories = await self.memory_service.retrieve_relevant_context(
+                query="recent conversation",
+                session_id=self.session_id,
+                max_results=5
+            )
+            
+            messages = []
+            for memory in recent_memories:
+                messages.append({"role": "user", "content": memory.user_input})
+                messages.append({"role": "assistant", "content": memory.assistant_response[:200]})
+            
+            return messages[-10:]  # Last 10 messages (5 exchanges)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get conversation messages: {e}")
+            return []
     
     async def _process_ai_response(self, ai_response: Dict[str, Any], user_input: str, user_id: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -322,6 +390,16 @@ You are NOT just a chatbot - you are an autonomous financial problem-solver that
             elif function_name == "get_crypto_price":
                 symbol = function_args.get("symbol")
                 
+                # DEBUG: Log the symbol being processed
+                print(f"🔍 DEBUG - get_crypto_price called with symbol: {symbol}, args: {function_args}")
+                
+                if not symbol:
+                    return {
+                        "success": False,
+                        "message": f"Error: No symbol provided. Args received: {function_args}",
+                        "data": {}
+                    }
+                
                 # RELENTLESS MODE: Try every possible data source until we get the price
                 attempts = []
                 
@@ -411,6 +489,16 @@ You are NOT just a chatbot - you are an autonomous financial problem-solver that
                     
             elif function_name == "get_equity_quote":
                 symbol = function_args.get("symbol")
+                
+                # DEBUG: Log the symbol being processed
+                print(f"🔍 DEBUG - get_equity_quote called with symbol: {symbol}, args: {function_args}")
+                
+                if not symbol:
+                    return {
+                        "success": False,
+                        "message": f"Error: No symbol provided. Args received: {function_args}",
+                        "data": {}
+                    }
                 
                 # RELENTLESS MODE: Try every possible equity data source
                 attempts = []
@@ -599,10 +687,20 @@ You are NOT just a chatbot - you are an autonomous financial problem-solver that
                     if sector:
                         message += f" in {sector} sector"
                     message += ":\n"
-                    for company in companies[:5]:  # Show first 5
-                        message += f"• {company.get('name', 'Unknown')} - {company.get('sector', 'Unknown sector')}\n"
-                    if len(companies) > 5:
-                        message += f"... and {len(companies) - 5} more"
+                    
+                    # Show more companies for specific sectors like cybersecurity
+                    display_limit = 10 if sector and "cyber" in sector.lower() else 5
+                    
+                    for i, company in enumerate(companies[:display_limit], 1):
+                        ticker = company.get('token_symbol', '') or company.get('symbol', '')
+                        ticker_str = f" ({ticker})" if ticker else ""
+                        description = company.get('description', company.get('sector', 'Unknown sector'))
+                        # Truncate description to fit nicely
+                        desc_preview = description[:80] + "..." if len(description) > 80 else description
+                        message += f"{i}. **{company.get('name', 'Unknown')}{ticker_str}** - {desc_preview}\n"
+                    
+                    if len(companies) > display_limit:
+                        message += f"\n... and {len(companies) - display_limit} more companies"
                 else:
                     message = "🏢 No companies found"
                     
@@ -911,6 +1009,12 @@ You are NOT just a chatbot - you are an autonomous financial problem-solver that
                         "success": False,
                         "message": f"Error fetching trending stocks: {str(e)}"
                     }
+                
+            elif function_name == "conduct_deep_research":
+                query = function_args.get("query", user_input)
+                max_sources = function_args.get("max_sources", 8)
+                focus_areas = function_args.get("focus_areas", [])
+                return await self._conduct_deep_research(query, max_sources, focus_areas, user_id)
                 
             elif function_name == "access_internet":
                 query = function_args.get("query")
@@ -1341,18 +1445,103 @@ if __name__ == "__main__":
                 "message": f"Error executing {function_name}: {str(e)}"
             }
 
-    def _update_conversation(self, user_input: str, result: Dict[str, Any]):
-        """Update conversation history"""
-        self.conversation_history.append({
-            "timestamp": datetime.now().isoformat(),
-            "user_input": user_input,
-            "response": result.get("message", ""),
-            "tools_used": result.get("tools_used", [])
-        })
-        
-        # Keep only last 10 exchanges
-        if len(self.conversation_history) > 10:
-            self.conversation_history = self.conversation_history[-10:]
+    async def _store_conversation_memory(self, user_input: str, result: Dict[str, Any]):
+        """Store conversation in persistent Chroma memory with entity extraction"""
+        try:
+            # Extract important entities from the result
+            entities = {
+                "symbols": [],
+                "companies": [],
+                "prices": {},
+                "data": {}
+            }
+            
+            # Extract symbols and companies from the result
+            if "data" in result:
+                data = result["data"]
+                if isinstance(data, dict):
+                    entities["symbols"] = data.get("symbols", [])
+                    entities["companies"] = data.get("companies", [])
+                    entities["data"] = data
+            
+            # Extract symbols from message using regex
+            import re
+            message = result.get("message", "")
+            ticker_pattern = r'\b([A-Z]{1,5})\b(?:\s+quote:|\s+analysis|\s+\$)'
+            found_tickers = re.findall(ticker_pattern, message)
+            entities["symbols"].extend(found_tickers)
+            
+            # Extract prices
+            price_pattern = r'\$([0-9,]+\.?\d*)'
+            found_prices = re.findall(price_pattern, message)
+            for i, ticker in enumerate(found_tickers[:len(found_prices)]):
+                entities["prices"][ticker] = found_prices[i]
+            
+            # Store in Chroma memory
+            memory_id = await self.memory_service.store_conversation(
+                user_input=user_input,
+                assistant_response=result.get("message", ""),
+                entities=entities,
+                metadata={
+                    "tools_used": result.get("tools_used", []),
+                    "success": result.get("success", True)
+                },
+                session_id=self.session_id
+            )
+            
+            self.logger.info(f"Stored conversation in memory: {memory_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to store conversation memory: {e}")
+    
+    async def _store_unified_conversation_memory(self, user_input: str, result: Dict[str, Any]):
+        """Store conversation in unified Chroma intelligence system"""
+        try:
+            # Extract entities (same as before)
+            entities = {
+                "symbols": [],
+                "companies": [],
+                "prices": {},
+                "data": {}
+            }
+            
+            if "data" in result:
+                data = result["data"]
+                if isinstance(data, dict):
+                    entities["symbols"] = data.get("symbols", [])
+                    entities["companies"] = data.get("companies", [])
+                    entities["data"] = data
+            
+            # Extract symbols from message using regex
+            import re
+            message = result.get("message", "")
+            ticker_pattern = r'\b([A-Z]{1,5})\b(?:\s+quote:|\s+analysis|\s+\$)'
+            found_tickers = re.findall(ticker_pattern, message)
+            entities["symbols"].extend(found_tickers)
+            
+            # Extract prices
+            price_pattern = r'\$([0-9,]+\.?\d*)'
+            found_prices = re.findall(price_pattern, message)
+            for i, ticker in enumerate(found_tickers[:len(found_prices)]):
+                entities["prices"][ticker] = found_prices[i]
+            
+            # Store conversation in unified system with comprehensive context
+            conv_id = await self.unified_memory.store_conversation_with_context(
+                user_input=user_input,
+                assistant_response=result.get("message", ""),
+                entities=entities,
+                metadata={
+                    "tools_used": result.get("tools_used", []),
+                    "success": result.get("success", True)
+                },
+                tenant_id=self.tenant_id,
+                thread_id=self.session_id
+            )
+            
+            self.logger.info(f"Stored unified conversation memory: {conv_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to store unified conversation memory: {e}")
     
     # Tool integration methods
     def _get_crypto_price(self, symbol: str) -> Optional[float]:
@@ -1364,11 +1553,65 @@ if __name__ == "__main__":
             return None
     
     async def _create_chart(self, symbols: List[str], user_id: str, chart_type: str = "price") -> Dict[str, Any]:
-        """Create chart using chart service with candlestick support"""
+        """Create advanced charts with full OpenBB capability support"""
         try:
-            # Detect chart type from user context if available
+            # Detect chart type from user context - EXPANDED CAPABILITIES
             user_input = getattr(self, '_current_user_input', '').lower()
-            is_candlestick = any(keyword in user_input for keyword in ['candle', 'candlestick', 'ohlc', 'bar chart'])
+            
+            # Comprehensive chart type detection
+            chart_config = {
+                "type": "line",  # default
+                "indicators": [],
+                "overlay": [],
+                "timeframe": "1d",
+                "period": "3mo"
+            }
+            
+            # Chart type detection
+            if any(kw in user_input for kw in ['candle', 'candlestick', 'ohlc']):
+                chart_config["type"] = "candlestick"
+            elif any(kw in user_input for kw in ['bar chart', 'bar graph']):
+                chart_config["type"] = "bar"
+            elif any(kw in user_input for kw in ['heatmap', 'heat map']):
+                chart_config["type"] = "heatmap"
+            elif any(kw in user_input for kw in ['correlation', 'corr matrix']):
+                chart_config["type"] = "correlation"
+            elif any(kw in user_input for kw in ['volume', 'vol chart']):
+                chart_config["type"] = "volume"
+            elif any(kw in user_input for kw in ['rsi', 'relative strength']):
+                chart_config["indicators"].append("rsi")
+            elif any(kw in user_input for kw in ['macd']):
+                chart_config["indicators"].append("macd")
+            elif any(kw in user_input for kw in ['bollinger', 'bands', 'bb']):
+                chart_config["overlay"].append("bollinger")
+            elif any(kw in user_input for kw in ['moving average', 'sma', 'ema']):
+                chart_config["overlay"].append("sma")
+            elif any(kw in user_input for kw in ['performance', 'comparison']):
+                chart_config["type"] = "performance"
+            elif any(kw in user_input for kw in ['sector', 'breakdown']):
+                chart_config["type"] = "sector_breakdown"
+            
+            # Timeframe detection
+            if any(kw in user_input for kw in ['daily', '1d', 'day']):
+                chart_config["timeframe"] = "1d"
+            elif any(kw in user_input for kw in ['hourly', '1h', 'hour']):
+                chart_config["timeframe"] = "1h"
+            elif any(kw in user_input for kw in ['weekly', '1w', 'week']):
+                chart_config["timeframe"] = "1w"
+            elif any(kw in user_input for kw in ['monthly', '1m', 'month']):
+                chart_config["timeframe"] = "1mo"
+            
+            # Period detection
+            if any(kw in user_input for kw in ['3 month', '3mo', 'three month']):
+                chart_config["period"] = "3mo"
+            elif any(kw in user_input for kw in ['6 month', '6mo', 'six month']):
+                chart_config["period"] = "6mo"
+            elif any(kw in user_input for kw in ['1 year', '1y', 'one year', 'yearly']):
+                chart_config["period"] = "1y"
+            elif any(kw in user_input for kw in ['year to date', 'ytd']):
+                chart_config["period"] = "ytd"
+            
+            is_candlestick = chart_config["type"] == "candlestick"
             
             if len(symbols) == 1:
                 # Single asset chart
@@ -1507,6 +1750,243 @@ if __name__ == "__main__":
         except Exception as e:
             self.logger.error(f"Error creating chart: {e}")
             return {"success": True, "message": "For detailed price charts and technical analysis, I recommend using professional charting platforms like TradingView, which offers advanced indicators and real-time market data."}
+
+
+    async def _conduct_deep_research(self, query: str, max_sources: int = 8, focus_areas: list = [], user_id: str = "system") -> Dict[str, Any]:
+        """
+        Conduct deep research inspired by the frontend DeepResearchAgent
+        Multi-step research workflow with intelligent search and synthesis
+        """
+        try:
+            from ..services.exa_service import ExaService
+            exa_service = ExaService()
+            
+            # Step 1: Generate focused research plan
+            research_plan = self._generate_research_plan(query, focus_areas)
+            
+            # Step 2: Execute multi-step search
+            all_search_results = []
+            sources_per_query = max(1, max_sources // len(research_plan))
+            
+            search_progress = []
+            
+            for i, research_query in enumerate(research_plan[:3]):  # Limit to 3 queries for speed
+                try:
+                    search_results = await exa_service.search(research_query, num_results=sources_per_query)
+                    if search_results:
+                        all_search_results.extend(search_results[:sources_per_query])
+                        search_progress.append(f"✅ Step {i+1}: Found {len(search_results)} sources for '{research_query[:50]}...'")
+                    else:
+                        search_progress.append(f"⚠️ Step {i+1}: No sources found for '{research_query[:50]}...'")
+                except Exception as e:
+                    search_progress.append(f"❌ Step {i+1}: Search failed for '{research_query[:50]}...'")
+                    continue
+            
+            # Step 3: Deduplicate and limit sources
+            unique_sources = self._deduplicate_sources(all_search_results)[:max_sources]
+            
+            # Step 4: Extract key findings using AI analysis
+            if unique_sources:
+                findings = await self._extract_research_findings(query, unique_sources)
+            else:
+                findings = [f"Limited information available for '{query}' - may require alternative research approaches"]
+            
+            # Step 5: Generate comprehensive synthesis
+            synthesis = await self._synthesize_research_findings(query, findings, unique_sources)
+            
+            # Calculate confidence score
+            confidence = self._calculate_research_confidence(unique_sources, findings)
+            
+            # Format comprehensive response
+            response_parts = [
+                f"🔬 **Deep Research: {query}**",
+                "",
+                f"📊 **Research Summary:**",
+                f"• {len(research_plan)} research queries executed",
+                f"• {len(unique_sources)} unique sources analyzed", 
+                f"• {len(findings)} key findings extracted",
+                f"• {int(confidence * 100)}% research confidence",
+                "",
+                f"🎯 **Key Findings:**"
+            ]
+            
+            for i, finding in enumerate(findings[:6], 1):
+                response_parts.append(f"{i}. {finding}")
+            
+            if synthesis:
+                response_parts.extend([
+                    "",
+                    f"📋 **Executive Summary:**",
+                    synthesis
+                ])
+            
+            if search_progress:
+                response_parts.extend([
+                    "",
+                    f"🔍 **Research Process:**",
+                    *search_progress
+                ])
+            
+            return {
+                "success": True,
+                "message": "\n".join(response_parts),
+                "data": {
+                    "query": query,
+                    "research_plan": research_plan,
+                    "sources_found": len(unique_sources),
+                    "findings": findings,
+                    "synthesis": synthesis,
+                    "confidence_score": confidence,
+                    "sources": [{"title": s.get("title", ""), "url": s.get("url", "")} for s in unique_sources[:5]]
+                }
+            }
+            
+        except Exception as e:
+            return {
+                "success": True,
+                "message": f"🔬 **Deep Research: {query}**\n\nResearch encountered technical challenges. For comprehensive analysis of '{query}', I recommend:\n\n• Check recent news sources and industry reports\n• Review company websites and official announcements\n• Consult financial databases like Bloomberg or Reuters\n• Explore academic and industry research publications\n\nI can help with specific aspects of this research if you have targeted questions.",
+                "data": {"error": str(e), "query": query}
+            }
+    
+    def _generate_research_plan(self, query: str, focus_areas: list = []) -> list:
+        """Generate focused research queries based on main query"""
+        base_plans = []
+        
+        # Extract key entities from query
+        query_lower = query.lower()
+        
+        if focus_areas:
+            for area in focus_areas:
+                base_plans.append(f"{query} {area}")
+        else:
+            # Smart research plan generation based on query type
+            if any(term in query_lower for term in ['company', 'startup', 'business']):
+                base_plans = [
+                    f"{query} latest news funding investment",
+                    f"{query} financial performance revenue",
+                    f"{query} leadership team founders"
+                ]
+            elif any(term in query_lower for term in ['market', 'industry', 'sector']):
+                base_plans = [
+                    f"{query} market trends analysis",
+                    f"{query} industry growth outlook",
+                    f"{query} competitive landscape"
+                ]
+            elif any(term in query_lower for term in ['technology', 'tech', 'ai', 'blockchain']):
+                base_plans = [
+                    f"{query} technology developments",
+                    f"{query} adoption and use cases",
+                    f"{query} future roadmap"
+                ]
+            else:
+                # Generic research approach
+                base_plans = [
+                    f"{query} latest developments",
+                    f"{query} analysis and insights",
+                    f"{query} market impact"
+                ]
+        
+        return base_plans[:4]  # Limit to 4 queries
+    
+    def _deduplicate_sources(self, sources: list) -> list:
+        """Remove duplicate sources based on URL and title similarity"""
+        seen_urls = set()
+        unique_sources = []
+        
+        for source in sources:
+            url = source.get('url', '')
+            title = source.get('title', '').lower()
+            
+            # Simple deduplication by URL
+            if url not in seen_urls and url:
+                seen_urls.add(url)
+                unique_sources.append(source)
+        
+        return unique_sources
+    
+    async def _extract_research_findings(self, query: str, sources: list) -> list:
+        """Extract key findings from sources using AI analysis"""
+        try:
+            # Prepare source material for analysis
+            source_material = ""
+            for i, source in enumerate(sources[:6], 1):  # Limit to prevent token overflow
+                title = source.get('title', 'Unknown Title')
+                text = source.get('text', source.get('snippet', ''))[:300]
+                source_material += f"Source {i}: {title}\n{text}\n---\n"
+            
+            analysis_prompt = f"""Research Query: "{query}"
+
+Source Material:
+{source_material}
+
+Extract 5-6 key factual findings that directly address the research query. Focus on:
+- Concrete facts and data points
+- Recent developments or changes
+- Financial metrics or performance indicators
+- Strategic decisions or announcements
+- Market trends or competitive positioning
+
+Each finding should be concise, specific, and actionable for investment analysis.
+Format as bullet points starting with "•"."""
+
+            response = await self.ai_service.generate_response(analysis_prompt)
+            
+            findings = []
+            if response:
+                lines = response.split('\n')
+                for line in lines:
+                    clean_line = line.replace('•', '').replace('-', '').strip()
+                    if len(clean_line) > 20:  # Filter out short lines
+                        findings.append(clean_line)
+            
+            return findings[:6] if findings else ["Analysis completed but specific findings require further investigation"]
+            
+        except Exception as e:
+            return [f"Research analysis encountered technical issues: {str(e)[:100]}"]
+    
+    async def _synthesize_research_findings(self, query: str, findings: list, sources: list) -> str:
+        """Synthesize findings into executive summary"""
+        try:
+            if not findings:
+                return f"Research on '{query}' is ongoing. Limited public information available at this time."
+            
+            synthesis_prompt = f"""Research Query: "{query}"
+
+Key Findings:
+{chr(10).join(f"• {finding}" for finding in findings)}
+
+Sources Analyzed: {len(sources)}
+
+Create a concise executive summary (2-3 sentences) that:
+1. Directly answers the research query
+2. Highlights the most important insights
+3. Provides actionable intelligence for investment decisions
+
+Keep it professional and focused on key takeaways."""
+
+            response = await self.ai_service.generate_response(synthesis_prompt)
+            return response if response else "Research completed. Additional analysis may be needed for comprehensive insights."
+            
+        except Exception:
+            return f"Research on '{query}' shows multiple dimensions requiring further analysis."
+    
+    def _calculate_research_confidence(self, sources: list, findings: list) -> float:
+        """Calculate confidence score based on source quality and findings"""
+        if not sources or not findings:
+            return 0.2
+        
+        # Base score from source count (0.0-0.4)
+        source_score = min(len(sources) / 8, 1.0) * 0.4
+        
+        # Findings quality score (0.0-0.4) 
+        finding_score = min(len(findings) / 6, 1.0) * 0.4
+        
+        # Source diversity bonus (0.0-0.2)
+        unique_domains = len(set(source.get('url', '').split('/')[2] for source in sources if source.get('url')))
+        diversity_score = min(unique_domains / 4, 1.0) * 0.2
+        
+        total_score = source_score + finding_score + diversity_score
+        return min(max(total_score, 0.2), 1.0)  # Clamp between 0.2 and 1.0
 
 
 # Global agent instance

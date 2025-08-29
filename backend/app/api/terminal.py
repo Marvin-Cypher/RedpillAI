@@ -2006,17 +2006,28 @@ async def execute_command(
     current_user: Optional[User] = Depends(get_current_user_optional)
 ) -> CommandResponse:
     """
-    Execute a natural language terminal command using AI-first architecture
+    Execute a natural language terminal command using AI-first Financial Agent
     """
-    interpreter = AITerminalInterpreter(session)
+    # Use our enhanced Financial Agent instead of the old terminal interpreter
+    from ..core.financial_agent import financial_agent  # Use global singleton
     
     try:
-        result = await interpreter.interpret_and_execute(
+        result = await financial_agent.process_command(
             command.command,
-            command.context
+            user_id=current_user.id if current_user else "anonymous"
         )
         
-        return result
+        # Convert Financial Agent response to CommandResponse format
+        return CommandResponse(
+            success=result.get("success", True),
+            message=result.get("message", ""),
+            data=result.get("data", {}),
+            trace={
+                "tools_used": result.get("tools_used", []),
+                "reasoning": result.get("reasoning", ""),
+                "command": command.command
+            }
+        )
         
     except Exception as e:
         return CommandResponse(

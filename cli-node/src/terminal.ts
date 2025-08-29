@@ -189,9 +189,10 @@ export class RedpillTerminal {
           }
         ]);
         
-        // Show what user typed clearly
+        // Clear line and show clean input (avoid duplication)
         if (!this.nonInteractive && input.trim()) {
-          console.log(chalk.cyan('❯ ') + chalk.white(input));
+          // Just move to next line, input already shown by inquirer
+          process.stdout.write('\n');
         }
 
         // Handle command discovery
@@ -233,14 +234,24 @@ export class RedpillTerminal {
   }
 
   private async processInput(input: string): Promise<CommandResult> {
-    const spinner = this.nonInteractive ? null : ora('Thinking...').start();
+    // Enhanced logging with progress indicators
+    const spinner = this.nonInteractive ? null : ora({
+      text: '🤖 AI analyzing your request...',
+      color: 'cyan'
+    }).start();
 
     try {
+      if (spinner) {
+        spinner.text = '🔗 Connecting to AI backend...';
+      }
+      
       // Try to connect to local backend first
       const result = await this.callBackend(input);
       
       if (result.success) {
-        if (spinner) spinner.stop();
+        if (spinner) {
+          spinner.succeed('✅ Request completed successfully');
+        }
         if (!this.nonInteractive) {
           this.displayResult(result);
         }
@@ -254,7 +265,9 @@ export class RedpillTerminal {
       if (axios.isAxiosError(error)) {
         // If we got a response from server, it's working but had an error
         if (error.response) {
-          if (spinner) spinner.stop();
+          if (spinner) {
+            spinner.fail('❌ Server responded with error');
+          }
           const errorMessage = error.response.data?.message || 'Server error';
           
           if (!this.nonInteractive) {
@@ -279,7 +292,9 @@ export class RedpillTerminal {
         
         // If it's a timeout or connection error
         if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
-          if (spinner) spinner.stop();
+          if (spinner) {
+            spinner.warn('⏱️ Request timed out - operation might still be processing');
+          }
           
           if (!this.nonInteractive) {
             console.log(chalk.yellow('⏱️ Request timed out. The operation might still be processing.'));
@@ -292,42 +307,50 @@ export class RedpillTerminal {
             data: { error: 'timeout' }
           };
         }
+        
+        // Connection refused - backend not running
+        if (error.code === 'ECONNREFUSED') {
+          if (spinner) {
+            spinner.fail('🔌 Cannot connect to backend - is it running?');
+          }
+          
+          if (!this.nonInteractive) {
+            console.log(chalk.red('❌ Cannot connect to backend server'));
+            console.log(chalk.dim('  • Make sure the backend is running: cd backend && uvicorn app.main:app --reload'));
+            console.log(chalk.dim('  • Check if port 8000 is available'));
+            console.log(chalk.dim('  • Verify your network connection'));
+          }
+          
+          return {
+            success: false,
+            message: 'Backend not available - please start the server',
+            data: { error: 'connection_refused' }
+          };
+        }
       }
       
-      // Only fall back to local processing for connection errors
-      if (spinner) spinner.text = 'Processing locally...';
-      
-      try {
-        const result = await this.processLocally(input);
-        if (spinner) spinner.stop();
-        if (!this.nonInteractive) {
-          this.displayResult(result);
-        }
-        return result;
-      } catch (localError) {
-        if (spinner) spinner.stop();
-        const errorMessage = localError instanceof Error ? localError.message : 'Unknown error';
-        
-        const errorResult: CommandResult = {
-          success: false,
-          message: errorMessage,
-          data: { error: errorMessage }
-        };
-        
-        if (!this.nonInteractive) {
-          console.log(chalk.red('❌ Error:'), errorMessage);
-          console.log(chalk.dim('Make sure the Redpill backend is running or check your API keys.'));
-        }
-        
-        return errorResult;
+      // General error handling
+      if (spinner) {
+        spinner.fail('❌ Request failed');
       }
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      if (!this.nonInteractive) {
+        console.log(chalk.red('❌ Error:'), errorMessage);
+      }
+      
+      return {
+        success: false,
+        message: `Backend request failed: ${errorMessage}`,
+        data: { error: error }
+      };
     }
   }
 
   private async callBackend(input: string): Promise<CommandResult> {
     try {
       const response = await axios.post(
-        `${this.apiUrl}/claude/execute`,
+        `${this.apiUrl}/terminal/execute`,
         {
           command: input,
           user_id: this.sessionId,
@@ -413,49 +436,6 @@ export class RedpillTerminal {
     }
   }
 
-  private async processLocally(input: string): Promise<CommandResult> {
-    // Simple local processing without OpenBB
-    const lower = input.toLowerCase();
-    
-    if (lower.includes('price') && this.extractTickers(input).length > 0) {
-      return {
-        success: true,
-        message: `To get real-time prices for ${this.extractTickers(input).join(', ')}, please ensure the backend is running with OpenBB integration.`,
-        data: { type: 'info', tickers: this.extractTickers(input) }
-      };
-    }
-
-    if (lower.includes('analyze') && this.extractTickers(input).length > 0) {
-      return {
-        success: true,
-        message: `Analysis for ${this.extractTickers(input).join(', ')} would include fundamentals, technicals, and news. Backend required for live data.`,
-        data: { type: 'info', tickers: this.extractTickers(input) }
-      };
-    }
-
-    if (lower.includes('portfolio') || lower.includes('import')) {
-      return {
-        success: false,
-        message: 'Unable to connect to backend for portfolio operations. Please check that the backend is running.',
-        data: { type: 'connection_error', suggestion: 'Try: npm run backend' }
-      };
-    }
-
-    // Default response
-    return {
-      success: true,
-      message: `I understand you're asking about "${input}". Let me try to help with that.`,
-      data: { type: 'info' }
-    };
-  }
-
-  private extractTickers(input: string): string[] {
-    // Simple regex to find potential ticker symbols
-    const tickerRegex = /\b[A-Z]{1,5}\b/g;
-    return (input.match(tickerRegex) || []).filter(ticker => 
-      ticker.length >= 2 && ticker.length <= 5
-    );
-  }
 
   private displayResult(result: CommandResult) {
     if (result.data?.visualization) {

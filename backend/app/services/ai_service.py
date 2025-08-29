@@ -159,6 +159,24 @@ class AIService:
                 }
             },
             {
+                "type": "function",
+                "function": {
+                    "name": "map_companies_to_symbols",
+                    "description": "Map company names to their stock ticker symbols for chart creation and analysis",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "company_names": {
+                                "type": "array",
+                                "description": "Array of company names to map to stock symbols",
+                                "items": {"type": "string"}
+                            }
+                        },
+                        "required": ["company_names"]
+                    }
+                }
+            },
+            {
                 "type": "function", 
                 "function": {
                     "name": "check_api_keys",
@@ -316,6 +334,23 @@ class AIService:
                             "final_goal": {"type": "string", "description": "Overall goal of the multi-step request"}
                         },
                         "required": ["steps", "final_goal"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "research_and_analyze_companies",
+                    "description": "Research companies in a specific sector/category, analyze them, and extract actionable data (symbols, market caps, etc.)",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "sector": {"type": "string", "description": "Sector/category to research (e.g., 'AI security', 'fintech', 'biotech')"},
+                            "company_type": {"type": "string", "description": "Type filter: 'public', 'private', 'startup', 'all'"},
+                            "count": {"type": "number", "description": "Number of companies to analyze (default: 5)"},
+                            "analysis_focus": {"type": "string", "description": "What to analyze: 'market_cap', 'growth', 'financial', 'competitive'"}
+                        },
+                        "required": ["sector"]
                     }
                 }
             }

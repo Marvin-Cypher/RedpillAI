@@ -247,19 +247,4 @@ program
 });
 // Parse command line arguments
 program.parse(process.argv);
-// If no arguments, show help
-if (!process.argv.slice(2).length) {
-    const setup = new setup_1.SetupWizard();
-    // Check if setup is needed
-    if (setup.needsSetup()) {
-        setup.askForAPIKeyGuide().then(() => {
-            const terminal = new terminal_1.RedpillTerminal();
-            terminal.start().catch(console.error);
-        }).catch(console.error);
-    }
-    else {
-        const terminal = new terminal_1.RedpillTerminal();
-        terminal.start().catch(console.error);
-    }
-}
 //# sourceMappingURL=index.js.map
