@@ -14,6 +14,7 @@ from ..services.openbb_cli_wrapper import openbb_cli
 from ..services.openbb_direct import openbb_direct
 from ..services.openbb_tool_registry import openbb_registry, ToolPriority
 from ..services.openbb_tool_executor import openbb_executor
+from ..services.creation_recorder import creation_recorder
 from ..services.market_data_service import MarketDataService
 from ..services.company_service import CompanyService
 from ..services.portfolio_service import PortfolioService
@@ -1478,10 +1479,22 @@ class IntelligentToolsService:
                 # Auto-open in browser if requested
                 if auto_open:
                     import webbrowser
-                    chart_url = f"http://localhost:3000/chart-viewer?url={result['chart_url']}"
+                    # Use the chart directly since chart-viewer has routing issues
+                    chart_url = f"http://localhost:3002{result['chart_url']}"
+                    print(f"🌐 Opening chart in browser: {chart_url}")
                     webbrowser.open(chart_url)
                 
-                # Store chart reference in ChromaDB for future access
+                # Record as creation in Universal Creation Recording System
+                creation_id = await creation_recorder.record_chart_creation(
+                    user_id="default_user",  # TODO: Get actual user ID from context
+                    symbol=symbol,
+                    asset_type=asset_type,
+                    chart_result=result,
+                    openbb_tool="generate_interactive_chart",
+                    parameters={"symbol": symbol, "asset_type": asset_type, "period": period}
+                )
+                
+                # Store chart reference in ChromaDB for future access (legacy)
                 await self._store_chart_metadata(symbol, result, asset_type, period)
                 
                 return ToolResult(
@@ -1492,11 +1505,13 @@ class IntelligentToolsService:
                         "asset_type": asset_type,
                         "period": period,
                         "chart_url": result["chart_url"],
-                        "web_viewer_url": f"http://localhost:3000/chart-viewer?url={result['chart_url']}",
+                        "web_viewer_url": f"http://localhost:3002{result['chart_url']}",
                         "interactive": True,
                         "saved_to_portfolio": save_to_portfolio,
                         "auto_opened": auto_open,
-                        "data_points": result.get("data_points", 0)
+                        "data_points": result.get("data_points", 0),
+                        "creation_id": creation_id,  # Track in Investment CRM
+                        "recorded_as_creation": True
                     }
                 )
             else:

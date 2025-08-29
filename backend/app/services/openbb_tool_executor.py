@@ -22,6 +22,7 @@ except ImportError:
     OPENBB_AVAILABLE = False
 
 from .openbb_tool_registry import OpenBBToolRegistry, OpenBBTool
+from .creation_recorder import creation_recorder, CreationType
 
 logger = logging.getLogger(__name__)
 
@@ -57,13 +58,14 @@ class OpenBBToolExecutor:
         except Exception as e:
             logger.warning(f"Credential configuration issue: {e}")
     
-    async def execute_tool(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_tool(self, tool_name: str, parameters: Dict[str, Any], user_id: str = "default") -> Dict[str, Any]:
         """
         Execute an OpenBB tool by name with parameters
         
         Args:
             tool_name: Name of the tool from registry
             parameters: Tool parameters from AI
+            user_id: User ID for creation recording
             
         Returns:
             Execution result with data or error
@@ -89,14 +91,26 @@ class OpenBBToolExecutor:
             # Execute based on module path
             result = await self._execute_openbb_function(tool, parameters)
             
+            # Record this as a creation for Investment CRM
+            creation_type = self._determine_creation_type(tool, parameters, result)
+            creation_id = await creation_recorder.record_data_creation(
+                user_id=user_id,
+                openbb_tool=tool_name,
+                parameters=parameters,
+                result_data=result,
+                creation_type=creation_type
+            )
+            
             return {
                 "success": True,
                 "tool": tool_name,
                 "category": tool.category,
                 "data": result,
+                "creation_id": creation_id,  # Track creation for CRM
                 "metadata": {
                     "module": tool.module_path,
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now().isoformat(),
+                    "recorded_as_creation": True
                 }
             }
             
@@ -343,6 +357,43 @@ class OpenBBToolExecutor:
             analysis["recent_news"] = news["data"]
         
         return analysis
+    
+    def _determine_creation_type(self, tool: OpenBBTool, parameters: Dict, result: Any) -> CreationType:
+        """Determine the type of creation based on tool and result"""
+        
+        tool_name_lower = tool.name.lower()
+        
+        # Chart-related tools
+        if "chart" in tool_name_lower or "price_history" in tool_name_lower:
+            return CreationType.CHART
+        
+        # Fundamental analysis
+        elif any(word in tool_name_lower for word in ["income", "balance", "cash", "ratios", "fundamental"]):
+            return CreationType.FUNDAMENTALS
+        
+        # Technical analysis
+        elif any(word in tool_name_lower for word in ["rsi", "macd", "sma", "technical", "indicator"]):
+            return CreationType.TECHNICAL
+        
+        # Options analysis
+        elif any(word in tool_name_lower for word in ["option", "chain", "unusual"]):
+            return CreationType.OPTIONS
+        
+        # Economic data
+        elif any(word in tool_name_lower for word in ["economy", "gdp", "inflation", "rate", "fred"]):
+            return CreationType.ECONOMIC
+        
+        # News and events
+        elif any(word in tool_name_lower for word in ["news", "earnings", "calendar"]):
+            return CreationType.NEWS
+        
+        # Screening and discovery
+        elif any(word in tool_name_lower for word in ["screen", "gainer", "loser", "active", "discover"]):
+            return CreationType.SCREEN
+        
+        # Default to table for data tools
+        else:
+            return CreationType.TABLE
 
 
 # Singleton instance

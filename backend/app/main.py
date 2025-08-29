@@ -92,7 +92,7 @@ async def root():
 
 
 # Import and include routers
-from .api import auth, companies, deals, ai_chat, market, config
+from .api import auth, companies, deals, ai_chat, market, config, creations
 from .api import terminal  # AI-first terminal (legacy)
 from .api import claude_terminal_api  # New Claude Code-style terminal
 from .api.v2 import terminal as terminal_v2  # V2 Terminal with Claude Code intelligence
@@ -114,6 +114,7 @@ app.include_router(terminal.router, prefix="/api/v1/terminal", tags=["terminal-l
 app.include_router(claude_terminal_api.router, prefix="/api/v1/claude", tags=["claude-terminal"])  # New Claude Code system
 app.include_router(terminal_v2.router, prefix="/api/v2/terminal", tags=["terminal-v2"])  # V2 Production system
 app.include_router(config.router, prefix="/api/v1/config", tags=["configuration"])
+app.include_router(creations.router, prefix="/api/v1", tags=["investment-crm"])  # Universal Creation Recording System
 
 # Temporarily disabled routers until Pydantic forward reference issues are fixed
 # app.include_router(portfolio.router, prefix="/api/v1/portfolio", tags=["portfolio"])
