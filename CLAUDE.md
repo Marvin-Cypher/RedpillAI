@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with RedPill AI Terminal
 
 ## Project Overview
 
-**RedPill AI Terminal** - CLI-first investment terminal with natural language interface and optional web UI assistant.
+**RedPill Investment Intelligence Platform** - Memory-driven investment platform that uses OpenBB as core engine with AI as intelligent shell, designed to eventually replace OpenBB Platform with superior AI + memory + CRM organization.
 
 ## Current Status (2025-08-29)
 
@@ -21,6 +21,61 @@ This file provides guidance to Claude Code when working with RedPill AI Terminal
 ✅ **MARKET DATA INTEGRATION** - Real-time quotes, indices, and chart generation  
 ✅ **INTELLIGENT VALIDATION** - AI requests missing parameters instead of failing  
 ✅ **MULTI-STEP REASONING** - Handles complex operations like "add BTC then show indices"
+✅ **OPENBB DIRECT INTEGRATION** - Python API integration with web UI chart display working
+⚠️ **CRITICAL OPENBB GAP** - Only ~4 OpenBB AI tools registered vs 36+ modules with hundreds of functions
+
+## 🚀 **STRATEGIC VISION: OpenBB Platform Replacement**
+
+**5-Phase Evolution Plan:**
+
+### **Phase 1: AI CLI as OpenBB Shell** ✅ (CURRENT)
+*"OpenBB as core, AI as shell"*
+- ✅ OpenBB source integrated, direct Python API  
+- ✅ Web UI chart viewer, storage pipeline established
+- ⚠️ **Missing: Comprehensive OpenBB tool coverage**
+
+### **Phase 2: Universal Creation Memory** 📊 (NEXT)  
+*"Everything from user-openbb recorded as creation"*
+- 📋 Register ALL 36+ OpenBB modules as AI tools
+- 📋 Universal creation recording system (charts, tables, reports, screens, alerts, analysis)
+- 📋 Smart classification and contextual storage
+
+### **Phase 3: Investment CRM Intelligence** 🧠
+*"Organize like investor smart CRM"*
+- 📋 Portfolio Intelligence Hub, Research Workspace  
+- 📋 Trading Intelligence, Deal Flow Management
+- 📋 Meeting preparation automation
+
+### **Phase 4: Memory-Driven AI Evolution** 🤖
+*"Claude-Code level intelligence with investment context"*
+- 📋 Conversational investment intelligence
+- 📋 Proactive monitoring, pattern recognition
+- 📋 Research continuity across sessions
+
+### **Phase 5: OpenBB Platform Takeover** 🎯
+*"RedPill UI + AI-CLI replace OpenBB platform"*
+- 📋 Unified interface superior to OpenBB Terminal Pro
+- 📋 Memory intelligence, integrated workflows
+- 📋 Enterprise features for investment professionals
+
+## **CRITICAL PRIORITY: Complete OpenBB Tool Coverage**
+
+**Current:** 4 basic tools  
+**Required:** 36+ modules × multiple functions each
+
+**Missing Major Categories:**
+- Economy (GDP, inflation, calendars)
+- Options (chains, Greeks, unusual activity)  
+- Fundamentals (statements, ratios, estimates)
+- Discovery (screeners, gainers/losers)
+- Fixed Income (bonds, yields, spreads)
+- Derivatives (futures, swaps)
+- Regulators (SEC, CFTC filings)
+- ETF Analysis (holdings, flows)  
+- Technical Analysis (indicators, patterns)
+- News & Sentiment
+- Ownership (institutional, insider)
+- And many more...
 
 ## Architecture
 
@@ -160,6 +215,34 @@ npm install && npm run dev
 npm run build && npm run lint
 ```
 
+## 🧠 **CRITICAL: TRUE AI-FIRST ARCHITECTURE PRINCIPLES**
+
+**RedPill is a CLI, not a webapp chat, because CLI enables true AI autonomy and tool composition without UI constraints.**
+
+### ❌ **ANTI-PATTERNS WE MUST AVOID**
+- **Hardcoded Intent Routing**: Never map user phrases to specific tools (`if "tracking list" → call analyze_portfolio`)
+- **Pattern Matching Logic**: No `if/elif/else` chains for user input interpretation
+- **Predetermined Workflows**: Don't hardcode "Step 1, Step 2, Step 3" - let AI decide
+- **Tool Mapping Tables**: No explicit routing tables - tools should be self-describing
+- **Case-by-Case Fixes**: Don't add hardcoded patterns for each new user phrase
+
+### ✅ **TRUE AI-FIRST PRINCIPLES**
+1. **SEMANTIC TOOL UNDERSTANDING**: AI reads tool descriptions and understands capabilities naturally
+2. **DYNAMIC PARAMETER EXTRACTION**: AI reasons about user intent and maps to tool parameters
+3. **CONTEXT-AWARE REASONING**: AI uses conversation history and domain knowledge
+4. **SELF-DESCRIBING TOOLS**: Tools explain what they do - AI chooses based on understanding
+5. **TRUST AI INTELLIGENCE**: Let AI be smart - don't try to be smarter than the AI
+
+### 🎯 **IMPLEMENTATION STRATEGY**
+- **Prompt Engineering First**: Rich tool descriptions, clear system context, semantic understanding
+- **AI Self-Build Tools**: Tools that describe themselves and their capabilities comprehensively  
+- **Natural Language Processing**: AI understands intent without pattern matching
+- **Tool Composition**: AI chains and combines tools based on reasoning, not hardcoded logic
+- **CLI-First Design**: Terminal interface enables true AI autonomy without UI constraints
+
+### 📐 **WHY CLAUDE CODE / GEMINI CLI SUCCEED**
+They TRUST the AI to understand semantically and choose tools intelligently. No hardcoded "if user says X, do Y" - pure AI reasoning with rich tool descriptions.
+
 ## Current System Status
 - ✅ **UNIFIED CHROMA INTELLIGENCE**: Complete vector database integration with semantic search
 - ✅ **PERSISTENT MEMORY**: Full conversation memory across CLI sessions with context retention  
@@ -167,7 +250,7 @@ npm run build && npm run lint
 - ✅ **MULTI-STEP AUTONOMOUS EXECUTION**: Complex queries trigger comprehensive analysis workflows
 - ✅ **ENTITY RECOGNITION**: Automatic symbol/company extraction and storage in memory collections
 - ✅ **SEMANTIC CONTEXT RETRIEVAL**: Intelligent pronoun resolution using conversation history
-- ✅ **AI-FIRST ARCHITECTURE**: True AI reasoning with function calling (no hardcoded patterns)
+- ✅ **TRUE AI-FIRST ARCHITECTURE**: AI reasoning with function calling (eliminating hardcoded patterns)
 - ✅ **PORTFOLIO OPERATIONS**: Add/remove/import holdings with CSV/Excel support
 - ✅ **MARKET DATA**: Real-time quotes, indices, and chart generation working
 - ✅ **NATURAL LANGUAGE**: Complete understanding without command syntax

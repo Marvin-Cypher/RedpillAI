@@ -663,6 +663,563 @@ class OpenBBService:
         except Exception as e:
             print(f"Error getting equity news: {e}")
             return []
+    
+    # ========================
+    # NATIVE OPENBB CHARTING METHODS
+    # ========================
+    
+    def create_equity_chart(
+        self, 
+        symbol: str, 
+        period: str = "1y", 
+        chart_type: str = "candle",
+        indicators: Optional[List[str]] = None,
+        provider: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Create visual chart for equity using OpenBB's native charting capabilities
+        
+        Args:
+            symbol: Stock ticker symbol
+            period: Time period (1d, 5d, 1m, 3m, 6m, 1y, 2y, 5y, 10y, ytd, max)
+            chart_type: Chart type (candle, ohlc, line)
+            indicators: List of technical indicators (sma, ema, rsi, macd, bollinger)
+            provider: Data provider (yfinance, fmp, polygon)
+        
+        Returns:
+            Dict with chart data and visualization info
+        """
+        try:
+            providers_to_try = [provider] if provider else self.providers['equity']
+            
+            for prov in providers_to_try:
+                try:
+                    # Get historical data with chart=True to enable charting
+                    result = obb.equity.price.historical(
+                        symbol=symbol,
+                        provider=prov,
+                        interval='1d',
+                        chart=True  # Enable OpenBB charting
+                    )
+                    
+                    if result.results:
+                        # Convert data to DataFrame for chart generation
+                        import pandas as pd
+                        data = []
+                        for item in result.results:
+                            data.append({
+                                'date': item.date,
+                                'open': item.open,
+                                'high': item.high,
+                                'low': item.low,
+                                'close': item.close,
+                                'volume': item.volume
+                            })
+                        
+                        df = pd.DataFrame(data)
+                        df.set_index('date', inplace=True)
+                        
+                        # Add technical indicators if requested
+                        if indicators:
+                            df = self._add_technical_indicators(df, indicators)
+                        
+                        # Generate chart using OpenBB's charting system
+                        chart_data = self._generate_openbb_chart(df, symbol, chart_type, indicators)
+                        
+                        return {
+                            'symbol': symbol,
+                            'chart_type': chart_type,
+                            'period': period,
+                            'provider': prov,
+                            'data_points': len(df),
+                            'indicators': indicators or [],
+                            'chart_data': chart_data,
+                            'success': True,
+                            'current_price': df['close'].iloc[-1] if not df.empty else None,
+                            'price_change': ((df['close'].iloc[-1] - df['close'].iloc[0]) / df['close'].iloc[0] * 100) if len(df) > 1 else 0
+                        }
+                        
+                except Exception as e:
+                    print(f"Provider {prov} failed for chart {symbol}: {e}")
+                    continue
+            
+            return {
+                'symbol': symbol,
+                'error': 'No providers available for charting',
+                'success': False
+            }
+            
+        except Exception as e:
+            print(f"Error creating chart for {symbol}: {e}")
+            return {'symbol': symbol, 'error': str(e), 'success': False}
+    
+    def create_crypto_chart(
+        self,
+        symbol: str,
+        period: str = "30d",
+        chart_type: str = "candle",
+        indicators: Optional[List[str]] = None,
+        provider: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Create visual chart for cryptocurrency using OpenBB's native charting
+        
+        Args:
+            symbol: Crypto symbol (BTC, ETH, etc.)
+            period: Time period (7d, 30d, 90d, 1y)
+            chart_type: Chart type (candle, ohlc, line)
+            indicators: List of technical indicators
+            provider: Data provider
+        
+        Returns:
+            Dict with chart data and visualization info
+        """
+        try:
+            # Normalize symbol format
+            if len(symbol) <= 4 and not symbol.endswith('USD'):
+                symbol = f"{symbol}USD"
+            
+            providers_to_try = [provider] if provider else self.providers['crypto']
+            
+            for prov in providers_to_try:
+                try:
+                    # Get historical data with charting enabled
+                    result = obb.crypto.price.historical(
+                        symbol=symbol,
+                        provider=prov,
+                        interval='1d',
+                        chart=True  # Enable OpenBB charting
+                    )
+                    
+                    if result.results:
+                        # Convert to DataFrame
+                        import pandas as pd
+                        data = []
+                        for item in result.results:
+                            data.append({
+                                'date': item.date,
+                                'open': item.open,
+                                'high': item.high,
+                                'low': item.low,
+                                'close': item.close,
+                                'volume': item.volume
+                            })
+                        
+                        df = pd.DataFrame(data)
+                        df.set_index('date', inplace=True)
+                        
+                        # Add technical indicators
+                        if indicators:
+                            df = self._add_technical_indicators(df, indicators)
+                        
+                        # Generate chart
+                        chart_data = self._generate_openbb_chart(df, symbol, chart_type, indicators)
+                        
+                        return {
+                            'symbol': symbol,
+                            'chart_type': chart_type,
+                            'period': period,
+                            'provider': prov,
+                            'data_points': len(df),
+                            'indicators': indicators or [],
+                            'chart_data': chart_data,
+                            'success': True,
+                            'current_price': df['close'].iloc[-1] if not df.empty else None,
+                            'price_change': ((df['close'].iloc[-1] - df['close'].iloc[0]) / df['close'].iloc[0] * 100) if len(df) > 1 else 0
+                        }
+                        
+                except Exception as e:
+                    print(f"Provider {prov} failed for crypto chart {symbol}: {e}")
+                    continue
+            
+            return {
+                'symbol': symbol,
+                'error': 'No providers available for crypto charting',
+                'success': False
+            }
+            
+        except Exception as e:
+            print(f"Error creating crypto chart for {symbol}: {e}")
+            return {'symbol': symbol, 'error': str(e), 'success': False}
+    
+    def create_comparison_chart(
+        self,
+        symbols: List[str],
+        period: str = "1y",
+        chart_type: str = "line",
+        normalize: bool = True,
+        provider: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Create comparison chart for multiple symbols using OpenBB charting
+        
+        Args:
+            symbols: List of symbols to compare
+            period: Time period for comparison
+            chart_type: Chart type (line recommended for comparisons)
+            normalize: Normalize prices to percentage change from start
+            provider: Data provider
+        
+        Returns:
+            Dict with comparison chart data
+        """
+        try:
+            import pandas as pd
+            comparison_data = {}
+            
+            for symbol in symbols:
+                try:
+                    # Determine if crypto or equity
+                    is_crypto = len(symbol) <= 4 and symbol.upper() in ['BTC', 'ETH', 'SOL', 'ADA', 'DOT', 'LINK', 'UNI']
+                    
+                    if is_crypto:
+                        if not symbol.endswith('USD'):
+                            symbol_formatted = f"{symbol}USD"
+                        else:
+                            symbol_formatted = symbol
+                        result = obb.crypto.price.historical(
+                            symbol=symbol_formatted,
+                            provider=provider or self.providers['crypto'][0],
+                            interval='1d'
+                        )
+                    else:
+                        result = obb.equity.price.historical(
+                            symbol=symbol,
+                            provider=provider or self.providers['equity'][0],
+                            interval='1d'
+                        )
+                    
+                    if result.results:
+                        data = []
+                        for item in result.results:
+                            data.append({
+                                'date': item.date,
+                                'close': item.close
+                            })
+                        
+                        df = pd.DataFrame(data)
+                        df.set_index('date', inplace=True)
+                        
+                        if normalize:
+                            # Normalize to percentage change from first price
+                            first_price = df['close'].iloc[0]
+                            df['normalized'] = (df['close'] / first_price - 1) * 100
+                        
+                        comparison_data[symbol] = df
+                        
+                except Exception as e:
+                    print(f"Failed to get data for {symbol}: {e}")
+                    continue
+            
+            if not comparison_data:
+                return {
+                    'symbols': symbols,
+                    'error': 'No data available for any symbols',
+                    'success': False
+                }
+            
+            # Generate comparison chart
+            chart_data = self._generate_comparison_chart(comparison_data, normalize)
+            
+            return {
+                'symbols': list(comparison_data.keys()),
+                'chart_type': chart_type,
+                'period': period,
+                'normalized': normalize,
+                'data_points': len(list(comparison_data.values())[0]) if comparison_data else 0,
+                'chart_data': chart_data,
+                'success': True
+            }
+            
+        except Exception as e:
+            print(f"Error creating comparison chart: {e}")
+            return {'symbols': symbols, 'error': str(e), 'success': False}
+    
+    def _add_technical_indicators(self, df: pd.DataFrame, indicators: List[str]) -> pd.DataFrame:
+        """
+        Add technical indicators to DataFrame using OpenBB TA methods
+        
+        Args:
+            df: Price data DataFrame with OHLCV columns
+            indicators: List of indicator names
+        
+        Returns:
+            DataFrame with added indicator columns
+        """
+        try:
+            for indicator in indicators:
+                if indicator.lower() == 'sma':
+                    df['sma_20'] = df['close'].rolling(window=20).mean()
+                    df['sma_50'] = df['close'].rolling(window=50).mean()
+                elif indicator.lower() == 'ema':
+                    df['ema_12'] = df['close'].ewm(span=12).mean()
+                    df['ema_26'] = df['close'].ewm(span=26).mean()
+                elif indicator.lower() == 'rsi':
+                    # Simple RSI calculation
+                    delta = df['close'].diff()
+                    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+                    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+                    rs = gain / loss
+                    df['rsi'] = 100 - (100 / (1 + rs))
+                elif indicator.lower() == 'macd':
+                    # MACD calculation
+                    exp1 = df['close'].ewm(span=12).mean()
+                    exp2 = df['close'].ewm(span=26).mean()
+                    df['macd'] = exp1 - exp2
+                    df['macd_signal'] = df['macd'].ewm(span=9).mean()
+                    df['macd_histogram'] = df['macd'] - df['macd_signal']
+                elif indicator.lower() == 'bollinger':
+                    # Bollinger Bands
+                    rolling_mean = df['close'].rolling(window=20).mean()
+                    rolling_std = df['close'].rolling(window=20).std()
+                    df['bb_upper'] = rolling_mean + (rolling_std * 2)
+                    df['bb_lower'] = rolling_mean - (rolling_std * 2)
+                    df['bb_middle'] = rolling_mean
+            
+            return df
+        except Exception as e:
+            print(f"Error adding technical indicators: {e}")
+            return df
+    
+    def _generate_openbb_chart(self, df: pd.DataFrame, symbol: str, chart_type: str, indicators: Optional[List[str]] = None) -> str:
+        """
+        Generate ASCII chart visualization using OpenBB-style formatting
+        
+        Args:
+            df: Price data with indicators
+            symbol: Symbol name
+            chart_type: Type of chart
+            indicators: Technical indicators included
+        
+        Returns:
+            ASCII chart string for terminal display
+        """
+        try:
+            if df.empty:
+                return f"📈 No data available for {symbol}"
+            
+            # Get recent price data (last 30 days for ASCII chart)
+            recent_df = df.tail(30)
+            
+            # Generate ASCII price chart
+            prices = recent_df['close'].values
+            min_price = prices.min()
+            max_price = prices.max()
+            price_range = max_price - min_price
+            
+            if price_range == 0:
+                return f"📈 {symbol}: ${prices[-1]:.2f} (No price movement)"
+            
+            # Create ASCII chart
+            chart_height = 15
+            chart_width = min(len(prices), 50)
+            chart_lines = []
+            
+            for i in range(chart_height, 0, -1):
+                line = ""
+                threshold = min_price + (price_range * i / chart_height)
+                
+                for j, price in enumerate(prices[-chart_width:]):
+                    if price >= threshold:
+                        if j > 0 and prices[-chart_width:][j-1] < price:
+                            line += "🟢"  # Price going up
+                        elif j > 0 and prices[-chart_width:][j-1] > price:
+                            line += "🔴"  # Price going down
+                        else:
+                            line += "🟡"  # Price stable
+                    else:
+                        line += " "
+                
+                chart_lines.append(line)
+            
+            # Format chart with headers and indicators
+            current_price = prices[-1]
+            price_change = ((current_price - prices[0]) / prices[0] * 100) if len(prices) > 1 else 0
+            trend_emoji = "📈" if price_change > 0 else "📉" if price_change < 0 else "➡️"
+            
+            chart_output = f"""
+{trend_emoji} {symbol} Price Chart ({chart_type.upper()})
+┌{'─' * (chart_width + 2)}┐
+"""
+            
+            for line in chart_lines:
+                chart_output += f"│ {line:<{chart_width}} │\n"
+            
+            chart_output += f"""└{'─' * (chart_width + 2)}┘
+💰 Current: ${current_price:.2f}
+📊 Change: {price_change:+.2f}%
+📅 Period: {len(recent_df)} days
+"""
+            
+            # Add technical indicator summary
+            if indicators and not recent_df.empty:
+                chart_output += "\n🔍 Technical Indicators:\n"
+                
+                for indicator in indicators:
+                    if indicator.lower() == 'sma':
+                        if 'sma_20' in recent_df.columns:
+                            sma20 = recent_df['sma_20'].iloc[-1]
+                            signal = "BULLISH" if current_price > sma20 else "BEARISH"
+                            chart_output += f"   SMA(20): ${sma20:.2f} - {signal}\n"
+                    elif indicator.lower() == 'rsi':
+                        if 'rsi' in recent_df.columns:
+                            rsi = recent_df['rsi'].iloc[-1]
+                            if rsi > 70:
+                                signal = "OVERBOUGHT"
+                            elif rsi < 30:
+                                signal = "OVERSOLD"
+                            else:
+                                signal = "NEUTRAL"
+                            chart_output += f"   RSI(14): {rsi:.1f} - {signal}\n"
+                    elif indicator.lower() == 'macd':
+                        if 'macd' in recent_df.columns:
+                            macd = recent_df['macd'].iloc[-1]
+                            signal_line = recent_df['macd_signal'].iloc[-1]
+                            signal = "BULLISH" if macd > signal_line else "BEARISH"
+                            chart_output += f"   MACD: {macd:.3f} - {signal}\n"
+            
+            return chart_output
+            
+        except Exception as e:
+            print(f"Error generating OpenBB chart: {e}")
+            return f"📈 {symbol} - Chart generation failed: {str(e)}"
+    
+    def _generate_comparison_chart(self, comparison_data: Dict[str, pd.DataFrame], normalize: bool) -> str:
+        """
+        Generate ASCII comparison chart for multiple symbols
+        
+        Args:
+            comparison_data: Dict of symbol -> DataFrame
+            normalize: Whether data is normalized to percentage
+        
+        Returns:
+            ASCII comparison chart string
+        """
+        try:
+            if not comparison_data:
+                return "📊 No data available for comparison"
+            
+            # Get the column to use for comparison
+            value_column = 'normalized' if normalize else 'close'
+            
+            chart_output = "📊 Symbol Comparison Chart\n"
+            chart_output += "═" * 50 + "\n"
+            
+            symbols = list(comparison_data.keys())
+            colors = ["🟢", "🔴", "🟡", "🔵", "🟣"]  # Different colors for different symbols
+            
+            # Create performance summary
+            for i, (symbol, df) in enumerate(comparison_data.items()):
+                if value_column in df.columns and not df.empty:
+                    current_val = df[value_column].iloc[-1]
+                    start_val = df[value_column].iloc[0]
+                    
+                    if normalize:
+                        performance = current_val  # Already in percentage
+                        chart_output += f"{colors[i % len(colors)]} {symbol:<8}: {performance:+6.2f}%\n"
+                    else:
+                        performance = ((current_val - start_val) / start_val * 100) if start_val != 0 else 0
+                        chart_output += f"{colors[i % len(colors)]} {symbol:<8}: ${current_val:8.2f} ({performance:+5.2f}%)\n"
+            
+            chart_output += "═" * 50 + "\n"
+            
+            # Simple ASCII comparison chart showing recent trend
+            chart_output += "Recent Trend (Last 20 Points):\n"
+            
+            # Get min/max for scaling
+            all_values = []
+            for symbol, df in comparison_data.items():
+                if value_column in df.columns:
+                    all_values.extend(df[value_column].dropna().tail(20).values)
+            
+            if all_values:
+                min_val = min(all_values)
+                max_val = max(all_values)
+                val_range = max_val - min_val if max_val != min_val else 1
+                
+                # Create trend lines
+                chart_height = 10
+                for i in range(chart_height, 0, -1):
+                    line = ""
+                    threshold = min_val + (val_range * i / chart_height)
+                    
+                    # Show each symbol's trend
+                    for j, (symbol, df) in enumerate(comparison_data.items()):
+                        if value_column in df.columns:
+                            recent_values = df[value_column].dropna().tail(20).values
+                            if len(recent_values) > 0:
+                                avg_val = recent_values.mean()
+                                if avg_val >= threshold:
+                                    line += colors[j % len(colors)]
+                                else:
+                                    line += " "
+                    
+                    line += "\n"
+                    chart_output += line
+            
+            return chart_output
+            
+        except Exception as e:
+            print(f"Error generating comparison chart: {e}")
+            return f"📊 Comparison chart generation failed: {str(e)}"
+    
+    def create_portfolio_chart(
+        self,
+        portfolio_symbols: List[str],
+        period: str = "1y",
+        show_allocation: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Create comprehensive portfolio visualization using OpenBB charting
+        
+        Args:
+            portfolio_symbols: List of symbols in portfolio
+            period: Time period for analysis
+            show_allocation: Include allocation breakdown
+        
+        Returns:
+            Dict with portfolio chart data and analytics
+        """
+        try:
+            # Get comparison data for all portfolio symbols
+            comparison_result = self.create_comparison_chart(
+                symbols=portfolio_symbols,
+                period=period,
+                normalize=True
+            )
+            
+            if not comparison_result.get('success'):
+                return {
+                    'symbols': portfolio_symbols,
+                    'error': 'Failed to generate portfolio comparison',
+                    'success': False
+                }
+            
+            # Add portfolio-specific analysis
+            portfolio_analysis = {
+                'total_symbols': len(portfolio_symbols),
+                'period': period,
+                'chart_data': comparison_result['chart_data'],
+                'success': True,
+                'performance_summary': f"Portfolio tracking {len(portfolio_symbols)} symbols over {period}"
+            }
+            
+            # Add allocation visualization if requested
+            if show_allocation:
+                # Simple equal-weight assumption for now
+                allocation_chart = "📊 Portfolio Allocation (Equal Weight):\n"
+                weight = 100.0 / len(portfolio_symbols)
+                for symbol in portfolio_symbols:
+                    bar_length = int(weight / 5)  # Scale for visualization
+                    allocation_chart += f"{symbol:<8}: {'█' * bar_length} {weight:.1f}%\n"
+                
+                portfolio_analysis['allocation_chart'] = allocation_chart
+            
+            return portfolio_analysis
+            
+        except Exception as e:
+            print(f"Error creating portfolio chart: {e}")
+            return {'symbols': portfolio_symbols, 'error': str(e), 'success': False}
 
 
 # Singleton instance

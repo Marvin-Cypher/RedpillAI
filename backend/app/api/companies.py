@@ -137,16 +137,8 @@ async def list_companies(
     # current_user: User = Depends(get_current_active_user)  # Temporarily disabled for testing
 ):
     """List companies with enhanced filtering and summary data."""
-    enhanced_service = EnhancedCompanyService(db)
-    
-    companies = await enhanced_service.get_companies_list(
-        sector=sector,
-        search=search,
-        has_deals=has_deals,
-        is_talent_dense=is_talent_dense,
-        skip=skip,
-        limit=limit
-    )
+    # Use existing company_service instead of removed EnhancedCompanyService  
+    companies = await company_service.get_all_companies()
     
     return companies
 

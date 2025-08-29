@@ -133,4 +133,5 @@ jspm_packages/
 
 # Temporary files
 tmp/
-temp/
+temp/openbb-source/
+openbb-terminal/

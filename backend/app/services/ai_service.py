@@ -15,27 +15,26 @@ class AIService:
         # Support multiple AI providers
         self.use_redpill = settings.REDPILL_API_KEY and settings.use_redpill_ai
         
-        if self.use_redpill:
-            # Use OpenAI client with Redpill baseURL (more reliable)
+        # Use OpenAI API keys for both OpenAI and Redpill
+        if settings.openai_api_key and settings.openai_api_key != "sk-9JABKD0bYW6s8VN6PoIG0LUOj1uo44TrXm0MNJWXe7GWP1wR":
+            self.api_key = settings.openai_api_key
+            self.client = OpenAI(api_key=settings.openai_api_key)
+            self.default_model = "gpt-4o"  # Use latest model
+            self.use_redpill = False
+            print(f"✅ AI Service configured with OpenAI API (model: {self.default_model})")
+        elif settings.REDPILL_API_KEY:
+            # Redpill uses same OpenAI API key format
             self.api_key = settings.REDPILL_API_KEY
-            self.base_url = settings.redpill_api_url
             self.client = OpenAI(
                 base_url="https://api.redpill.ai/v1",
                 api_key=settings.REDPILL_API_KEY
             )
             self.default_model = "phala/gpt-oss-120b"
             self.use_redpill = True
+            print(f"✅ AI Service configured with Redpill API (model: {self.default_model})")
         else:
-            # Fallback to OpenAI
-            if not settings.openai_api_key or settings.openai_api_key == "sk-9JABKD0bYW6s8VN6PoIG0LUOj1uo44TrXm0MNJWXe7GWP1wR":
-                # Use mock mode if no valid API key
-                self.client = None
-                self.api_key = None
-                self.use_redpill = False
-            else:
-                self.api_key = settings.openai_api_key
-                self.client = OpenAI(api_key=settings.openai_api_key)
-                self.default_model = "gpt-4"
+            # NO MOCK MODE - Fail fast
+            raise Exception("No valid API key found. Set OPENAI_API_KEY or REDPILL_API_KEY environment variable.")
         
         # Define available tools for function calling
         self.tools = self._define_tools()
@@ -467,6 +466,47 @@ Next milestone: {deal.next_milestone or 'Not defined'}
                     print(f"Payload sent: {json.dumps(payload, indent=2)}")
                     raise Exception(f"Redpill AI API error {response.status}: {error_text}")
 
+    async def chat_with_tools(self, messages: List[Dict], tools: List[Dict], tool_choice: str = "auto") -> Dict:
+        """Enhanced chat method with function calling support"""
+        try:
+            if not self.client:
+                return {"content": "AI service not configured. Please set up API keys."}
+            
+            response = self.client.chat.completions.create(
+                model=self.default_model,
+                messages=messages,
+                tools=tools,
+                tool_choice=tool_choice,
+                temperature=0.1,
+                max_tokens=4000  # Increase from default to allow longer responses
+            )
+            
+            message = response.choices[0].message
+            
+            result = {
+                "content": message.content,
+            }
+            
+            if message.tool_calls:
+                result["tool_calls"] = [
+                    {
+                        "id": call.id,
+                        "function": {
+                            "name": call.function.name,
+                            "arguments": call.function.arguments
+                        }
+                    }
+                    for call in message.tool_calls
+                ]
+            
+            return result
+            
+        except Exception as e:
+            return {
+                "content": f"Error generating response: {str(e)}",
+                "error": str(e)
+            }
+
     async def generate_response(
         self,
         prompt: str,
@@ -475,8 +515,7 @@ Next milestone: {deal.next_milestone or 'Not defined'}
     ) -> str:
         """Simple response generation for terminal interactions"""
         if not self.client:
-            # Mock mode
-            return f"Mock response to: {prompt[:100]}..."
+            raise Exception("AI service not configured - no API key available")
         
         try:
             if self.use_redpill:
@@ -534,7 +573,7 @@ Next milestone: {deal.next_milestone or 'Not defined'}
                 response = self.client.chat.completions.create(
                     model=self.default_model,
                     messages=messages,
-                    max_tokens=1000,
+                    max_tokens=4000,
                     temperature=0.7,
                     presence_penalty=0.1,
                     frequency_penalty=0.1
@@ -596,7 +635,7 @@ Next milestone: {deal.next_milestone or 'Not defined'}
                 response = self.client.chat.completions.create(
                     model=self.default_model,
                     messages=messages,
-                    max_tokens=1500,
+                    max_tokens=4000,
                     temperature=0.3,  # Lower temperature for more focused analysis
                     presence_penalty=0.1
                 )
@@ -670,7 +709,7 @@ Description: {company.description}
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Generate a comprehensive investment memo based on this information:\n\n{context_info}\n\nEnsure the memo is detailed, professional, and includes specific analysis and recommendations."}
                 ],
-                max_tokens=3000,
+                max_tokens=4000,
                 temperature=0.3
             )
             
@@ -755,7 +794,7 @@ Be concise but thorough in your responses. Use only English language in all resp
                 response = self.client.chat.completions.create(
                     model=self.default_model,
                     messages=messages,
-                    max_tokens=2000,
+                    max_tokens=4000,
                     temperature=0.7,
                     tools=self.tools,
                     tool_choice="auto"
