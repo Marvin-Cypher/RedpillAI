@@ -25,6 +25,19 @@ export class AdvancedTerminalRenderer {
    * Render response with proper text flow management (like Gemini CLI)
    */
   renderResponse(content: string, data?: any): void {
+    // Enhanced table detection - check for financial data that could benefit from better formatting
+    const isFinancialTable = this.isFinancialTable(content);
+    
+    // If content is already formatted (contains markdown elements), render it directly
+    if (content && content.includes('|') && content.includes('-')) {
+      // Check if we should enhance this table with colors for CLI
+      if (isFinancialTable && process.env.NODE_ENV !== 'production') {
+        console.log('💡 Detected financial table - consider using enhanced formatting');
+      }
+      console.log(content);
+      return;
+    }
+    
     // Clear any existing content and prepare for rendering
     const contentBlocks = this.parseContent(content);
     
@@ -45,6 +58,22 @@ export class AdvancedTerminalRenderer {
     if (data?.charts) {
       this.renderCharts(data.charts);
     }
+  }
+
+  /**
+   * Detect if content contains financial tables that could benefit from enhanced formatting
+   */
+  private isFinancialTable(content: string): boolean {
+    if (!content || !content.includes('|')) return false;
+    
+    const financialKeywords = [
+      'price', 'symbol', 'change', 'volume', 'market cap', 'revenue',
+      'portfolio', 'holdings', 'quote', 'stock', 'ticker', '$', '%',
+      'gain', 'loss', 'return', 'yield'
+    ];
+    
+    const lowerContent = content.toLowerCase();
+    return financialKeywords.some(keyword => lowerContent.includes(keyword));
   }
 
   /**

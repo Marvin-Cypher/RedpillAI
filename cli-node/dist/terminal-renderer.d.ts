@@ -17,6 +17,10 @@ export declare class AdvancedTerminalRenderer {
      */
     renderResponse(content: string, data?: any): void;
     /**
+     * Detect if content contains financial tables that could benefit from enhanced formatting
+     */
+    private isFinancialTable;
+    /**
      * Parse content into renderable blocks (similar to Gemini's MarkdownDisplay)
      */
     private parseContent;
