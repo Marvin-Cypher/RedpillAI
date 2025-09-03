@@ -19,6 +19,7 @@ from ..services.market_data_service import MarketDataService
 from ..services.company_service import CompanyService
 from ..services.portfolio_service import PortfolioService
 from ..services.unified_chroma_service import UnifiedChromaService
+from ..services.table_formatter import FinancialTableFormatter, format_quotes_table, format_portfolio_table
 
 
 class ToolResult(BaseModel):
@@ -41,6 +42,7 @@ class IntelligentToolsService:
         self.company_service = CompanyService()
         self.portfolio_service = PortfolioService()
         self.chroma_service = UnifiedChromaService()
+        self.table_formatter = FinancialTableFormatter()
     
     async def get_tool_definitions(self) -> List[Dict[str, Any]]:
         """Get OpenAI function calling definitions for all tools"""
@@ -459,6 +461,83 @@ class IntelligentToolsService:
                         "required": ["symbol", "asset_type"]
                     }
                 }
+            },
+            {
+                "type": "function", 
+                "function": {
+                    "name": "generate_multi_asset_comparison_chart",
+                    "description": "Generate comparative analysis chart for multiple assets/stocks. Shows relative performance with normalized percentage returns. Perfect for comparing multiple stocks, sectors, or asset classes side-by-side.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "symbols": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of asset symbols to compare (e.g., ['PANW', 'CRWD', 'FTNT'] or ['BTC', 'ETH', 'SOL'])"
+                            },
+                            "asset_type": {
+                                "type": "string",
+                                "enum": ["equity", "crypto"],
+                                "description": "Type of assets to compare"
+                            },
+                            "period": {
+                                "type": "string",
+                                "enum": ["1m", "3m", "6m", "1y", "2y", "5y"],
+                                "description": "Time period for comparison",
+                                "default": "1y"
+                            },
+                            "save_to_portfolio": {
+                                "type": "boolean",
+                                "description": "Save chart to user portfolio for future reference",
+                                "default": True
+                            },
+                            "auto_open": {
+                                "type": "boolean", 
+                                "description": "Automatically open chart in browser",
+                                "default": True
+                            }
+                        },
+                        "required": ["symbols", "asset_type"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "format_financial_table",
+                    "description": "Format financial data into enhanced color-coded tables for CLI display. Use when presenting live market data, quotes, portfolio holdings, or comparative financial analysis that would benefit from visual formatting.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "data": {
+                                "type": "array",
+                                "items": {"type": "object"},
+                                "description": "Array of data objects to format as table"
+                            },
+                            "table_type": {
+                                "type": "string",
+                                "enum": ["quotes", "portfolio", "companies", "general"],
+                                "description": "Type of table for optimal formatting"
+                            },
+                            "format": {
+                                "type": "string",
+                                "enum": ["rich", "markdown", "simple"],
+                                "description": "Output format - 'rich' for CLI colors, 'markdown' for general use",
+                                "default": "rich"
+                            },
+                            "title": {
+                                "type": "string",
+                                "description": "Optional table title"
+                            },
+                            "highlight_changes": {
+                                "type": "boolean",
+                                "description": "Whether to highlight positive/negative changes with colors",
+                                "default": True
+                            }
+                        },
+                        "required": ["data", "table_type"]
+                    }
+                }
             }
         ]
         
@@ -498,6 +577,10 @@ class IntelligentToolsService:
                 return await self._openbb_market_overview(**arguments)
             elif tool_name == "generate_interactive_chart":
                 return await self._generate_interactive_chart(**arguments)
+            elif tool_name == "generate_multi_asset_comparison_chart":
+                return await self._generate_multi_asset_comparison_chart(**arguments)
+            elif tool_name == "format_financial_table":
+                return await self._format_financial_table(**arguments)
             else:
                 # Check if it's an OpenBB tool from the registry
                 if openbb_registry.get_tool_definition(tool_name):
@@ -626,6 +709,12 @@ class IntelligentToolsService:
                 
                 formatted_companies.append(formatted_company)
             
+            # Automatically format company data as clean box table for CLI display
+            formatted_table = self.table_formatter.create_clean_box_table(
+                data=formatted_companies,
+                currency_columns=["market_cap"] if any("market_cap" in company for company in formatted_companies) else []
+            )
+            
             message = f"Found {len(formatted_companies)} companies matching '{query}'"
             if sectors:
                 message += f" in sectors: {', '.join(sectors)}"
@@ -634,12 +723,16 @@ class IntelligentToolsService:
             if region:
                 message += f" in {region}"
             
+            # Add formatted table to message
+            message += f"\n\n{formatted_table}"
+            
             return ToolResult(
                 success=True,
                 message=message,
                 data={
                     "companies": formatted_companies,
                     "total": len(formatted_companies),
+                    "formatted_table": formatted_table,
                     "filters_applied": {
                         "sectors": sectors,
                         "exclude_sectors": exclude_sectors,
@@ -1479,8 +1572,8 @@ class IntelligentToolsService:
                 # Auto-open in browser if requested
                 if auto_open:
                     import webbrowser
-                    # Use the chart directly since chart-viewer has routing issues
-                    chart_url = f"http://localhost:3002{result['chart_url']}"
+                    # Open from frontend server at port 3000 where charts are actually served
+                    chart_url = f"http://localhost:3000{result['chart_url']}"
                     print(f"🌐 Opening chart in browser: {chart_url}")
                     webbrowser.open(chart_url)
                 
@@ -1505,7 +1598,7 @@ class IntelligentToolsService:
                         "asset_type": asset_type,
                         "period": period,
                         "chart_url": result["chart_url"],
-                        "web_viewer_url": f"http://localhost:3002{result['chart_url']}",
+                        "web_viewer_url": f"http://localhost:3000{result['chart_url']}",
                         "interactive": True,
                         "saved_to_portfolio": save_to_portfolio,
                         "auto_opened": auto_open,
@@ -1527,6 +1620,75 @@ class IntelligentToolsService:
                 success=False,
                 message=f"Chart generation error: {str(e)}",
                 data={"error": str(e), "symbol": symbol}
+            )
+    
+    async def _generate_multi_asset_comparison_chart(
+        self,
+        symbols: list[str],
+        asset_type: str,
+        period: str = "1y",
+        save_to_portfolio: bool = True,
+        auto_open: bool = True
+    ) -> ToolResult:
+        """
+        Generate multi-asset comparison chart showing relative performance
+        """
+        
+        try:
+            self.logger.info(f"Generating multi-asset comparison chart for {symbols} ({asset_type})")
+            
+            # Use OpenBB Direct API for multi-asset comparison
+            result = await openbb_direct.get_multi_asset_comparison_chart(
+                symbols=symbols,
+                asset_type=asset_type,
+                period=period,
+                save_to_portfolio=save_to_portfolio
+            )
+            
+            if result["success"]:
+                # Auto-open in browser if requested
+                if auto_open:
+                    import webbrowser
+                    chart_url = f"http://localhost:3000{result['chart_url']}"
+                    print(f"🌐 Opening comparison chart in browser: {chart_url}")
+                    webbrowser.open(chart_url)
+                
+                # Record as creation (TODO: Create multi-asset recording method)
+                # creation_id = await creation_recorder.record_comparison_creation(...)
+                
+                successful_symbols = result.get("symbols", symbols)
+                failed_symbols = result.get("failed_symbols", [])
+                
+                return ToolResult(
+                    success=True,
+                    message=f"✅ Multi-asset comparison chart generated for {', '.join(successful_symbols)}! Opening in web browser...",
+                    data={
+                        "symbols": successful_symbols,
+                        "failed_symbols": failed_symbols,
+                        "asset_type": asset_type,
+                        "period": period,
+                        "chart_url": result["chart_url"],
+                        "web_viewer_url": result["web_viewer_url"],
+                        "interactive": True,
+                        "saved_to_portfolio": save_to_portfolio,
+                        "auto_opened": auto_open,
+                        "data_points": result.get("data_points", 0),
+                        "chart_type": "multi_asset_comparison"
+                    }
+                )
+            else:
+                return ToolResult(
+                    success=False,
+                    message=f"Comparison chart generation failed: {result.get('error', 'Unknown error')}",
+                    data={"symbols": symbols, "error": result.get("error")}
+                )
+            
+        except Exception as e:
+            self.logger.error(f"Multi-asset comparison chart error: {e}")
+            return ToolResult(
+                success=False,
+                message=f"Comparison chart error: {str(e)}",
+                data={"error": str(e), "symbols": symbols}
             )
     
     async def _store_chart_metadata(
@@ -1558,3 +1720,69 @@ class IntelligentToolsService:
             
         except Exception as e:
             self.logger.error(f"Error storing chart metadata: {e}")
+
+    async def _format_financial_table(
+        self,
+        data: List[Dict[str, Any]],
+        table_type: str = "general",
+        format: str = "rich",
+        title: Optional[str] = None,
+        highlight_changes: bool = True
+    ) -> ToolResult:
+        """Format financial data into enhanced tables for better CLI display"""
+        try:
+            if not data:
+                return ToolResult(
+                    success=False,
+                    message="No data provided for table formatting"
+                )
+
+            # Determine currency and percentage columns based on table type
+            currency_columns = []
+            percentage_columns = []
+            
+            if table_type == "quotes":
+                currency_columns = ["price", "open", "high", "low", "close", "last", "bid", "ask"]
+                percentage_columns = ["change_percent", "change_pct", "pct_change"]
+            elif table_type == "portfolio":
+                currency_columns = ["price", "cost", "value", "unrealized_pl", "market_value", "cost_basis"]
+                percentage_columns = ["change_percent", "weight", "return", "allocation", "pct_return"]
+            elif table_type == "companies":
+                currency_columns = ["market_cap", "revenue", "price", "enterprise_value"]
+                percentage_columns = ["growth_rate", "margin", "return", "yield"]
+
+            # Use clean box table for CLI (like Gemini)
+            if format == "rich" or format == "clean":
+                formatted_table = self.table_formatter.create_clean_box_table(
+                    data=data,
+                    currency_columns=currency_columns,
+                    percentage_columns=percentage_columns
+                )
+            else:
+                # Use regular formatting for markdown/simple
+                formatted_table = self.table_formatter.format_financial_table(
+                    data=data,
+                    format_type=format,
+                    title=title,
+                    highlight_changes=highlight_changes,
+                    currency_columns=currency_columns,
+                    percentage_columns=percentage_columns
+                )
+
+            return ToolResult(
+                success=True,
+                message=formatted_table,
+                data={
+                    "table_type": table_type,
+                    "format": format,
+                    "row_count": len(data),
+                    "column_count": len(data[0].keys()) if data else 0
+                }
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error formatting financial table: {e}")
+            return ToolResult(
+                success=False,
+                message=f"Table formatting failed: {str(e)}"
+            )

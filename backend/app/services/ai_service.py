@@ -478,7 +478,7 @@ Next milestone: {deal.next_milestone or 'Not defined'}
                 tools=tools,
                 tool_choice=tool_choice,
                 temperature=0.1,
-                max_tokens=4000  # Increase from default to allow longer responses
+                max_tokens=8000  # Increased to prevent truncation of complex tables/responses
             )
             
             message = response.choices[0].message
@@ -573,7 +573,7 @@ Next milestone: {deal.next_milestone or 'Not defined'}
                 response = self.client.chat.completions.create(
                     model=self.default_model,
                     messages=messages,
-                    max_tokens=4000,
+                    max_tokens=8000,
                     temperature=0.7,
                     presence_penalty=0.1,
                     frequency_penalty=0.1
@@ -635,7 +635,7 @@ Next milestone: {deal.next_milestone or 'Not defined'}
                 response = self.client.chat.completions.create(
                     model=self.default_model,
                     messages=messages,
-                    max_tokens=4000,
+                    max_tokens=8000,
                     temperature=0.3,  # Lower temperature for more focused analysis
                     presence_penalty=0.1
                 )
@@ -794,7 +794,7 @@ Be concise but thorough in your responses. Use only English language in all resp
                 response = self.client.chat.completions.create(
                     model=self.default_model,
                     messages=messages,
-                    max_tokens=4000,
+                    max_tokens=8000,
                     temperature=0.7,
                     tools=self.tools,
                     tool_choice="auto"

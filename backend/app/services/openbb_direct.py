@@ -113,7 +113,7 @@ class OpenBBDirect:
                 "symbol": symbol,
                 "asset_type": "crypto",
                 "period": period,
-                "chart_path": chart_path,
+                "chart_path": str(chart_path),
                 "chart_url": f"/charts/{chart_path.name}",
                 "interactive": True,
                 "data_points": len(data.results) if hasattr(data, 'results') else 0,
@@ -135,7 +135,7 @@ class OpenBBDirect:
         provider: str = "yfinance",
         save_to_portfolio: bool = True
     ) -> Dict[str, Any]:
-        """Generate equity price chart with OpenBB Python API"""
+        """Generate equity price chart with robust provider fallbacks"""
         
         if not OPENBB_AVAILABLE:
             return {
@@ -143,39 +143,310 @@ class OpenBBDirect:
                 "error": "OpenBB not available"
             }
         
+        # Provider fallback chain - ordered by reliability and speed
+        providers = [
+            provider,  # User requested provider first
+            "fmp",     # Financial Modeling Prep - reliable
+            "polygon", # Polygon.io - high quality
+            "alpha_vantage", # Alpha Vantage - solid backup
+            "yfinance", # Yahoo Finance - free fallback
+            "tiingo",  # Tiingo - additional backup
+            "cboe"     # CBOE - options/indices specialist
+        ]
+        
+        # Remove duplicates while preserving order
+        providers = list(dict.fromkeys(providers))
+        
+        last_error = None
+        
+        for attempt_provider in providers:
+            try:
+                self.logger.info(f"Attempting equity chart for {symbol} using {attempt_provider}")
+                
+                # Get equity historical data with chart
+                data = obb.equity.price.historical(
+                    symbol=symbol,
+                    provider=attempt_provider,
+                    chart=True
+                )
+                
+                # Save chart for web UI
+                chart_path = await self._save_chart(data, symbol, "equity", period)
+                
+                # Store in user portfolio
+                if save_to_portfolio:
+                    await self._store_chart_in_portfolio(symbol, chart_path, "equity", period)
+                
+                self.logger.info(f"✅ Successfully generated equity chart for {symbol} using {attempt_provider}")
+                return {
+                    "success": True,
+                    "symbol": symbol,
+                    "asset_type": "equity",
+                    "period": period,
+                    "provider_used": attempt_provider,
+                    "chart_path": str(chart_path),
+                    "chart_url": f"/charts/{chart_path.name}",
+                    "interactive": True,
+                    "data_points": len(data.results) if hasattr(data, 'results') else 0,
+                    "source": f"OpenBB Direct API ({attempt_provider})"
+                }
+                
+            except Exception as e:
+                last_error = str(e)
+                self.logger.warning(f"Failed to get equity chart for {symbol} using {attempt_provider}: {e}")
+                continue  # Try next provider
+        
+        # All providers failed
+        self.logger.error(f"All providers failed for equity chart {symbol}. Last error: {last_error}")
+        return {
+            "success": False,
+            "error": f"All data providers failed. Last error: {last_error}",
+            "symbol": symbol,
+            "providers_attempted": providers
+        }
+    
+    async def get_multi_asset_comparison_chart(
+        self,
+        symbols: list[str],
+        period: str = "1y",
+        asset_type: str = "equity",
+        provider: str = "yfinance",
+        save_to_portfolio: bool = True
+    ) -> Dict[str, Any]:
+        """Generate multi-asset comparison chart with robust provider fallbacks"""
+        
+        if not OPENBB_AVAILABLE:
+            return {
+                "success": False,
+                "error": "OpenBB not available"
+            }
+        
+        # Provider fallback chain
+        providers = [
+            provider,
+            "fmp",
+            "polygon", 
+            "alpha_vantage",
+            "yfinance",
+            "tiingo"
+        ]
+        providers = list(dict.fromkeys(providers))
+        
+        last_error = None
+        combined_data = {}
+        successful_symbols = []
+        
+        # Fetch data for each symbol
+        for symbol in symbols:
+            for attempt_provider in providers:
+                try:
+                    self.logger.info(f"Fetching data for {symbol} using {attempt_provider}")
+                    
+                    if asset_type == "equity":
+                        data = obb.equity.price.historical(
+                            symbol=symbol,
+                            provider=attempt_provider,
+                            chart=False  # We'll create our own comparison chart
+                        )
+                    else:  # crypto
+                        data = obb.crypto.price.historical(
+                            symbol=symbol,
+                            provider=attempt_provider,
+                            chart=False
+                        )
+                    
+                    # Store the data
+                    combined_data[symbol] = data
+                    successful_symbols.append(symbol)
+                    self.logger.info(f"✅ Successfully fetched data for {symbol} using {attempt_provider}")
+                    break  # Success, move to next symbol
+                    
+                except Exception as e:
+                    last_error = str(e)
+                    self.logger.warning(f"Failed to fetch data for {symbol} using {attempt_provider}: {e}")
+                    continue
+        
+        if not successful_symbols:
+            return {
+                "success": False,
+                "error": f"Failed to fetch data for any symbols. Last error: {last_error}",
+                "symbols": symbols,
+                "providers_attempted": providers
+            }
+        
+        # Create comparison chart
         try:
-            # Get equity historical data with chart
-            data = obb.equity.price.historical(
-                symbol=symbol,
-                provider=provider,
-                chart=True
+            import pandas as pd
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+            
+            # Prepare data for comparison
+            comparison_df = pd.DataFrame()
+            
+            for symbol in successful_symbols:
+                data = combined_data[symbol]
+                if hasattr(data, 'results') and data.results:
+                    df = data.to_df()
+                    if not df.empty:
+                        # Normalize to percentage change from start
+                        df['normalized'] = (df['close'] / df['close'].iloc[0] - 1) * 100
+                        comparison_df[symbol] = df['normalized']
+            
+            if comparison_df.empty:
+                return {
+                    "success": False,
+                    "error": "No valid data retrieved for comparison chart"
+                }
+            
+            # Create the comparison chart
+            fig = go.Figure()
+            
+            colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7c7c']
+            
+            for i, symbol in enumerate(comparison_df.columns):
+                fig.add_trace(go.Scatter(
+                    x=comparison_df.index,
+                    y=comparison_df[symbol],
+                    mode='lines',
+                    name=f'{symbol}',
+                    line=dict(color=colors[i % len(colors)], width=2),
+                    hovertemplate=f'<b>{symbol}</b><br>Date: %{{x}}<br>Return: %{{y:.2f}}%<extra></extra>'
+                ))
+            
+            fig.update_layout(
+                title=dict(
+                    text=f'Multi-Asset Comparison: {", ".join(successful_symbols)} ({period})',
+                    x=0.5,
+                    font=dict(size=16, color='white')
+                ),
+                xaxis_title="Date",
+                yaxis_title="Percentage Return (%)",
+                template="plotly_dark",
+                hovermode='x unified',
+                height=600,
+                showlegend=True,
+                legend=dict(
+                    yanchor="top",
+                    y=0.99,
+                    xanchor="left",
+                    x=0.01,
+                    bgcolor="rgba(0,0,0,0.5)"
+                )
             )
             
-            # Save chart for web UI
-            chart_path = await self._save_chart(data, symbol, "equity", period)
+            # Save the comparison chart
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            symbols_str = "_vs_".join(successful_symbols)
+            filename = f"{symbols_str}_comparison_{period}_{timestamp}.html"
+            chart_path = self.charts_dir / filename
             
-            # Store in user portfolio
-            if save_to_portfolio:
-                await self._store_chart_in_portfolio(symbol, chart_path, "equity", period)
+            chart_html = fig.to_html(
+                include_plotlyjs='cdn',
+                config={'displayModeBar': True, 'responsive': True}
+            )
+            
+            # Extract just the Plotly chart content (between body tags) from the generated HTML
+            import re
+            body_match = re.search(r'<body[^>]*>(.*?)</body>', chart_html, re.DOTALL)
+            if body_match:
+                chart_content = body_match.group(1)
+            else:
+                chart_content = chart_html
+            
+            # Also extract any script tags from the head
+            script_match = re.findall(r'(<script[^>]*>.*?</script>)', chart_html, re.DOTALL)
+            scripts = '\n'.join(script_match) if script_match else ''
+            
+            full_html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>Multi-Asset Comparison: {", ".join(successful_symbols)} | RedPill Intelligence</title>
+    <meta charset="utf-8">
+    <style>
+        body {{ 
+            margin: 0; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }}
+        .header {{ 
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }}
+        .header p {{
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }}
+        .chart-container {{ 
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 600px;
+        }}
+        .badge {{
+            display: inline-block;
+            padding: 4px 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 8px;
+        }}
+    </style>
+    {scripts}
+</head>
+<body>
+    <div class="header">
+        <h1>📊 RedPill Intelligence | Multi-Asset Comparison</h1>
+        <p>
+            <span class="badge">📈 {len(successful_symbols)} Assets</span>
+            <span class="badge">📅 {period.upper()} Period</span>
+            <span class="badge">⏰ {timestamp}</span>
+        </p>
+        <p style="margin-top: 15px;">
+            <strong>Comparing:</strong> {" vs ".join(successful_symbols)}
+        </p>
+    </div>
+    <div class="chart-container">
+        {chart_content}
+    </div>
+</body>
+</html>"""
+            
+            with open(chart_path, 'w', encoding='utf-8') as f:
+                f.write(full_html)
+            
+            self.logger.info(f"✅ Multi-asset comparison chart saved: {chart_path}")
             
             return {
                 "success": True,
-                "symbol": symbol,
-                "asset_type": "equity",
+                "symbols": successful_symbols,
+                "failed_symbols": [s for s in symbols if s not in successful_symbols],
+                "asset_type": asset_type,
                 "period": period,
-                "chart_path": chart_path,
+                "chart_path": str(chart_path),
                 "chart_url": f"/charts/{chart_path.name}",
+                "web_viewer_url": f"http://localhost:3000/charts/{chart_path.name}",
                 "interactive": True,
-                "data_points": len(data.results) if hasattr(data, 'results') else 0,
-                "source": "OpenBB Direct API"
+                "data_points": len(comparison_df),
+                "source": "OpenBB Multi-Asset Comparison"
             }
             
         except Exception as e:
-            self.logger.error(f"Equity chart generation error for {symbol}: {e}")
+            self.logger.error(f"Failed to create comparison chart: {e}")
             return {
                 "success": False,
-                "error": str(e),
-                "symbol": symbol
+                "error": f"Failed to create comparison chart: {str(e)}",
+                "symbols": symbols
             }
     
     async def _save_chart(
@@ -200,25 +471,80 @@ class OpenBBDirect:
                     config={'displayModeBar': True, 'responsive': True}
                 )
                 
-                # Wrap in full HTML document for iframe embedding
-                full_html = f"""
-<!DOCTYPE html>
+                # Extract just the Plotly chart content (between body tags) from the generated HTML
+                import re
+                body_match = re.search(r'<body[^>]*>(.*?)</body>', chart_html, re.DOTALL)
+                if body_match:
+                    chart_content = body_match.group(1)
+                else:
+                    chart_content = chart_html
+                
+                # Also extract any script tags from the head
+                script_match = re.findall(r'(<script[^>]*>.*?</script>)', chart_html, re.DOTALL)
+                scripts = '\n'.join(script_match) if script_match else ''
+                
+                # Wrap in full HTML document with RedPill branding
+                full_html = f"""<!DOCTYPE html>
 <html>
 <head>
-    <title>{symbol} - {asset_type.title()} Chart</title>
+    <title>{symbol} - {asset_type.title()} Price Chart | RedPill Intelligence</title>
     <meta charset="utf-8">
     <style>
-        body {{ margin: 0; padding: 10px; background: #1a1a1a; }}
-        .chart-container {{ width: 100%; height: 100vh; }}
+        body {{ 
+            margin: 0; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }}
+        .header {{ 
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }}
+        .header p {{
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }}
+        .chart-container {{ 
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 600px;
+        }}
+        .badge {{
+            display: inline-block;
+            padding: 4px 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 8px;
+        }}
     </style>
+    {scripts}
 </head>
 <body>
+    <div class="header">
+        <h1>📊 RedPill Intelligence | {symbol} Price Chart</h1>
+        <p>
+            <span class="badge">📈 {asset_type.upper()}</span>
+            <span class="badge">📅 {period.upper()} Period</span>
+            <span class="badge">⏰ {timestamp}</span>
+        </p>
+    </div>
     <div class="chart-container">
-        {chart_html}
+        {chart_content}
     </div>
 </body>
-</html>
-                """
+</html>"""
                 
                 with open(chart_path, 'w', encoding='utf-8') as f:
                     f.write(full_html)

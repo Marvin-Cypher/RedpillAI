@@ -97,6 +97,7 @@ from .api import terminal  # AI-first terminal (legacy)
 from .api import claude_terminal_api  # New Claude Code-style terminal
 from .api.v2 import terminal as terminal_v2  # V2 Terminal with Claude Code intelligence
 from .api.v1 import search
+from .api import intelligence  # Investment intelligence service
 
 # Temporarily disable routers with forward reference issues until we fix Pydantic models
 # from .api import portfolio, workflows, metrics, gp_dashboard, dashboards  
@@ -115,6 +116,7 @@ app.include_router(claude_terminal_api.router, prefix="/api/v1/claude", tags=["c
 app.include_router(terminal_v2.router, prefix="/api/v2/terminal", tags=["terminal-v2"])  # V2 Production system
 app.include_router(config.router, prefix="/api/v1/config", tags=["configuration"])
 app.include_router(creations.router, prefix="/api/v1", tags=["investment-crm"])  # Universal Creation Recording System
+app.include_router(intelligence.router, tags=["intelligence"])  # Investment Intelligence API
 
 # Temporarily disabled routers until Pydantic forward reference issues are fixed
 # app.include_router(portfolio.router, prefix="/api/v1/portfolio", tags=["portfolio"])

@@ -32,7 +32,12 @@ import {
   Activity,
   Sparkles,
   Users,
-  Terminal
+  Terminal,
+  Rocket,
+  Brain,
+  BookOpen,
+  Eye,
+  Zap
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Logo } from "@/components/logo"
@@ -181,6 +186,50 @@ export const sidebarData: SidebarData = {
           title: "Notifications & Alerts",
           url: "/notifications",
           icon: Bell,
+        },
+      ],
+    },
+    {
+      title: "🚀 RedPill Intelligence",
+      items: [
+        {
+          title: "Portal",
+          url: "/portal",
+          icon: Rocket,
+        },
+        {
+          title: "Investment CRM",
+          url: "/investment-crm", 
+          icon: Briefcase,
+        },
+        {
+          title: "Chart Viewer",
+          url: "/chart-viewer",
+          icon: BarChart3,
+        },
+        {
+          title: "Portfolio Intelligence",
+          url: "/portfolio-intelligence",
+          icon: Brain,
+          badge: "BETA"
+        },
+        {
+          title: "Research Workspace", 
+          url: "/research-workspace",
+          icon: BookOpen,
+          badge: "BETA"
+        },
+        {
+          title: "Market Intelligence",
+          url: "/market-intelligence",
+          icon: Activity,
+          badge: "SOON"
+        },
+        {
+          title: "Trading Signals",
+          url: "/trading-signals", 
+          icon: Zap,
+          badge: "SOON"
         },
       ],
     },

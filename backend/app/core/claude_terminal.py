@@ -113,6 +113,18 @@ class ClaudeTerminal:
 
 🔥 CRITICAL: You have access to the user's ID in the message context. When users ask about their personal data ("my portfolio", "my tracking list", "my companies"), automatically use the provided user_id to call appropriate tools. Never ask for user identification - use what's provided in the context.
 
+📊 OUTPUT FORMATTING RULES:
+- When creating tables, ALWAYS provide COMPLETE data - never truncate rows or columns
+- Include ALL requested companies/items in your analysis, not just a subset
+- Format tables properly with all columns visible and complete information
+- Do not abbreviate or truncate content to save space - provide full details
+
+🎯 CRITICAL TABLE FORMATTING RULE:
+- ALWAYS use the format_financial_table tool for ANY table containing financial data (companies, quotes, fundamentals, comparisons)
+- Set format="rich" for clean box-drawing tables (┌─┬─┐) that are CLI-friendly
+- Do NOT use markdown tables for financial data - they are harder to read in terminal
+- Use table_type="companies" for company comparisons, "quotes" for market data, "portfolio" for holdings
+
 Trust your intelligence. Understand semantically. Choose tools wisely. Provide professional investment insights.
 """
     
@@ -152,19 +164,31 @@ Trust your intelligence. Understand semantically. Choose tools wisely. Provide p
                 else:
                     message_content += f"❌ {tool_name} failed: {tool_result.message or 'Unknown error'}\n\n"
             
-            # Let AI synthesize final response based on tool results
-            synthesis_prompt = f"""
+            # Check if tool results already contain formatted tables - if so, use them directly
+            if message_content and any("┌" in msg and "┐" in msg for msg in message_content.split("\n")):
+                # Tool result already contains clean box tables - use as-is
+                pass
+            else:
+                # Let AI synthesize final response based on tool results
+                synthesis_prompt = f"""
 Original query: {original_query}
 
 Tool results: {json.dumps(combined_data, indent=2)}
 
+🎯 CRITICAL: If the tool results contain a "formatted_table" field, you MUST use that exact table formatting in your response instead of creating new tables. The formatted_table contains clean box-drawing characters (┌─┬─┐) optimized for CLI display.
+
 Based on these tool results, provide a comprehensive answer to the user's query. 
-Format the response professionally with proper organization, charts/tables if appropriate,
-and actionable insights.
+Format the response professionally with proper organization, and actionable insights.
+If there is a "formatted_table" in the data, display it prominently.
 """
-            
-            final_response = await self.ai_service.generate_response(synthesis_prompt)
-            message_content = final_response or "Analysis completed successfully"
+                
+                # Use increased max_tokens for complete table output
+                final_response = await self.ai_service.generate_response(
+                    synthesis_prompt, 
+                    max_tokens=8000,  # Increased to prevent table truncation
+                    temperature=0.3   # Lower temperature for consistent formatting
+                )
+                message_content = final_response or "Analysis completed successfully"
             
         else:
             # AI provided direct response without tools
