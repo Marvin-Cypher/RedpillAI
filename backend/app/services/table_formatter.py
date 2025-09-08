@@ -8,6 +8,8 @@ from typing import Dict, Any, List, Optional, Literal
 from rich.console import Console
 from rich.table import Table
 from tabulate import tabulate
+from pathlib import Path
+import pandas as pd
 import re
 
 
@@ -15,10 +17,14 @@ TableFormat = Literal["rich", "markdown", "simple", "grid", "github"]
 
 
 class FinancialTableFormatter:
-    """Enhanced table formatter optimized for financial data display"""
+    """Enhanced table formatter optimized for financial data display with smart OpenBB integration"""
     
     def __init__(self):
         self.console = Console()
+        # Thresholds for determining when to use OpenBB vs clean box tables
+        self.MAX_CLI_ROWS = 15
+        self.MAX_CLI_COLUMNS = 8
+        self.MAX_CELL_LENGTH = 50
     
     def format_financial_table(
         self,
@@ -297,6 +303,289 @@ class FinancialTableFormatter:
             return f"**{value}**"
         
         return str(value)
+    
+    def should_use_openbb_table(self, data: List[Dict[str, Any]]) -> bool:
+        """
+        Determine if data should use OpenBB interactive tables instead of clean box tables
+        
+        Returns True when:
+        - Too many rows (>15)
+        - Too many columns (>8) 
+        - Content is too wide (cells >50 chars)
+        - Data would benefit from interactive features (sorting, filtering)
+        """
+        if not data:
+            return False
+            
+        num_rows = len(data)
+        num_columns = len(data[0].keys()) if data else 0
+        
+        # Check row/column limits
+        if num_rows > self.MAX_CLI_ROWS or num_columns > self.MAX_CLI_COLUMNS:
+            return True
+            
+        # Check content complexity
+        for row in data:
+            for value in row.values():
+                if str(value) and len(str(value)) > self.MAX_CELL_LENGTH:
+                    return True
+                    
+        # Check for data types that benefit from OpenBB tables
+        financial_keywords = ['price', 'volume', 'market_cap', 'revenue', 'earnings', 'pe_ratio', 'dividend']
+        column_names = [col.lower() for col in data[0].keys()] if data else []
+        
+        # If >4 financial columns, prefer interactive OpenBB tables
+        financial_col_count = sum(1 for col in column_names if any(keyword in col for keyword in financial_keywords))
+        if financial_col_count > 4:
+            return True
+            
+        return False
+        
+    def create_openbb_table_recommendation(self, data: List[Dict[str, Any]]) -> str:
+        """
+        Create a message recommending OpenBB interactive tables for complex data
+        """
+        num_rows = len(data)
+        num_columns = len(data[0].keys()) if data else 0
+        
+        reasons = []
+        if num_rows > self.MAX_CLI_ROWS:
+            reasons.append(f"{num_rows} rows (>{self.MAX_CLI_ROWS} recommended for CLI)")
+        if num_columns > self.MAX_CLI_COLUMNS:
+            reasons.append(f"{num_columns} columns (>{self.MAX_CLI_COLUMNS} recommended for CLI)")
+            
+        reason_text = ", ".join(reasons)
+        
+        return f"""
+📊 **Large Dataset Detected** ({reason_text})
+
+For better experience with this data, consider using OpenBB's interactive tables:
+
+```python
+import openbb as obb
+
+# Your data query here, then:
+data.charting.table()  # Interactive table with sorting, filtering, search
+```
+
+**Interactive Features Available:**
+- ✅ Column sorting and filtering  
+- ✅ Search across all data
+- ✅ Adjustable column widths
+- ✅ Export capabilities
+- ✅ Pagination for large datasets
+
+**CLI Preview** (first {min(10, len(data))} rows):
+{self.create_clean_box_table(data[:10])}
+        """.strip()
+    
+    def create_openbb_interactive_table(self, data: List[Dict[str, Any]]) -> str:
+        """
+        Create actual OpenBB interactive table using the OpenBB Platform
+        Generates HTML file and opens it in browser like OpenBB does
+        """
+        try:
+            # Import required modules
+            import sys
+            import tempfile
+            import webbrowser
+            import os
+            from datetime import datetime
+            sys.path.append('/Users/marvin/redpill-project/openbb-source/openbb_platform')
+            
+            import pandas as pd
+            
+            # Convert data to DataFrame
+            df = pd.DataFrame(data)
+            
+            # Create OpenBB-style interactive HTML table
+            table_id = f"openbb_table_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OpenBB Interactive Table</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+        }}
+        .openbb-container {{
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }}
+        .openbb-header {{
+            background: #2563eb;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }}
+        .table-container {{
+            overflow-x: auto;
+            max-height: 600px;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }}
+        th {{
+            background: #f8f9fa;
+            font-weight: 600;
+            padding: 12px;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            user-select: none;
+        }}
+        th:hover {{
+            background: #e9ecef;
+        }}
+        td {{
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }}
+        tr:hover {{
+            background: rgba(37, 99, 235, 0.05);
+        }}
+        .search-box {{
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }}
+        .search-input {{
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 14px;
+        }}
+        .footer {{
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            font-size: 12px;
+            color: #6c757d;
+        }}
+    </style>
+</head>
+<body>
+    <div class="openbb-container">
+        <div class="openbb-header">
+            <h1>📊 OpenBB Interactive Table</h1>
+            <p>Sortable • Searchable • Responsive</p>
+        </div>
+        <div class="search-box">
+            <input type="text" class="search-input" placeholder="Search across all columns..." id="searchInput" onkeyup="filterTable()">
+        </div>
+        <div class="table-container">
+            {df.to_html(table_id=table_id, escape=False, index=False, classes="interactive-table")}
+        </div>
+        <div class="footer">
+            Generated by OpenBB Platform • {len(data)} rows × {len(data[0].keys()) if data else 0} columns • {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+        </div>
+    </div>
+
+    <script>
+        // Table sorting functionality
+        document.querySelectorAll('th').forEach(header => {{
+            header.addEventListener('click', () => {{
+                const table = header.closest('table');
+                const tbody = table.querySelector('tbody');
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                const column = Array.from(header.parentNode.children).indexOf(header);
+                
+                const isNumeric = rows.every(row => {{
+                    const cell = row.cells[column];
+                    return cell && !isNaN(parseFloat(cell.textContent));
+                }});
+                
+                rows.sort((a, b) => {{
+                    const aValue = a.cells[column] ? a.cells[column].textContent.trim() : '';
+                    const bValue = b.cells[column] ? b.cells[column].textContent.trim() : '';
+                    
+                    if (isNumeric) {{
+                        return parseFloat(aValue) - parseFloat(bValue);
+                    }}
+                    return aValue.localeCompare(bValue);
+                }});
+                
+                tbody.innerHTML = '';
+                rows.forEach(row => tbody.appendChild(row));
+            }});
+        }});
+        
+        // Table filtering functionality
+        function filterTable() {{
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toLowerCase();
+            const table = document.querySelector('table');
+            const rows = table.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {{
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(filter) ? '' : 'none';
+            }});
+        }}
+    </script>
+</body>
+</html>
+            """
+            
+            # Save HTML file to charts directory for web access
+            charts_dir = Path("/Users/marvin/redpill-project/frontend/public/charts")
+            charts_dir.mkdir(parents=True, exist_ok=True)
+            
+            html_file = charts_dir / f"{table_id}.html"
+            with open(html_file, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+            
+            # Generate URL for the table - use file:// URL so it works without server
+            table_url = f"file://{html_file.absolute()}"
+            
+            # Auto-open in browser (like OpenBB does)
+            try:
+                webbrowser.open(table_url)
+                browser_opened = True
+            except Exception as e:
+                browser_opened = False
+            
+            return f"""
+🔥 **OpenBB Interactive Table Generated Successfully!**
+
+📊 **Data:** {len(data)} rows × {len(data[0].keys()) if data else 0} columns
+🌐 **URL:** {table_url}
+{'🚀 **Browser:** Opened automatically' if browser_opened else '🔗 **Browser:** Open the URL above manually'}
+
+**Interactive Features:**
+✅ Click column headers to sort
+✅ Use search box to filter data  
+✅ Responsive design with hover effects
+✅ Sticky headers for large datasets
+
+**CLI Preview** (first 5 rows):
+{self.create_clean_box_table(data[:5])}
+            """.strip()
+            
+        except Exception as e:
+            # Fallback to clean box table if OpenBB integration fails
+            return f"""
+⚠️ **OpenBB Table Generation Failed**: {str(e)}
+
+Using clean CLI format instead:
+
+{self.create_clean_box_table(data)}
+            """.strip()
 
 
 def format_portfolio_table(holdings: List[Dict[str, Any]], format_type: TableFormat = "rich") -> str:

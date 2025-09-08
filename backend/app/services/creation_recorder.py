@@ -284,40 +284,78 @@ class UniversalCreationRecorder:
         """Retrieve user's creations with filters"""
         
         try:
-            # Build query filters
-            where_conditions = {"user_id": user_id}
+            # Get all documents from research_reports collection for this user
+            collection = self.chroma_service.collections.get("research_reports")
+            if not collection:
+                return []
             
-            if creation_type:
-                where_conditions["creation_type"] = creation_type.value
-            if category:
-                where_conditions["category"] = category.value
-            
-            # Query ChromaDB using unified service
-            # For now, use existing research reports collection as storage
-            # TODO: Create dedicated creations collection
-            results = {"documents": [], "metadatas": []}
+            # Use ChromaDB's get method to retrieve all documents for user
+            results = collection.get(
+                where={"tenant_id": user_id},
+                limit=limit
+            )
             
             # Convert results back to Creation objects
             creations = []
-            for i, doc in enumerate(results["documents"]):
-                metadata_dict = results["metadatas"][i]
-                
-                # Filter by symbols if specified
-                if symbols and not any(s in metadata_dict.get("symbols", []) for s in symbols):
+            for i, doc_id in enumerate(results["ids"]):
+                try:
+                    doc_content = results["documents"][i]
+                    metadata_dict = results["metadatas"][i]
+                    
+                    # Skip if not our creation format
+                    if "creation_type" not in metadata_dict:
+                        continue
+                    
+                    # Apply filters
+                    if creation_type and metadata_dict.get("creation_type") != creation_type.value:
+                        continue
+                    if category and metadata_dict.get("category") != category.value:
+                        continue
+                    if symbols:
+                        creation_symbols = metadata_dict.get("symbols", [])
+                        if not any(s in creation_symbols for s in symbols):
+                            continue
+                    
+                    # Parse document content
+                    creation_data = json.loads(doc_content)
+                    
+                    # Convert metadata dict to CreationMetadata object
+                    # Handle dataclass conversion
+                    metadata_copy = metadata_dict.copy()
+                    # Remove non-CreationMetadata fields
+                    for key in ["tenant_id", "workspace_id", "ingestion_date", "doc_id"]:
+                        metadata_copy.pop(key, None)
+                    
+                    # Convert flattened fields back to lists/objects
+                    if "symbols" in metadata_copy and isinstance(metadata_copy["symbols"], str):
+                        metadata_copy["symbols"] = metadata_copy["symbols"].split(",") if metadata_copy["symbols"] else []
+                    if "sectors" in metadata_copy and isinstance(metadata_copy["sectors"], str):
+                        metadata_copy["sectors"] = metadata_copy["sectors"].split(",") if metadata_copy["sectors"] else []
+                    if "tags" in metadata_copy and isinstance(metadata_copy["tags"], str):
+                        metadata_copy["tags"] = metadata_copy["tags"].split(",") if metadata_copy["tags"] else []
+                    if "parameters" in metadata_copy and isinstance(metadata_copy["parameters"], str):
+                        metadata_copy["parameters"] = json.loads(metadata_copy["parameters"]) if metadata_copy["parameters"] else {}
+                    
+                    # Convert enum strings back to enums
+                    if "creation_type" in metadata_copy:
+                        metadata_copy["creation_type"] = CreationType(metadata_copy["creation_type"])
+                    if "category" in metadata_copy:
+                        metadata_copy["category"] = CreationCategory(metadata_copy["category"])
+                    
+                    metadata = CreationMetadata(**metadata_copy)
+                    
+                    creation = Creation(
+                        metadata=metadata,
+                        data=creation_data.get("data", {}),
+                        summary=creation_data.get("summary"),
+                        key_insights=creation_data.get("key_insights", [])
+                    )
+                    
+                    creations.append(creation)
+                    
+                except Exception as e:
+                    self.logger.warning(f"Failed to parse creation {doc_id}: {e}")
                     continue
-                
-                # Reconstruct creation object
-                creation_data = json.loads(doc)
-                metadata = CreationMetadata(**metadata_dict)
-                
-                creation = Creation(
-                    metadata=metadata,
-                    data=creation_data.get("data", {}),
-                    summary=creation_data.get("summary"),
-                    key_insights=creation_data.get("key_insights", [])
-                )
-                
-                creations.append(creation)
             
             self.logger.info(f"📚 Retrieved {len(creations)} creations for user {user_id}")
             return creations
@@ -461,6 +499,8 @@ class UniversalCreationRecorder:
     async def _store_creation(self, creation: Creation):
         """Store creation in ChromaDB"""
         try:
+            from .unified_chroma_service import ChromaDocument
+            
             # Prepare document for storage
             document_content = json.dumps({
                 "data": creation.data,
@@ -468,13 +508,49 @@ class UniversalCreationRecorder:
                 "key_insights": creation.key_insights
             })
             
-            # Store in ChromaDB using research_reports collection as fallback
-            await self.chroma_service.store_research_report(
-                user_id=creation.metadata.user_id,
-                report_id=creation.metadata.creation_id,
+            # Create ChromaDocument with serialized metadata
+            metadata_dict = asdict(creation.metadata)
+            # Convert enums to strings for ChromaDB compatibility
+            metadata_dict["creation_type"] = creation.metadata.creation_type.value
+            metadata_dict["category"] = creation.metadata.category.value
+            
+            # Flatten complex fields to strings for ChromaDB compatibility and handle None values
+            if "symbols" in metadata_dict and metadata_dict["symbols"]:
+                metadata_dict["symbols"] = ",".join(metadata_dict["symbols"])
+            else:
+                metadata_dict["symbols"] = ""
+                
+            if "sectors" in metadata_dict and metadata_dict["sectors"]:
+                metadata_dict["sectors"] = ",".join(metadata_dict["sectors"]) 
+            else:
+                metadata_dict["sectors"] = ""
+                
+            if "tags" in metadata_dict and metadata_dict["tags"]:
+                metadata_dict["tags"] = ",".join(metadata_dict["tags"])
+            else:
+                metadata_dict["tags"] = ""
+                
+            if "parameters" in metadata_dict and metadata_dict["parameters"]:
+                metadata_dict["parameters"] = json.dumps(metadata_dict["parameters"])
+            else:
+                metadata_dict["parameters"] = "{}"
+                
+            # Ensure all other fields are not None
+            for key, value in metadata_dict.items():
+                if value is None:
+                    metadata_dict[key] = ""
+            
+            chroma_doc = ChromaDocument(
                 content=document_content,
-                metadata=asdict(creation.metadata),
-                title=creation.metadata.title
+                metadata=metadata_dict,
+                doc_id=creation.metadata.creation_id
+            )
+            
+            # Store in ChromaDB using research_reports collection
+            await self.chroma_service.store_document(
+                collection_name="research_reports",
+                document=chroma_doc,
+                tenant_id=creation.metadata.user_id
             )
             
         except Exception as e:

@@ -4,6 +4,7 @@
  */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+console.log('🔧 CreationAPI using API_BASE:', API_BASE);
 
 export interface CreationSummary {
   creation_id: string;
@@ -95,7 +96,9 @@ export class CreationAPI {
     if (options.symbols?.length) params.append('symbols', options.symbols.join(','));
     if (options.limit) params.append('limit', options.limit.toString());
 
-    const response = await fetch(`${this.baseUrl}/creations/${userId}?${params}`);
+    const fullUrl = `${this.baseUrl}/creations/${userId}?${params}`;
+    console.log('🌐 Fetching creations from:', fullUrl);
+    const response = await fetch(fullUrl);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch creations: ${response.statusText}`);
