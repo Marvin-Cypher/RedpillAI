@@ -2,8 +2,7 @@
 
 ## Overview
 
-Building a **smart CLI assistant for financial workflows** requires combining large language models (LLMs) with finance-specific tools. The goal is similar to Anthropic’s **Claude Code** (a flexible, agentic CLI coding assistant) but focused on finance tasks instead of general coding[\[1\]](https://www.anthropic.com/engineering/claude-code-best-practices#:~:text=We%20recently%20released%20Claude%20Code%2C,Claude%20into%20their%20coding%20workflows). This assistant should let users query and analyze financial data, fetch market information, and model portfolios via natural language commands. Key requirements include:
-
+Building a **smart CLI assistant for financial workflows** requires combining large language models (LLMs) with finance-specific tools. The goal is similar to Anthropic’s **Claude Code** (a flexible, agentic CLI coding assistant) but focused on finance tasks instead of general coding. This assistant should let users query and analyze financial data, fetch market information, and model portfolios via natural language commands. Key requirements include:
 - **Multi-LLM Support** – The system can route requests to different LLMs (GPT-4, Claude, local models, etc.) using a unified API/key management (the “Redpill” key system).
 - **Financial Toolkit Integration** – Deep integration with the **OpenBB SDK** and related finance libraries to provide data and analytics (e.g. stock prices, technical indicators, portfolio metrics).
 - **Local-First Design** – Runs locally by default for privacy (with Python environment and local data/LLM options), but extensible to server/cloud for heavier tasks or multi-user access.
@@ -26,6 +25,14 @@ Building a **smart CLI assistant for financial workflows** requires combining la
 
 This modular approach ensures each part (CLI, LLM interface, finance logic) can be developed and tested in isolation.
 
+- CLI shell: Python + Typer/Click or Node + oclif.
+- Model layer: Provider adapters: OpenAI/Gemini/xAI + local via Ollama. Start with one, abstract behind ModelClient. Open Interpreter shows clean “multi-backend” patterns. 
+- Agent loop: Planner (make subgoals) → Tool call(s) (edit/run/test/web) → Reflector (check results) → Proposer (next step) → Stop when tests pass or user okays. OpenHands is the best reference. 
+- Execution sandbox: Run commands in a jailed env (Docker/Firejail/venv). Default to dry-run, require --allow-run & --allow-net flags. See OpenHands’ command-runner pattern. 
+- Context/RAG: Build repo index (treesitter + embeddings) and auto-attach only relevant files/snippets to prompts. (Aider’s file-scoping approach is a good baseline.) 
+- Tests & eval: ai test → run unit tests; ai bench → SWE-Bench style micro-tasks to prevent regressions (aider maintains SWE-Bench harnesses). 
+- Memory & prompts: Session store (SQLite) for goals/notes; system prompts per command. Keep them short, tool-aware, and idempotent.
+
 ## Key Open-Source Components and Libraries
 
 When building this from scratch, we can leverage several open-source components instead of reinventing the wheel:
@@ -37,6 +44,7 @@ When building this from scratch, we can leverage several open-source components 
 - **Prompt Orchestration & Agent Frameworks:** To implement “agentic” behavior (the LLM deciding to use tools), frameworks like **LangChain** or **Haystack** can help manage complex chains of prompts and tool calls. LangChain, for instance, has an agent tooling system where you can define tools (Python functions with descriptions) that the LLM can invoke via formatted prompts. This could accelerate development of the tool-using logic. However, these frameworks add complexity and may not be strictly necessary for a custom solution. An alternative is a lightweight custom approach: e.g., after getting an LLM’s response draft, check for certain triggers or special syntax that indicate a tool should be used, then handle it in code. The design should remain **flexible** and “unopinionated” about workflow, akin to Claude Code’s philosophy[\[8\]](https://www.anthropic.com/engineering/claude-code-best-practices#:~:text=Claude%20Code%20is%20intentionally%20low,develop%20their%20own%20best%20practices). This means the assistant shouldn’t be rigidly stuck in a single chain-of-thought loop; users might sometimes want a simple direct answer (no tools), and other times allow the assistant to autonomously perform multi-step analysis. A hybrid approach could let the user toggle an “agent mode” on or off (as some projects do). For example, the open-source **PAR GPT** CLI tool can run in a basic LLM mode or an agent mode with tool use[\[9\]](https://github.com/paulrobello/par_gpt#:~:text=,optimized%20resource%20cleanup%20and%20caching).
 - **CLI Framework:** Use a Python CLI framework to handle arguments, subcommands, and help text. **Typer** is a great choice – it’s built on Click but uses Python type hints for clean syntax[\[10\]](https://github.com/fastapi/typer#:~:text=Typer%2C%20build%20great%20CLIs,Based%20on%20Python%20type%20hints)[\[11\]](https://www.realworldml.net/blog/let-s-build-an-ai-coding-assistant#:~:text=Let%27s%20build%20an%20AI%20coding,Ollama%20to%20run%20LLMs%20locally). Typer can easily define commands, options (like --model to choose an LLM, or --no-agent to disable agent tools), and even an interactive mode. For example, using Typer we can create a CLI app:
 
+
 import typer  
 app = typer.Typer()  
 <br/>@app.command()  
@@ -46,6 +54,7 @@ answer = run_assistant(query, model_name=model) # run_assistant encapsulates AI 
 print(answer)  
 <br/>if \__name__ == "\__main_\_":  
 app()
+
 
 This gives us a command ask "What is AAPL stock's P/E ratio?" --model claude out of the box. Typer also supports subcommands if we want to organize features (e.g. history command to show past queries, config to set API keys).  
 Other CLI frameworks: _Click_ (underlying Typer) or _Argparse_ (in stdlib) could be used, but Typer’s developer experience and built-in help generation are superior for this use case.  

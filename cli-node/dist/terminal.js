@@ -48,6 +48,7 @@ const branding_1 = require("./branding");
 const color_utils_1 = require("./color-utils");
 const enhanced_input_1 = require("./enhanced-input");
 const terminal_renderer_1 = require("./terminal-renderer");
+const markdown_renderer_1 = require("./markdown-renderer");
 class RedpillTerminal {
     constructor(options = {}) {
         this.nonInteractive = false;
@@ -82,6 +83,12 @@ class RedpillTerminal {
             terminalWidth: process.stdout.columns || 80,
             terminalHeight: process.stdout.rows || 24,
             colorScheme: this.colorScheme
+        });
+        // Initialize markdown renderer for proper formatting
+        this.markdownRenderer = new markdown_renderer_1.MarkdownRenderer({
+            terminalWidth: process.stdout.columns || 80,
+            colorize: true,
+            showCodeBlockLanguage: true
         });
         // Initialize logging
         console.log('✅ RedpillTerminal initialized with V2 API:', this.apiUrl);
@@ -173,7 +180,7 @@ class RedpillTerminal {
     }
     async checkBackendHealth() {
         try {
-            const response = await axios_1.default.get(`${this.apiUrl.replace('/api/v1', '')}/health`, {
+            const response = await axios_1.default.get(`${this.apiUrl.replace('/api/v2', '')}/health`, {
                 timeout: 5000
             });
             if (response.data.status === 'healthy') {
@@ -390,7 +397,7 @@ class RedpillTerminal {
                     'Content-Type': 'application/json',
                     ...(this.apiKey && { 'Authorization': `Bearer ${this.apiKey}` })
                 },
-                timeout: 60000 // Increased to 60 seconds for complex operations
+                timeout: 120000 // Increased to 120 seconds for complex AI operations
             });
             // Update session ID from intent if provided
             if (response.data.intent?.session_id) {
@@ -434,7 +441,7 @@ class RedpillTerminal {
                                 'Content-Type': 'application/json',
                                 ...(this.apiKey && { 'Authorization': `Bearer ${this.apiKey}` })
                             },
-                            timeout: 60000 // Increased to 60 seconds for complex operations
+                            timeout: 120000 // Increased to 120 seconds for complex AI operations
                         });
                         return {
                             success: retryResponse.data.success,
@@ -451,13 +458,19 @@ class RedpillTerminal {
         }
     }
     displayResult(result) {
-        // Use advanced renderer instead of basic console.log (fixes truncation)
-        this.renderer.renderResponse(result.message, result.data);
+        // Apply markdown rendering first for proper formatting
+        const formattedMessage = this.markdownRenderer.render(result.message);
+        // Output the formatted content
+        console.log(formattedMessage);
+        // Handle additional data through the renderer
+        if (result.data?.table || result.data?.visualization || result.data?.charts) {
+            this.renderer.renderResponse('', result.data);
+        }
         // Handle next steps if present
         if (result.data?.next_steps) {
-            console.log((0, color_utils_1.getChalkColor)('dim')('\nNext steps:'));
+            console.log(chalk_1.default.dim('\nNext steps:'));
             result.data.next_steps.forEach((step) => {
-                console.log((0, color_utils_1.getChalkColor)('dim')(`  • ${step}`));
+                console.log(chalk_1.default.dim(`  • ${step}`));
             });
             console.log(); // Add spacing
         }

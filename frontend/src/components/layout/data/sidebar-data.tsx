@@ -208,6 +208,12 @@ export const sidebarData: SidebarData = {
           icon: BarChart3,
         },
         {
+          title: "AI Workspace",
+          url: "/workspace",
+          icon: Database,
+          badge: "NEW"
+        },
+        {
           title: "Portfolio Intelligence",
           url: "/portfolio-intelligence",
           icon: Brain,

@@ -15,6 +15,7 @@ export declare class RedpillTerminal {
     private colorScheme;
     private enhancedInput;
     private renderer;
+    private markdownRenderer;
     constructor(options?: {
         includeDirectories?: string[];
         nonInteractive?: boolean;

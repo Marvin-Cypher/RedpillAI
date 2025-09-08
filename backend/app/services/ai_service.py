@@ -27,7 +27,8 @@ class AIService:
             self.api_key = settings.REDPILL_API_KEY
             self.client = OpenAI(
                 base_url="https://api.redpill.ai/v1",
-                api_key=settings.REDPILL_API_KEY
+                api_key=settings.REDPILL_API_KEY,
+                timeout=120.0  # 2 minutes timeout for Redpill API
             )
             self.default_model = "phala/gpt-oss-120b"
             self.use_redpill = True
@@ -502,6 +503,9 @@ Next milestone: {deal.next_milestone or 'Not defined'}
             return result
             
         except Exception as e:
+            print(f"DEBUG: AI chat_with_tools error: {str(e)}")
+            print(f"DEBUG: AI client configured: {self.use_redpill}")
+            print(f"DEBUG: Model: {self.default_model}")
             return {
                 "content": f"Error generating response: {str(e)}",
                 "error": str(e)
